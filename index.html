@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>نظام زيارات المندوبين - APC (v2.12)</title>
+<title>نظام زيارات المندوبين - APC (v2.14)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -499,6 +499,16 @@ window.addEventListener('error', ()=>{
     }
   }, 4000);
 });
+// ساعة حراسة مستقلة: حتى لو مفيش خطأ JS ظاهر، لو الاتصال بفايربيز اتعلّق أو بطيء جداً
+// (شبكة ضعيفة، أو دومين الموقع مش مضاف في Authorized domains بإعدادات Authentication)
+// منسيبش المستخدم يستنى شاشة تحميل بلا نهاية - نوريه رسالة واضحة بعد 9 ثواني
+setTimeout(()=>{
+  const ov = document.getElementById('loadOverlay');
+  const appEl = document.getElementById('app');
+  if(ov && ov.style.display!=='none' && appEl && !appEl.classList.contains('show')){
+    showFatalError('الاتصال بطيء جداً أو محظور. تأكد من الإنترنت، ولو المشكلة استمرت راجع: Firebase Console ← Authentication ← Settings ← Authorized domains، وتأكد إن دومين الموقع ده مضاف فيها.');
+  }
+}, 9000);
 
 /* ==========================================================================
    بيانات أولية (Seed): قائمة العملاء المستوردة من ملف قاعدة العملاء
@@ -512,7 +522,7 @@ const SEED_CLAIMS = [{"code": "1001", "name": "الوكيل", "city": "كبار 
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.12';
+const APP_VERSION = '2.14';
 
 function sha256(str){
   const buf = new TextEncoder().encode(str);
@@ -584,6 +594,9 @@ let visitsFirstLoad = true;
 let CHAT_MESSAGES = [];
 let chatUnread = 0;
 let PLANNED_VISITS = [];
+let INVENTORY = [];
+let BONUS_OFFERS = [];
+let inventoryFilters = { q:'', company:'', bonusOnly:false };
 let routePlanState = { repId:'', date: todayISO() };
 let PENDING_WRITES = 0;
 
@@ -621,6 +634,7 @@ const ALL_PAGES = [
   {id:'addvisit',  label:'زيارة جديدة', ic:'📝'},
   {id:'visits',    label:'الزيارات', ic:'📋'},
   {id:'customers', label:'العملاء', ic:'🏥'},
+  {id:'inventory', label:'المخزون', ic:'📦'},
   {id:'reps',      label:'المناديب', ic:'🧑‍💼'},
   {id:'definitions', label:'التعريفات', ic:'⚙️'},
   {id:'claims',     label:'المطالبات', ic:'💵'},
@@ -640,11 +654,11 @@ function defaultPermissionsForRole(role){
   if(role==='admin'){ ALL_PAGES.forEach(x=>p[x.id]=true); return p; }
   if(role==='manager'){ ALL_PAGES.forEach(x=>p[x.id]=true); p.users=false; return p; }
   if(role==='rep'){
-    ['dashboard','teamchat','routeplan','addvisit','visits','claims','customerstatement','citysales'].forEach(id=>p[id]=true);
+    ['dashboard','teamchat','routeplan','addvisit','visits','inventory','claims','customerstatement','citysales'].forEach(id=>p[id]=true);
     return p;
   }
   if(role==='telesales'){
-    ['dashboard','teamchat','followup','customerstatement'].forEach(id=>p[id]=true);
+    ['dashboard','teamchat','followup','inventory','customerstatement'].forEach(id=>p[id]=true);
     return p;
   }
   return p;
@@ -1094,6 +1108,16 @@ function attachListeners(){
     if(currentView==='routeplan') renderView();
   }, err=>console.error('plannedVisits listener', err)));
 
+  unsubs.push(db.collection('inventory').onSnapshot(snap=>{
+    INVENTORY = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(currentView==='inventory') renderView();
+  }, err=>console.error('inventory listener', err)));
+
+  unsubs.push(db.collection('bonusOffers').onSnapshot(snap=>{
+    BONUS_OFFERS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(currentView==='inventory') renderView();
+  }, err=>console.error('bonusOffers listener', err)));
+
   unsubs.push(db.collection('announcements').orderBy('order').onSnapshot(snap=>{
     ANNOUNCEMENTS = snap.docs.map(d=>({id:d.id, ...d.data()}));
     renderTicker();
@@ -1245,6 +1269,7 @@ function renderView(){
     else if(currentView==='followup') main.innerHTML = viewFollowup();
     else if(currentView==='teamchat') main.innerHTML = viewTeamChat();
     else if(currentView==='routeplan') main.innerHTML = viewRoutePlan();
+    else if(currentView==='inventory') main.innerHTML = viewInventory();
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
 
     if(currentView==='dashboard') setTimeout(drawDashboardCharts, 30);
@@ -1728,6 +1753,128 @@ async function removeFromPlan(id){
   const p = db.collection('plannedVisits').doc(id).delete();
   trackWrite(p);
   p.catch(e=>{ console.error(e); toast('فشل الحذف','err'); });
+}
+
+/* ==========================================================================
+   المخزون والبونص (Inventory & Bonus) - استيراد يومي من إكسيل، وعرض للمندوب مع البحث والفلترة
+   ========================================================================== */
+function normalizeArabicKey(s){
+  return String(s||'').trim().replace(/[إأآا]/g,'ا').replace(/ى/g,'ي').replace(/\s+/g,' ');
+}
+function bonusTiersFor(itemName, company){
+  const key = normalizeArabicKey(itemName) + '|' + normalizeArabicKey(company);
+  return BONUS_OFFERS.filter(b=>(normalizeArabicKey(b.itemName)+'|'+normalizeArabicKey(b.company))===key)
+    .sort((a,b)=>(a.qty||0)-(b.qty||0));
+}
+function viewInventory(){
+  const isAdmin = CURRENT_USER.role==='admin';
+  const companies = [...new Set(INVENTORY.map(i=>i.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
+  const q = (inventoryFilters.q||'').trim().toLowerCase();
+  let list = INVENTORY;
+  if(inventoryFilters.company) list = list.filter(i=>i.company===inventoryFilters.company);
+  if(q) list = list.filter(i=>(i.itemName||'').toLowerCase().includes(q) || (i.company||'').toLowerCase().includes(q));
+  if(inventoryFilters.bonusOnly) list = list.filter(i=>bonusTiersFor(i.itemName, i.company).length>0);
+  list = list.slice().sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||'','ar'));
+
+  const bonusCount = INVENTORY.filter(i=>bonusTiersFor(i.itemName, i.company).length>0).length;
+
+  const rows = list.slice(0,400).map(i=>{
+    const tiers = bonusTiersFor(i.itemName, i.company);
+    const bonusHTML = tiers.length
+      ? tiers.map(t=>`<span class="badge badge-teal" style="display:inline-block;margin:1px 3px 1px 0;">🎁 ${t.qty} + ${t.bonusQty} هدية</span>`).join('')
+      : `<span class="smallMuted">-</span>`;
+    return `
+    <tr>
+      <td style="white-space:normal;min-width:180px;">${escapeHTML(i.itemName||'')}</td>
+      <td>${escapeHTML(i.company||'')}</td>
+      <td>${i.publicPrice!=null ? Number(i.publicPrice).toLocaleString('en-US') : '-'}</td>
+      <td>${i.pharmacyDiscount!=null ? i.pharmacyDiscount+'%' : '-'}</td>
+      <td>${bonusHTML}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--gray-500);padding:24px;">لا توجد أصناف مطابقة</td></tr>`;
+
+  const importSection = isAdmin ? `
+    <div class="card" style="margin-bottom:14px;padding:14px;background:var(--gray-100);box-shadow:none;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">📥 استيراد يومي (بيستبدل كل البيانات القديمة بالكامل)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('invFileInput').click()">📦 استيراد ملف المخزون</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('bonusFileInput').click()">🎁 استيراد ملف البونص</button>
+      </div>
+      <input type="file" id="invFileInput" accept=".xlsx,.xls" onchange="handleInventoryExcelImport(this.files[0])" style="display:none;">
+      <input type="file" id="bonusFileInput" accept=".xlsx,.xls" onchange="handleBonusExcelImport(this.files[0])" style="display:none;">
+    </div>` : '';
+
+  return `
+    <div class="pageHead"><div><h2>المخزون</h2><div class="desc">${INVENTORY.length} صنف · ${bonusCount} صنف عليه بونص حالياً</div></div></div>
+    ${importSection}
+    <div class="card">
+      <div class="filterBar">
+        <input type="text" placeholder="ابحث باسم الصنف أو الشركة..." value="${escapeHTML(inventoryFilters.q)}" oninput="inventoryFilters.q=this.value; renderView();" style="min-width:220px;">
+        <select onchange="inventoryFilters.company=this.value; renderView();">
+          <option value="">كل الشركات</option>
+          ${companies.map(c=>`<option value="${escapeHTML(c)}" ${inventoryFilters.company===c?'selected':''}>${escapeHTML(c)}</option>`).join('')}
+        </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" ${inventoryFilters.bonusOnly?'checked':''} onchange="inventoryFilters.bonusOnly=this.checked; renderView();">
+          🎁 عليه بونص فقط
+        </label>
+      </div>
+      <div class="tableWrap"><table><thead><tr>
+        <th>الصنف</th><th>الشركة</th><th>سعر الجمهور</th><th>خصم الصيدلي</th><th>البونص</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>
+      ${list.length>400?`<div class="smallMuted" style="text-align:center;margin-top:8px;">تم عرض أول 400 نتيجة - استخدم البحث لتضييق النتائج</div>`:''}
+    </div>
+  `;
+}
+async function handleInventoryExcelImport(file){
+  if(!file) return;
+  try{
+    toast('جاري قراءة ملف المخزون...','warn');
+    const rawRows = await parseExcelRows(file);
+    const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>({
+      itemName: String(r[0]??'').trim(),
+      company: String(r[1]??'').trim(),
+      publicPrice: Number(r[2])||0,
+      pharmacyDiscount: Number(r[3])||0
+    }));
+    if(!rows.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
+    showImportPreview('المخزون', ['اسم الصنف','اسم الشركة','سعر الجمهور','خصم الصيدلي'],
+      rows.map(r=>[r.itemName,r.company,r.publicPrice,r.pharmacyDiscount]),
+      async ()=>{
+        toast(`جاري استبدال بيانات المخزون (${rows.length} صنف)...`,'warn');
+        await replaceCollectionData('inventory', rows);
+        logAudit('import','inventory', `استيراد ${rows.length} صنف من ملف ${file.name}`);
+        toast('تم تحديث المخزون بنجاح ✔','ok');
+      });
+  }catch(e){
+    console.error(e);
+    toast('فشل استيراد الملف - تأكد من أسماء الأعمدة (اسم الصنف، اسم الشركة، سعر الجمهور، خصم الصيدلي)','err');
+  }
+}
+async function handleBonusExcelImport(file){
+  if(!file) return;
+  try{
+    toast('جاري قراءة ملف البونص...','warn');
+    const rawRows = await parseExcelRows(file);
+    const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>({
+      itemName: String(r[0]??'').trim(),
+      company: String(r[1]??'').trim(),
+      qty: Number(r[2])||0,
+      bonusQty: Number(r[3])||0
+    }));
+    if(!rows.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
+    showImportPreview('عروض البونص', ['اسم الصنف','اسم الشركة','الكمية','البونص'],
+      rows.map(r=>[r.itemName,r.company,r.qty,r.bonusQty]),
+      async ()=>{
+        toast(`جاري استبدال بيانات البونص (${rows.length} عرض)...`,'warn');
+        await replaceCollectionData('bonusOffers', rows);
+        logAudit('import','bonusOffers', `استيراد ${rows.length} عرض بونص من ملف ${file.name}`);
+        toast('تم تحديث عروض البونص بنجاح ✔','ok');
+      });
+  }catch(e){
+    console.error(e);
+    toast('فشل استيراد الملف - تأكد من أسماء الأعمدة (اسم الصنف، اسم الشركة، الكمية، البونص)','err');
+  }
 }
 
 /* ==========================================================================
@@ -2406,7 +2553,7 @@ async function saveUser(id){
 /* ==========================================================================
    BACKUP & RESTORE
    ========================================================================== */
-const BACKUP_COLLECTIONS = ['reps','customers','visits','claims','visitResults','users','announcements','customerSales','citySales','followups','followupResults','appConfig','salesAnalytics','teamChat','plannedVisits'];
+const BACKUP_COLLECTIONS = ['reps','customers','visits','claims','visitResults','users','announcements','customerSales','citySales','followups','followupResults','appConfig','salesAnalytics','teamChat','plannedVisits','inventory','bonusOffers'];
 
 function serializeDoc(d){
   const out = {};
@@ -4304,7 +4451,8 @@ const AUDIT_COLLECTION_LABELS = {
   customers: 'قاعدة العملاء', claims: 'المطالبات', reps: 'المناديب', visits: 'الزيارات',
   visitResults: 'التعريفات', users: 'المستخدمون', announcements: 'الإعلانات', customerSales: 'مبيعات العملاء',
   citySales: 'مبيعات المدن', appConfig: 'إعدادات النظام', followups: 'متابعة العملاء', followupResults: 'نتائج المتابعة',
-  salesAnalytics: 'تحليلات المبيعات', teamChat: 'محادثة الفريق', plannedVisits: 'خطة الزيارات'
+  salesAnalytics: 'تحليلات المبيعات', teamChat: 'محادثة الفريق', plannedVisits: 'خطة الزيارات',
+  inventory: 'المخزون', bonusOffers: 'عروض البونص'
 };
 const AUDIT_ACTION_LABELS = {add:'إضافة', edit:'تعديل', delete:'حذف', import:'استيراد ملف'};
 const AUDIT_ACTION_BADGE = {add:'badge-teal', edit:'badge-blue', delete:'badge-red', import:'badge-amber'};
