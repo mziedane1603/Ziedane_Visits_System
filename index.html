@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>نظام زيارات المندوبين - APC (v2.11)</title>
+<title>نظام زيارات المندوبين - APC (v2.12)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -372,7 +372,7 @@ tbody tr:hover{background:var(--teal-lighter);}
   <div class="loginCard">
     <div class="logo">Z⚡</div>
     <h1>نظام زيارات المندوبين</h1>
-    <p class="sub">شركة العرب للصيدلة - Arab Pharmacists Company</p>
+    <p class="sub">شركة الصيادلة العرب - Arab Pharmacists Company</p>
     <div class="smallMuted" id="verTagLogin" style="margin:-8px 0 14px;"></div>
     <div class="field">
       <label>اسم المستخدم</label>
@@ -512,7 +512,7 @@ const SEED_CLAIMS = [{"code": "1001", "name": "الوكيل", "city": "كبار 
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.11';
+const APP_VERSION = '2.12';
 
 function sha256(str){
   const buf = new TextEncoder().encode(str);
@@ -2922,7 +2922,7 @@ function printLowClaimsReport(){
       <div class="printLogo">Z⚡</div>
       <div>
         <h1>تقرير عملاء بمطالبات أقل من ${fmtMoney(claimsLowReportAmount)}</h1>
-        <div class="printMeta">شركة العرب للصيدلة - APC · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
+        <div class="printMeta">شركة الصيادلة العرب - APC · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
       </div>
     </div>
     <table class="printTable"><thead><tr><th>المنطقة</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>المطالبة</th></tr></thead><tbody>${rows}</tbody></table>
@@ -3105,7 +3105,7 @@ function printClaims(){
       <div class="printLogo">Z⚡</div>
       <div>
         <h1>تقرير المطالبات</h1>
-        <div class="printMeta">شركة العرب للصيدلة - APC · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
+        <div class="printMeta">شركة الصيادلة العرب - APC · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
         <div class="printMeta">${escapeHTML(filterLine)}</div>
       </div>
     </div>
@@ -4954,7 +4954,7 @@ function printGenericReport(title, subtitle, sectionsHTML){
       <div class="printLogo">Z⚡</div>
       <div>
         <h1>${escapeHTML(title)}</h1>
-        <div class="printMeta">شركة العرب للصيدلة · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
+        <div class="printMeta">شركة الصيادلة العرب · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
         ${subtitle ? `<div class="printMeta">${escapeHTML(subtitle)}</div>` : ''}
       </div>
     </div>
