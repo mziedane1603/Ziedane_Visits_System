@@ -1,0 +1,23 @@
+{
+  "name": "نظام زيارات المندوبين - APC",
+  "short_name": "زيارات APC",
+  "description": "تسجيل زيارات المندوبين ومتابعة العملاء والمبيعات",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F7A6B",
+  "theme_color": "#0F7A6B",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "تسجيل زيارة", "url": "./index.html?view=addvisit&source=shortcut", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
+    {"name": "خطة الزيارات", "url": "./index.html?view=routeplan&source=shortcut", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
+    {"name": "المتابعة", "url": "./index.html?view=followup&source=shortcut", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]}
+  ]
+}
