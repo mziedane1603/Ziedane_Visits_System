@@ -15,7 +15,7 @@ service cloud.firestore {
     function isCustomer() { return isSignedIn() && !isStaff() && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
     function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
     // مجموعات ليها قواعد خاصة ومينفعش القاعدة العامة تفتحها
-    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders']; }
+    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders','systemBackups']; }
 
     // ===== المستخدمون =====
     match /users/{uid} {
@@ -42,6 +42,15 @@ service cloud.firestore {
       allow read, create: if isStaff();
       allow delete: if isAdminOrManager() || resource.data.senderUsername == myProfile().username;
       allow update: if false;
+    }
+
+    // ===== النسخ الاحتياطي (مجموعة فرعية chunks جواها) =====
+    // القاعدة العامة بتغطي المستندات الرئيسية بس، فالمجموعات الفرعية لازم قاعدة صريحة وإلا بتتمنع
+    match /systemBackups/{date} {
+      allow read, write: if isAdminOrManager();
+      match /chunks/{cid} {
+        allow read, write: if isAdminOrManager();
+      }
     }
 
     // ===== بوابة العملاء =====

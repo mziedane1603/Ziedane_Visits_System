@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.48)</title>
+<title>نظام زيارات المندوبين - APC (v2.49)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -387,6 +387,28 @@ input,textarea{-webkit-user-select:text;user-select:text;}
 .pwaBar .pwaBtn{background:#fff;color:var(--teal-dark);border:none;border-radius:9px;padding:8px 14px;font-weight:800;font-size:12.5px;}
 .pwaBar .pwaX{background:none;border:none;color:#fff;font-size:16px;padding:4px 6px;opacity:.8;}
 @media(min-width:861px){.pwaBar{max-width:420px;right:auto;left:16px;bottom:16px;}}
+
+/* ================= توفير مساحات ================= */
+.main{padding-top:14px;padding-right:14px;padding-left:14px;}
+.pageHead{margin-bottom:10px;gap:8px;}
+.pageHead h2{font-size:17px;}
+.card{padding:12px 14px;margin-bottom:12px;}
+.grid{gap:10px;}
+.kpi{padding:12px;}
+.kpi .val{font-size:22px;margin-top:2px;}
+.kpi .sub{margin-top:2px;}
+.kpi .ic{width:32px;height:32px;font-size:15px;left:10px;top:10px;}
+thead th{padding:8px 9px;} tbody td{padding:7px 9px;}
+.tabBtn{padding:8px 13px;}
+details.card>summary{cursor:pointer;font-weight:800;font-size:14px;list-style:none;}
+details.card>summary::-webkit-details-marker{display:none;}
+details.card[open]>summary{margin-bottom:10px;}
+@media(max-width:860px){
+  .main{padding-top:10px;padding-right:10px;padding-left:10px;}
+  .card{padding:10px 12px;margin-bottom:10px;}
+  .kpi .val{font-size:20px;}
+  .pageHead h2{font-size:16px;}
+}
 </style>
 </head>
 <body>
@@ -553,7 +575,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.48';
+const APP_VERSION = '2.49';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -708,7 +730,6 @@ const ALL_PAGES = [
   {id:'inventory', label:'المخزون', ic:'📦'},
   {id:'suggestedorders', label:'الطلبيات المقترحة', ic:'🧾'},
   {id:'portalorders', label:'طلبيات البوابة', ic:'🛒'},
-  {id:'company', label:'بيانات الشركة', ic:'🏢'},
   {id:'reps',      label:'المناديب', ic:'🧑‍💼'},
   {id:'repbonus',  label:'حوافز المناديب', ic:'💰'},
   {id:'definitions', label:'التعريفات', ic:'⚙️'},
@@ -786,18 +807,51 @@ function bottomNavItemsFor(user){
   return candidates.filter(c=>perms[c.id]===true);
 }
 
-function navBadgeFor(pageId){
-  if(pageId==='teamchat' && chatUnread>0) return chatUnread>9?'9+':chatUnread;
-  if(pageId==='suggestedorders' && suggOrdersUnread>0) return suggOrdersUnread>9?'9+':suggOrdersUnread;
-  if(pageId==='portalorders'){ const n = PORTAL_ORDERS.filter(o=>(o.status||'new')==='new').length; if(n>0) return n>9?'9+':n; }
-  return null;
+// صفحات متشابهة بتظهر كعنصر واحد في القايمة، وجواها تبويبات للتنقل بينهم (الصلاحيات لسه لكل صفحة لوحدها)
+const NAV_GROUPS = [
+  {id:'g_orders', label:'الطلبيات',        ic:'🧾',   members:['suggestedorders','portalorders']},
+  {id:'g_sales',  label:'المبيعات',        ic:'📈',   members:['customersales','citysales','customerstatement']},
+  {id:'g_comm',   label:'التواصل',         ic:'💬',   members:['teamchat','announcements']},
+  {id:'g_reps',   label:'المناديب',        ic:'🧑‍💼', members:['reps','repbonus']},
+  {id:'g_sys',    label:'المستخدمون والسجل', ic:'🔐', members:['users','auditlog']}
+];
+function navEntriesFor(user){
+  const items = navItemsFor(user), byId = new Map(items.map(i=>[i.id,i])), done = new Set(), out = [];
+  items.forEach(it=>{
+    const g = NAV_GROUPS.find(x=>x.members.includes(it.id));
+    if(!g){ out.push({id:it.id, label:it.label, ic:it.ic, members:[it.id]}); return; }
+    if(done.has(g.id)) return; done.add(g.id);
+    const mem = g.members.filter(m=>byId.has(m));
+    out.push(mem.length===1 ? {id:mem[0], label:byId.get(mem[0]).label, ic:byId.get(mem[0]).ic, members:mem}
+                           : {id:mem[0], label:g.label, ic:g.ic, members:mem});
+  });
+  return out;
 }
+function navBadgeRaw(pageId){
+  if(pageId==='teamchat') return chatUnread||0;
+  if(pageId==='suggestedorders') return suggOrdersUnread||0;
+  if(pageId==='portalorders') return PORTAL_ORDERS.filter(o=>(o.status||'new')==='new').length;
+  return 0;
+}
+function fmtBadge(n){ return n>0 ? (n>9?'9+':n) : null; }
+function navBadgeFor(pageId){ return fmtBadge(navBadgeRaw(pageId)); }
+function navEntryBadge(e){ return fmtBadge(e.members.reduce((a,m)=>a+navBadgeRaw(m),0)); }
+function groupTabsHTML(){
+  const g = NAV_GROUPS.find(x=>x.members.includes(currentView)); if(!g) return '';
+  const allowed = new Set(navItemsFor(CURRENT_USER).map(i=>i.id));
+  const mem = g.members.filter(m=>allowed.has(m)); if(mem.length<2) return '';
+  return `<div class="tabsRow" style="margin-bottom:8px;">` + mem.map(m=>{
+    const pg = ALL_PAGES.find(x=>x.id===m), bd = navBadgeFor(m);
+    return `<button class="tabBtn ${m===currentView?'active':''}" onclick="goTo('${m}')">${pg.ic} ${pg.label}${bd!=null?` <span class="navBadge" style="position:static;display:inline-block;transform:none;">${bd}</span>`:''}</button>`;
+  }).join('') + `</div>`;
+}
+
 function renderNav(){
   const side = document.getElementById('sideNav');
-  side.innerHTML = navItemsFor(CURRENT_USER).map(it=>`
-    <div class="navItem ${currentView===it.id?'active':''}" onclick="goTo('${it.id}')">
+  side.innerHTML = navEntriesFor(CURRENT_USER).map(it=>`
+    <div class="navItem ${it.members.includes(currentView)?'active':''}" onclick="goTo('${it.id}')">
       <span class="ic">${it.ic}</span><span>${it.label}</span>
-      ${navBadgeFor(it.id)!=null ? `<span class="navBadge">${navBadgeFor(it.id)}</span>` : ''}
+      ${navEntryBadge(it)!=null ? `<span class="navBadge">${navEntryBadge(it)}</span>` : ''}
     </div>`).join('');
 
   const bn = document.getElementById('bottomNav');
@@ -831,9 +885,10 @@ function toggleMobileMenu(){
   bg.innerHTML = `
     <div class="mobileMenuSheet">
       <div style="text-align:center;padding:6px 0 12px;font-weight:800;color:var(--gray-900);">كل الصفحات</div>
-      ${navItemsFor(CURRENT_USER).map(it=>`
-        <div class="navItem ${currentView===it.id?'active':''}" onclick="goTo('${it.id}'); document.getElementById('mobileMenuBg')?.remove();">
+      ${navEntriesFor(CURRENT_USER).map(it=>`
+        <div class="navItem ${it.members.includes(currentView)?'active':''}" onclick="goTo('${it.id}'); document.getElementById('mobileMenuBg')?.remove();">
           <span class="ic">${it.ic}</span><span>${it.label}</span>
+          ${navEntryBadge(it)!=null ? `<span class="navBadge">${navEntryBadge(it)}</span>` : ''}
         </div>`).join('')}
     </div>`;
   document.body.appendChild(bg);
@@ -1198,7 +1253,7 @@ function dataNeededForView(view){
     case 'inventory': return ['inventory','bonusOffers'];
     case 'suggestedorders': return ['suggestedOrders','inventory','orderTemplates'];
     case 'portalorders': return ['portalOrders','inventory','bonusOffers','users'];
-    case 'company': return ['companyCfg'];
+    case 'definitions': return ['companyCfg'];
     case 'users': return ['users'];
     default: return [];
   }
@@ -1297,7 +1352,7 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
   DATA_ATTACHERS['companyCfg'] = ()=>{
     unsubs.push(db.collection('appConfig').doc('company').onSnapshot(snap=>{
       COMPANY = snap.exists ? snap.data() : {};
-      if(currentView==='company' && !document.activeElement?.closest?.('#companyForm')) renderView();
+      if(currentView==='definitions' && definitionsTab==='company' && !document.activeElement?.closest?.('#companyForm')) renderView();
     }, err=>console.error('companyCfg listener', err)));
   };
   let portalFirstLoad = true;
@@ -1503,9 +1558,9 @@ function renderView(){
     else if(currentView==='repbonus') main.innerHTML = viewRepBonus();
     else if(currentView==='suggestedorders') main.innerHTML = viewSuggestedOrders();
     else if(currentView==='portalorders') main.innerHTML = viewPortalOrders();
-    else if(currentView==='company') main.innerHTML = viewCompany();
     else if(currentView==='inventory') main.innerHTML = viewInventory();
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
+    { const gt = groupTabsHTML(); if(gt) main.insertAdjacentHTML('afterbegin', gt); }
 
     if(currentView==='dashboard') setTimeout(drawDashboardCharts, 30);
     if(currentView==='dashboard') setTimeout(drawReportCharts, 30);
@@ -1644,9 +1699,9 @@ function topRepsCardHTML(){
             <div class="sub" style="font-weight:800;color:var(--teal-dark);font-size:13px;">${d.fmt(w[d.key])}</div>
             ${others ? `<div class="sub">${others}</div>` : ''}`
           : `<div class="val" style="font-size:15px;color:var(--gray-500);">لا توجد بيانات</div>`}
-      <div class="sub" style="opacity:.8;">${d.note}</div>
     </div>`;
   }).join('');
+  const notesLine = [...new Set(defs.map(d=>d.note))].join(' · ') + (showAll ? ' · نسب مدن المندوب = إجمالي مبيعات (أو عملاء) مدنه ÷ أهدافها (مندوبين على نفس المدينة بياخدوا نفس النسبة)' : '');
   const gridCls = defs.length<=2 ? 'grid-2' : defs.length===4 ? 'grid-4' : 'grid-3';
   return `<div class="card">
     <div class="pageHead" style="margin-bottom:10px;">
@@ -1654,7 +1709,7 @@ function topRepsCardHTML(){
       <input type="month" value="${topRepsMonth}" onchange="topRepsMonth=this.value||topRepsMonth; renderView();">
     </div>
     <div class="grid ${gridCls}">${tiles}</div>
-    ${showAll ? `<div class="smallMuted" style="margin-top:8px;">نسب مدن المندوب = إجمالي مبيعات (أو عملاء) مدنه ÷ إجمالي أهدافها. لو أكتر من مندوب على نفس المدينة هياخدوا نفس النسبة.</div>` : ''}
+    <div class="smallMuted" style="margin-top:6px;font-size:11.5px;">${notesLine}</div>
   </div>`;
 }
 function viewDashboard(){
@@ -2633,13 +2688,12 @@ async function saveCompany(){
     toast('تم حفظ بيانات الشركة ✔','ok');
   }catch(e){ console.error(e); toast('فشل الحفظ: ' + (e.code==='permission-denied' ? 'الصلاحيات (حدّث قواعد Firestore)' : (e.message||e.code||'خطأ')),'err'); }
 }
-function viewCompany(){
+function companyCardHTML(){
   const isAdmin = CURRENT_USER.role==='admin';
   const logo = companyLogoDraft===undefined ? COMPANY.logo : companyLogoDraft;
   const val = k => escapeHTML(COMPANY[k]||'');
   const fld = (id,label,k,ph='') => `<div class="field"><label>${label}</label><input id="${id}" value="${val(k)}" placeholder="${ph}" ${isAdmin?'':'disabled'}></div>`;
   return `
-    <div class="pageHead"><div><h2>🏢 بيانات الشركة</h2><div class="smallMuted">اسم الشركة واللوجو والبيانات الأساسية (الاسم واللوجو بيظهروا في بوابة العملاء)</div></div></div>
     <div class="card" id="companyForm">
       <div class="field"><label>لوجو الشركة</label>
         <div id="coLogoBox" style="border:2px dashed var(--teal);border-radius:14px;padding:14px;text-align:center;max-width:300px;background:#fff;">
@@ -2675,8 +2729,8 @@ function viewPortalOrders(){
   const availCount = INVENTORY.filter(i=>Number(i.quantity)>0).length;
   const notifyOpts = ['<option value="">— بدون مستلم —</option>'].concat(USERS.filter(u=>u.active!==false).map(u=>`<option value="${escapeHTML(u.id)}" ${PORTAL_CFG.notifyUid===u.id?'selected':''}>${escapeHTML(u.name||u.username||'')} (${escapeHTML(u.role||'')})</option>`)).join('');
   const adminPanel = isAdmin ? `
-    <div class="card" style="margin-bottom:12px;">
-      <h2 style="font-size:14px;margin:0 0 10px;">⚙️ إعدادات البوابة</h2>
+    <details class="card" style="margin-bottom:10px;">
+      <summary>⚙️ إعدادات البوابة (المستلم، نشر الأصناف، تفعيل العملاء)</summary>
       <div class="field"><label>👤 المستخدم اللي بيوصله إشعار كل طلبية جديدة</label>
         <select onchange="savePortalNotifyUser(this.value)">${notifyOpts}</select></div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
@@ -2686,7 +2740,7 @@ function viewPortalOrders(){
       </div>
       <div class="smallMuted">آخر نشر للأصناف: ${portalFmtTs(PORTAL_CFG.catalogPublishedAt)}${PORTAL_CFG.catalogCount?` (${PORTAL_CFG.catalogCount} صنف)`:''} · آخر تفعيل للعملاء: ${portalFmtTs(PORTAL_CFG.accountsPublishedAt)}${PORTAL_CFG.accountsCount?` (${PORTAL_CFG.accountsCount} عميل)`:''}<br>
       انشر الأصناف بعد كل استيراد مخزون أو بونص جديد. العملاء بيشوفوا الأسعار والخصومات والبونص بس، من غير الكميات.</div>
-    </div>` : '';
+    </details>` : '';
   const notifyBox = isPortalNotifyUser() && ('Notification' in window) && Notification.permission==='default'
     ? `<div class="card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:13px;">🔔 فعّل إشعارات الجهاز عشان توصلك الطلبيات الجديدة</span><button class="btn btn-primary btn-sm" onclick="requestPortalNotif()">تفعيل</button></div>` : '';
   const rows = list.slice(0, portalShown).map(o=>{
@@ -3919,7 +3973,16 @@ function viewDefinitions(){
       <button class="tabBtn ${definitionsTab==='results'?'active':''}" onclick="definitionsTab='results'; renderView();">نتيجة الزيارة (مندوبين)</button>
       <button class="tabBtn ${definitionsTab==='followup'?'active':''}" onclick="definitionsTab='followup'; renderView();">نتيجة المتابعة (تلي سيلز)</button>
       <button class="tabBtn ${definitionsTab==='targets'?'active':''}" onclick="definitionsTab='targets'; renderView();">أهداف المناديب</button>
+      <button class="tabBtn ${definitionsTab==='company'?'active':''}" onclick="definitionsTab='company'; renderView();">🏢 بيانات الشركة</button>
     </div>`;
+
+  if(definitionsTab==='company') return `
+    <div class="pageHead">
+      <div><h2>التعريفات</h2><div class="desc">الاسم واللوجو بيظهروا كمان في بوابة العملاء</div></div>
+    </div>
+    ${tabs}
+    ${companyCardHTML()}
+  `;
 
   if(definitionsTab==='targets') return `
     <div class="pageHead">
@@ -7265,7 +7328,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.48 - تشمل بوابة العملاء وبيانات الشركة): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.49 - تشمل بوابة العملاء وبيانات الشركة والنسخ الاحتياطي): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -7285,7 +7348,7 @@ service cloud.firestore {
     function isCustomer() { return isSignedIn() && !isStaff() && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
     function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
     // مجموعات ليها قواعد خاصة ومينفعش القاعدة العامة تفتحها
-    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders']; }
+    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders','systemBackups']; }
 
     // ===== المستخدمون =====
     match /users/{uid} {
@@ -7312,6 +7375,15 @@ service cloud.firestore {
       allow read, create: if isStaff();
       allow delete: if isAdminOrManager() || resource.data.senderUsername == myProfile().username;
       allow update: if false;
+    }
+
+    // ===== النسخ الاحتياطي (مجموعة فرعية chunks جواها) =====
+    // القاعدة العامة بتغطي المستندات الرئيسية بس، فالمجموعات الفرعية لازم قاعدة صريحة وإلا بتتمنع
+    match /systemBackups/{date} {
+      allow read, write: if isAdminOrManager();
+      match /chunks/{cid} {
+        allow read, write: if isAdminOrManager();
+      }
     }
 
     // ===== بوابة العملاء =====
