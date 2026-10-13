@@ -21,15 +21,19 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
       allow create, delete: if isAdmin();
+      // المستخدم يحدّث حضوره، ويقدر يقفل علم "لازم يغيّر كلمة المرور" (يتحط false بس) بعد ما يغيّرها
       allow update: if isAdmin() ||
         (isSignedIn() && request.auth.uid == uid &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt','currentPage']));
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt','currentPage','mustChangePassword']) &&
+         (!('mustChangePassword' in request.resource.data.diff(resource.data).affectedKeys()) ||
+          request.resource.data.mustChangePassword == false));
     }
 
     // ===== إعدادات النظام =====
     match /appConfig/{id} {
       allow read: if id == 'version' || isStaff();
-      allow write: if isAdmin();
+      // الأدمن يكتب أي إعداد، والمدير يعدّل قواعد الحوافز وحدود المدن بس
+      allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds']);
     }
 
     // ===== محادثة الفريق =====
