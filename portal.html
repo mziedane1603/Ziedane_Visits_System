@@ -267,7 +267,8 @@ async function loadCatalog(){
 function prep(items){
   ITEMS = items.map((x,i)=>{
     const p = Number(x.p)||0, d = Number(x.d)||0;
-    return {i, n:x.n||'', c:x.c||'', p, d, net: p*(1-d/100), b:(x.b||[]).slice().sort((a,b)=>a[0]-b[0]), k: norm(x.n+' '+x.c)};
+    const b = (x.b||[]).map(tr=>Array.isArray(tr) ? [Number(tr[0]),Number(tr[1])] : [Number(tr.q),Number(tr.g)]).filter(tr=>tr[0]>0 && tr[1]>0).sort((a,b)=>a[0]-b[0]);
+    return {i, n:x.n||'', c:x.c||'', p, d, net: p*(1-d/100), b, k: norm(x.n+' '+x.c)};
   });
 }
 

@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.46)</title>
+<title>نظام زيارات المندوبين - APC (v2.47)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -553,7 +553,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.46';
+const APP_VERSION = '2.47';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -2515,7 +2515,8 @@ async function publishPortalCatalog(){
   const items = INVENTORY.filter(i=>i.itemName && Number(i.quantity)>0).map(i=>({
     n: String(i.itemName), c: String(i.company||''),
     p: Number(i.publicPrice)||0, d: Number(i.pharmacyDiscount)||0,
-    b: bonusTiersFor(i.itemName, i.company).map(t=>[Number(t.qty)||0, Number(t.bonusQty)||0]).filter(t=>t[0]>0 && t[1]>0)
+    // ملحوظة: Firestore مبيقبلش مصفوفة جوه مصفوفة، فشرائح البونص بتتخزن {q: الكمية, g: الهدية}
+    b: bonusTiersFor(i.itemName, i.company).map(t=>({q: Number(t.qty)||0, g: Number(t.bonusQty)||0})).filter(t=>t.q>0 && t.g>0)
   })).sort((a,b)=>a.n.localeCompare(b.n,'ar'));
   if(!items.length){ toast('مفيش أصناف كميتها أكبر من صفر في المخزون','err'); return; }
   if(!confirm(`هيتم نشر ${items.length} صنف متاح للعملاء بأسعارها وخصوماتها والبونص (بدون الكميات).\nمتابعة؟`)) return;
@@ -2532,7 +2533,7 @@ async function publishPortalCatalog(){
     await batch.commit();
     if(typeof logAudit==='function') logAudit('edit','catalog',`نشر كتالوج العملاء (${items.length} صنف)`);
     toast(`تم نشر ${items.length} صنف للعملاء ✔`,'ok');
-  }catch(e){ console.error(e); toast('فشل النشر - راجع قواعد Firestore','err'); }
+  }catch(e){ console.error(e); toast('فشل النشر: ' + (e.code==='permission-denied' ? 'الصلاحيات (راجع قواعد Firestore)' : (e.message||e.code||'خطأ غير معروف')),'err'); }
 }
 // تفعيل العملاء: بيكتب قايمة الأكواد المسموح لها تدخل البوابة (portalAccounts) - وبيوقف اللي اتشالوا
 async function publishPortalAccounts(){
@@ -2561,7 +2562,7 @@ async function publishPortalAccounts(){
     await db.collection('appConfig').doc('portal').set({accountsPublishedAt: firebase.firestore.FieldValue.serverTimestamp(), accountsCount: seen.size}, {merge:true});
     if(typeof logAudit==='function') logAudit('edit','portalAccounts',`تفعيل حسابات البوابة (${seen.size} عميل)`);
     toast(`تم تفعيل ${seen.size} عميل ✔`,'ok');
-  }catch(e){ console.error(e); toast('فشل التفعيل - راجع قواعد Firestore','err'); }
+  }catch(e){ console.error(e); toast('فشل التفعيل: ' + (e.code==='permission-denied' ? 'الصلاحيات (راجع قواعد Firestore)' : (e.message||e.code||'خطأ غير معروف')),'err'); }
 }
 function viewPortalOrders(){
   const isAdmin = CURRENT_USER.role==='admin';
