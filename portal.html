@@ -2,12 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>بوابة الطلبيات - APC</title>
+<title>بوابة الطلبيات</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0F7A6B">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="طلبيات APC">
+<meta name="apple-mobile-web-app-title" content="طلبيات زيدان">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="robots" content="noindex">
 <link rel="manifest" href="portal.webmanifest">
@@ -29,7 +29,8 @@ input,textarea{font-family:inherit;font-size:16px;}
 #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,var(--teal),var(--teal-d));}
 .lbox{background:#fff;border-radius:20px;padding:26px 22px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center;}
 .lbox img{width:72px;height:72px;border-radius:18px;margin-bottom:8px;}
-.lbox h1{font-size:19px;margin:4px 0 2px;} .lbox p{margin:0 0 16px;color:var(--g5);font-size:12.5px;}
+.lbox .coName{font-size:22px;font-weight:900;color:var(--teal-d);margin-top:2px;letter-spacing:.3px;}
+.lbox h1{font-size:15px;margin:2px 0 4px;color:var(--g5);font-weight:700;} .lbox p{margin:0 0 16px;color:var(--g5);font-size:12.5px;}
 .fld{text-align:right;margin-bottom:12px;} .fld label{display:block;font-size:12px;color:var(--g5);margin-bottom:4px;font-weight:600;}
 .fld input{width:100%;padding:12px;border:1.5px solid var(--g2);border-radius:12px;background:#fff;}
 .fld input:focus{outline:none;border-color:var(--teal);}
@@ -108,12 +109,14 @@ textarea{width:100%;border:1.5px solid var(--g2);border-radius:12px;padding:10px
 <div id="login">
   <div class="lbox">
     <img src="icon-192.png" alt="" onerror="this.remove()">
+    <div class="coName" id="coName"></div>
     <h1>بوابة الطلبيات</h1>
     <p>اطلب أصنافك بسهولة وشوف الأسعار والخصومات والبونص</p>
     <div class="fld"><label>كود العميل</label><input id="lCode" inputmode="text" autocomplete="username" autocapitalize="off" placeholder="مثال: 1025"></div>
     <div class="fld"><label>كلمة المرور</label><div class="pw"><input id="lPw" type="password" autocomplete="current-password" placeholder="••••••"><button type="button" onclick="togglePw()" aria-label="إظهار">👁</button></div></div>
     <button class="btn" id="lBtn" onclick="doLogin()">دخول</button>
     <div class="msg" id="lMsg"></div>
+    <button class="btn sec hidden" id="lInst" style="margin-top:12px;" onclick="installApp()">📲 ثبّت التطبيق على موبايلك</button>
     <div class="hint">أول مرة؟ كلمة المرور هي <b>كود العميل</b> نفسه. بعد الدخول غيّرها من زر 🔑.</div>
   </div>
 </div>
@@ -154,8 +157,12 @@ const firebaseConfig = {
   messagingSenderId: "1076462425398",
   appId: "1:1076462425398:web:0f733369830624b236cf97"
 };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth(), db = firebase.firestore();
+// اسم الشركة (بيظهر في صفحة الدخول وأعلى الصفحة) - غيّره هنا لو محتاج
+const COMPANY_NAME = 'زيدان';
+// تطبيق Firebase باسم منفصل 'portal' = جلسة دخول مستقلة عن النظام الداخلي في نفس المتصفح
+// (من غير كده تسجيل دخول العميل كان بيطرد حساب الموظف والعكس)
+const fbApp = firebase.initializeApp(firebaseConfig, 'portal');
+const auth = fbApp.auth(), db = fbApp.firestore();
 const EMAIL_DOMAIN = '@portal.apc.local';
 const PAGE = 40;
 
@@ -200,12 +207,15 @@ async function doLogin(){
 function errText(e){
   if(e.code==='auth/network-request-failed') return 'مفيش اتصال بالإنترنت';
   if(e.code==='auth/too-many-requests') return 'محاولات كتير، استنى شوية وجرب تاني';
+  if(e.code==='permission-denied' || /permission/i.test(e.message||'')) return 'الحساب غير مفعّل بعد أو الصلاحيات لم تُفعَّل. كلّم الإدارة.';
+  if(e.code==='auth/operation-not-allowed') return 'الدخول بالبريد غير مفعّل في Firebase';
   return 'حصلت مشكلة، حاول تاني';
 }
 function fail(m){ $('lMsg').textContent = m; $('lBtn').disabled=false; $('lBtn').textContent='دخول'; }
 $('lPw').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 $('lCode').addEventListener('keydown',e=>{ if(e.key==='Enter') $('lPw').focus(); });
 
+$('coName').textContent = COMPANY_NAME; document.title = 'بوابة طلبيات ' + COMPANY_NAME;
 auth.onAuthStateChanged(async u=>{
   if(!u){ ME=null; $('app').classList.add('hidden'); $('cartBar').classList.add('hidden'); $('login').classList.remove('hidden'); $('lBtn').disabled=false; $('lBtn').textContent='دخول'; return; }
   if(!u.email || !u.email.endsWith(EMAIL_DOMAIN)){ await auth.signOut(); fail('هذا الحساب غير مخصص للبوابة'); return; }
@@ -232,7 +242,7 @@ function logout(){ if(confirm('تسجيل الخروج؟')) auth.signOut(); }
 /* ===== الدخول للتطبيق وتحميل الكتالوج ===== */
 async function enterApp(){
   $('login').classList.add('hidden'); $('app').classList.remove('hidden');
-  $('whoName').textContent = ME.name; $('whoSub').textContent = 'كود ' + ME.key + (ME.city ? ' · ' + ME.city : '');
+  $('whoName').textContent = ME.name; $('whoSub').textContent = COMPANY_NAME + ' · كود ' + ME.key + (ME.city ? ' · ' + ME.city : '');
   $('pwWarn').classList.toggle('hidden', ME.pwChanged);
   try{ const s = localStorage.getItem('apcCart_'+ME.key); window._savedCart = s ? JSON.parse(s) : null; }catch(_){ window._savedCart = null; }
   $('list').innerHTML = '<div class="spin"></div>';
@@ -430,9 +440,23 @@ function closeSheet(){ $('ovRoot').innerHTML=''; }
 
 /* ===== تثبيت التطبيق + Service Worker ===== */
 let _inst=null;
-window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); _inst=e; $('instBtn').classList.remove('hidden'); });
-window.addEventListener('appinstalled',()=>{ _inst=null; $('instBtn').classList.add('hidden'); });
-async function installApp(){ if(!_inst) return; _inst.prompt(); try{ await _inst.userChoice; }catch(_){} _inst=null; $('instBtn').classList.add('hidden'); }
+const IS_STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+function refreshInstall(){
+  const can = !IS_STANDALONE && (_inst || IS_IOS);
+  ['lInst','instBtn'].forEach(id=>{ const b=$(id); if(b) b.classList.toggle('hidden', !can); });
+}
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); _inst=e; refreshInstall(); });
+window.addEventListener('appinstalled',()=>{ _inst=null; refreshInstall(); toast('تم تثبيت التطبيق ✔'); });
+async function installApp(){
+  if(_inst){ _inst.prompt(); try{ await _inst.userChoice; }catch(_){} _inst=null; refreshInstall(); return; }
+  if(IS_IOS){
+    showSheet(`<div class="sheet"><div class="sh"><h3>تثبيت التطبيق على الآيفون</h3><button class="ib" onclick="closeSheet()">✕</button></div>
+      <div class="sb"><ol style="line-height:2.1;padding-right:20px;margin:6px 0;font-size:14px;"><li>افتح الرابط من متصفح <b>Safari</b></li><li>اضغط زر المشاركة <b>⬆️</b> أسفل الشاشة</li><li>اختار <b>إضافة إلى الشاشة الرئيسية</b></li><li>اضغط <b>إضافة</b></li></ol></div>
+      <div class="sf"><button class="btn" onclick="closeSheet()">تمام</button></div></div>`);
+  }else{ toast('للتثبيت: من قائمة المتصفح ⋮ اختار «تثبيت التطبيق»'); }
+}
+refreshInstall();
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
 </script>
 </body>
