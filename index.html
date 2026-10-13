@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.47)</title>
+<title>نظام زيارات المندوبين - APC (v2.48)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -553,7 +553,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.47';
+const APP_VERSION = '2.48';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -659,6 +659,8 @@ let SUGGESTED_ORDERS = [];
 let ORDER_TEMPLATES = [];
 let suggOrderState = {customer:null, items:[], note:''};
 let suggOrdersUnread = 0;
+let COMPANY = {};          // appConfig/company (بيانات الشركة)
+let companyLogoDraft, companyLogoSmallDraft;   // undefined = من غير تغيير، null = حذف، نص = لوجو جديد
 let PORTAL_CFG = {};      // appConfig/portal (المستخدم المستلم للإشعارات + آخر نشر)
 let PORTAL_ORDERS = [];   // طلبيات بوابة العملاء
 let portalFilter = 'new', portalShown = 30;
@@ -706,6 +708,7 @@ const ALL_PAGES = [
   {id:'inventory', label:'المخزون', ic:'📦'},
   {id:'suggestedorders', label:'الطلبيات المقترحة', ic:'🧾'},
   {id:'portalorders', label:'طلبيات البوابة', ic:'🛒'},
+  {id:'company', label:'بيانات الشركة', ic:'🏢'},
   {id:'reps',      label:'المناديب', ic:'🧑‍💼'},
   {id:'repbonus',  label:'حوافز المناديب', ic:'💰'},
   {id:'definitions', label:'التعريفات', ic:'⚙️'},
@@ -1195,6 +1198,7 @@ function dataNeededForView(view){
     case 'inventory': return ['inventory','bonusOffers'];
     case 'suggestedorders': return ['suggestedOrders','inventory','orderTemplates'];
     case 'portalorders': return ['portalOrders','inventory','bonusOffers','users'];
+    case 'company': return ['companyCfg'];
     case 'users': return ['users'];
     default: return [];
   }
@@ -1289,6 +1293,12 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
       renderNav();
       if(currentView==='portalorders') renderView();
     }, err=>console.error('portalCfg listener', err)));
+  };
+  DATA_ATTACHERS['companyCfg'] = ()=>{
+    unsubs.push(db.collection('appConfig').doc('company').onSnapshot(snap=>{
+      COMPANY = snap.exists ? snap.data() : {};
+      if(currentView==='company' && !document.activeElement?.closest?.('#companyForm')) renderView();
+    }, err=>console.error('companyCfg listener', err)));
   };
   let portalFirstLoad = true;
   DATA_ATTACHERS['portalOrders'] = ()=>{
@@ -1493,6 +1503,7 @@ function renderView(){
     else if(currentView==='repbonus') main.innerHTML = viewRepBonus();
     else if(currentView==='suggestedorders') main.innerHTML = viewSuggestedOrders();
     else if(currentView==='portalorders') main.innerHTML = viewPortalOrders();
+    else if(currentView==='company') main.innerHTML = viewCompany();
     else if(currentView==='inventory') main.innerHTML = viewInventory();
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
 
@@ -2564,6 +2575,95 @@ async function publishPortalAccounts(){
     toast(`تم تفعيل ${seen.size} عميل ✔`,'ok');
   }catch(e){ console.error(e); toast('فشل التفعيل: ' + (e.code==='permission-denied' ? 'الصلاحيات (راجع قواعد Firestore)' : (e.message||e.code||'خطأ غير معروف')),'err'); }
 }
+/* ==========================================================================
+   🏢 بيانات الشركة: الاسم واللوجو والبيانات الأساسية (بتظهر كمان في بوابة العملاء)
+   ========================================================================== */
+function resizeImageToDataURL(file, maxW){
+  return new Promise((resolve,reject)=>{
+    const fr = new FileReader();
+    fr.onerror = ()=>reject(new Error('read'));
+    fr.onload = ()=>{
+      const img = new Image();
+      img.onerror = ()=>reject(new Error('img'));
+      img.onload = ()=>{
+        const sc = Math.min(1, maxW/img.width), w = Math.max(1,Math.round(img.width*sc)), h = Math.max(1,Math.round(img.height*sc));
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+        let out = c.toDataURL('image/png');
+        if(out.length > 250000) out = c.toDataURL('image/jpeg', 0.85);
+        resolve(out);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+async function pickCompanyLogo(input){
+  const f = input.files && input.files[0]; if(!f) return;
+  if(!/^image\/(png|jpe?g)$/i.test(f.type)){ toast('اختار صورة PNG أو JPG','err'); return; }
+  if(f.size > 2*1024*1024){ toast('حجم الصورة أكبر من 2MB','err'); return; }
+  try{
+    companyLogoDraft = await resizeImageToDataURL(f, 360);
+    companyLogoSmallDraft = await resizeImageToDataURL(f, 200);
+    const box = document.getElementById('coLogoBox'); if(box) box.innerHTML = `<img src="${companyLogoDraft}" style="max-width:100%;max-height:150px;">`;
+  }catch(e){ console.error(e); toast('تعذّر قراءة الصورة','err'); }
+}
+function removeCompanyLogo(){
+  companyLogoDraft = null; companyLogoSmallDraft = null;
+  const box = document.getElementById('coLogoBox'); if(box) box.innerHTML = '<span class="smallMuted">مفيش لوجو</span>';
+}
+async function saveCompany(){
+  if(CURRENT_USER.role!=='admin'){ toast('الحفظ للأدمن فقط','err'); return; }
+  const v = id => (document.getElementById(id)?.value||'').trim();
+  const data = {
+    name: v('coName'), nameAr: v('coNameAr'), reg: v('coReg'), activity: v('coActivity'),
+    address: v('coAddress'), tax: v('coTax'), year: v('coYear'), phone: v('coPhone'),
+    logo: companyLogoDraft===undefined ? (COMPANY.logo||'') : (companyLogoDraft||''),
+    logoSmall: companyLogoSmallDraft===undefined ? (COMPANY.logoSmall||'') : (companyLogoSmallDraft||''),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.username||''
+  };
+  if(!data.name && !data.nameAr){ toast('اكتب اسم الشركة','err'); return; }
+  try{
+    const b = db.batch();
+    b.set(db.collection('appConfig').doc('company'), data);
+    // نسخة عامة صغيرة (الاسم + لوجو صغير) بتظهر في صفحة دخول بوابة العملاء قبل تسجيل الدخول
+    b.set(db.collection('appConfig').doc('branding'), {name: data.nameAr || data.name, logo: data.logoSmall, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
+    await b.commit();
+    companyLogoDraft = undefined; companyLogoSmallDraft = undefined;
+    toast('تم حفظ بيانات الشركة ✔','ok');
+  }catch(e){ console.error(e); toast('فشل الحفظ: ' + (e.code==='permission-denied' ? 'الصلاحيات (حدّث قواعد Firestore)' : (e.message||e.code||'خطأ')),'err'); }
+}
+function viewCompany(){
+  const isAdmin = CURRENT_USER.role==='admin';
+  const logo = companyLogoDraft===undefined ? COMPANY.logo : companyLogoDraft;
+  const val = k => escapeHTML(COMPANY[k]||'');
+  const fld = (id,label,k,ph='') => `<div class="field"><label>${label}</label><input id="${id}" value="${val(k)}" placeholder="${ph}" ${isAdmin?'':'disabled'}></div>`;
+  return `
+    <div class="pageHead"><div><h2>🏢 بيانات الشركة</h2><div class="smallMuted">اسم الشركة واللوجو والبيانات الأساسية (الاسم واللوجو بيظهروا في بوابة العملاء)</div></div></div>
+    <div class="card" id="companyForm">
+      <div class="field"><label>لوجو الشركة</label>
+        <div id="coLogoBox" style="border:2px dashed var(--teal);border-radius:14px;padding:14px;text-align:center;max-width:300px;background:#fff;">
+          ${logo ? `<img src="${logo}" style="max-width:100%;max-height:150px;">` : '<span class="smallMuted">مفيش لوجو</span>'}
+        </div>
+        ${isAdmin ? `<div style="display:flex;gap:8px;margin-top:8px;">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">📁 ${logo?'تغيير':'اختيار لوجو'}<input type="file" accept="image/png,image/jpeg" style="display:none;" onchange="pickCompanyLogo(this)"></label>
+          ${logo?`<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="removeCompanyLogo()">🗑 حذف</button>`:''}
+        </div><div class="smallMuted" style="margin-top:4px;">PNG أو JPG - الحجم الأقصى 2MB (بيتصغّر تلقائياً)</div>` : ''}
+      </div>
+      <div class="grid grid-2">
+        ${fld('coName','اسم الشركة','name','Arab Pharmacists Company')}
+        ${fld('coNameAr','الاسم اللي بيظهر للعملاء في البوابة (اختياري)','nameAr','شركة الصيادلة العرب')}
+        ${fld('coReg','رقم السجل التجاري','reg')}
+        ${fld('coActivity','النشاط التجاري','activity')}
+        ${fld('coAddress','العنوان','address')}
+        ${fld('coTax','الرقم الضريبي','tax')}
+        ${fld('coPhone','التليفون','phone')}
+        ${fld('coYear','سنة العمل','year')}
+      </div>
+      ${isAdmin ? `<button class="btn btn-primary" style="margin-top:12px;" onclick="saveCompany()">💾 حفظ بيانات الشركة</button>` : '<div class="smallMuted">التعديل للأدمن فقط</div>'}
+    </div>`;
+}
+
 function viewPortalOrders(){
   const isAdmin = CURRENT_USER.role==='admin';
   const map = new Map(); CUSTOMERS.forEach(c=>{ const k=portalKey(c.code); if(k && !map.has(k)) map.set(k,c); });
@@ -7165,7 +7265,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.46 - تشمل بوابة العملاء): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.48 - تشمل بوابة العملاء وبيانات الشركة): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -7201,7 +7301,8 @@ service cloud.firestore {
 
     // ===== إعدادات النظام =====
     match /appConfig/{id} {
-      allow read: if id == 'version' || isStaff();
+      // version و branding (اسم الشركة + لوجو صغير) مقروءين قبل تسجيل الدخول، والباقي للموظفين
+      allow read: if id == 'version' || id == 'branding' || isStaff();
       // الأدمن يكتب أي إعداد، والمدير يعدّل قواعد الحوافز وحدود المدن بس
       allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds']);
     }

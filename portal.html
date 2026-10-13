@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0F7A6B">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="طلبيات زيدان">
+<meta name="apple-mobile-web-app-title" content="طلبيات APC">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="robots" content="noindex">
 <link rel="manifest" href="portal.webmanifest">
@@ -29,6 +29,7 @@ input,textarea{font-family:inherit;font-size:16px;}
 #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,var(--teal),var(--teal-d));}
 .lbox{background:#fff;border-radius:20px;padding:26px 22px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center;}
 .lbox img{width:72px;height:72px;border-radius:18px;margin-bottom:8px;}
+.lbox img.brandLogo{width:auto;height:auto;max-width:210px;max-height:96px;border-radius:0;}
 .lbox .coName{font-size:22px;font-weight:900;color:var(--teal-d);margin-top:2px;letter-spacing:.3px;}
 .lbox h1{font-size:15px;margin:2px 0 4px;color:var(--g5);font-weight:700;} .lbox p{margin:0 0 16px;color:var(--g5);font-size:12.5px;}
 .fld{text-align:right;margin-bottom:12px;} .fld label{display:block;font-size:12px;color:var(--g5);margin-bottom:4px;font-weight:600;}
@@ -108,7 +109,7 @@ textarea{width:100%;border:1.5px solid var(--g2);border-radius:12px;padding:10px
 <!-- تسجيل الدخول -->
 <div id="login">
   <div class="lbox">
-    <img src="icon-192.png" alt="" onerror="this.remove()">
+    <img id="lLogo" src="icon-192.png" alt="">
     <div class="coName" id="coName"></div>
     <h1>بوابة الطلبيات</h1>
     <p>اطلب أصنافك بسهولة وشوف الأسعار والخصومات والبونص</p>
@@ -158,7 +159,7 @@ const firebaseConfig = {
   appId: "1:1076462425398:web:0f733369830624b236cf97"
 };
 // اسم الشركة (بيظهر في صفحة الدخول وأعلى الصفحة) - غيّره هنا لو محتاج
-const COMPANY_NAME = 'زيدان';
+let BRAND = {name:'شركة الصيادلة العرب', logo:''};   // بيتحدّث تلقائياً من 'بيانات الشركة' في النظام الداخلي
 // تطبيق Firebase باسم منفصل 'portal' = جلسة دخول مستقلة عن النظام الداخلي في نفس المتصفح
 // (من غير كده تسجيل دخول العميل كان بيطرد حساب الموظف والعكس)
 const fbApp = firebase.initializeApp(firebaseConfig, 'portal');
@@ -215,7 +216,19 @@ function fail(m){ $('lMsg').textContent = m; $('lBtn').disabled=false; $('lBtn')
 $('lPw').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 $('lCode').addEventListener('keydown',e=>{ if(e.key==='Enter') $('lPw').focus(); });
 
-$('coName').textContent = COMPANY_NAME; document.title = 'بوابة طلبيات ' + COMPANY_NAME;
+function applyBrand(){
+  $('coName').textContent = BRAND.name; document.title = 'بوابة طلبيات ' + BRAND.name;
+  const im = $('lLogo'); if(BRAND.logo){ im.src = BRAND.logo; im.classList.add('brandLogo'); }
+  if(ME) $('whoSub').textContent = BRAND.name + ' · كود ' + ME.key + (ME.city ? ' · ' + ME.city : '');
+}
+(async function loadBrand(){
+  try{ const c = JSON.parse(localStorage.getItem('apcBrand')||'null'); if(c && c.name) BRAND = c; }catch(_){}
+  applyBrand();
+  try{
+    const s = await db.collection('appConfig').doc('branding').get();
+    if(s.exists && s.data().name){ BRAND = {name:s.data().name, logo:s.data().logo||''}; try{ localStorage.setItem('apcBrand', JSON.stringify(BRAND)); }catch(_){} applyBrand(); }
+  }catch(_){}
+})();
 auth.onAuthStateChanged(async u=>{
   if(!u){ ME=null; $('app').classList.add('hidden'); $('cartBar').classList.add('hidden'); $('login').classList.remove('hidden'); $('lBtn').disabled=false; $('lBtn').textContent='دخول'; return; }
   if(!u.email || !u.email.endsWith(EMAIL_DOMAIN)){ await auth.signOut(); fail('هذا الحساب غير مخصص للبوابة'); return; }
@@ -242,7 +255,7 @@ function logout(){ if(confirm('تسجيل الخروج؟')) auth.signOut(); }
 /* ===== الدخول للتطبيق وتحميل الكتالوج ===== */
 async function enterApp(){
   $('login').classList.add('hidden'); $('app').classList.remove('hidden');
-  $('whoName').textContent = ME.name; $('whoSub').textContent = COMPANY_NAME + ' · كود ' + ME.key + (ME.city ? ' · ' + ME.city : '');
+  $('whoName').textContent = ME.name; $('whoSub').textContent = BRAND.name + ' · كود ' + ME.key + (ME.city ? ' · ' + ME.city : '');
   $('pwWarn').classList.toggle('hidden', ME.pwChanged);
   try{ const s = localStorage.getItem('apcCart_'+ME.key); window._savedCart = s ? JSON.parse(s) : null; }catch(_){ window._savedCart = null; }
   $('list').innerHTML = '<div class="spin"></div>';

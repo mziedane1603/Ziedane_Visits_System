@@ -31,7 +31,8 @@ service cloud.firestore {
 
     // ===== إعدادات النظام =====
     match /appConfig/{id} {
-      allow read: if id == 'version' || isStaff();
+      // version و branding (اسم الشركة + لوجو صغير) مقروءين قبل تسجيل الدخول، والباقي للموظفين
+      allow read: if id == 'version' || id == 'branding' || isStaff();
       // الأدمن يكتب أي إعداد، والمدير يعدّل قواعد الحوافز وحدود المدن بس
       allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds']);
     }
