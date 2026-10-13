@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== تعريفات الأدوار =====
+    function isSignedIn() { return request.auth != null; }
+    // موظف = مستخدم عنده مستند في users (حسابات العملاء مالهاش مستند هناك)
+    function isStaff() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function myProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function myRole() { return isStaff() ? myProfile().role : null; }
+    function isAdmin() { return myRole() == 'admin'; }
+    function isManager() { return myRole() == 'manager'; }
+    function isAdminOrManager() { return isAdmin() || isManager(); }
+    // عميل بوابة = مسجّل دخول وعنده مستند في customerPortal وملوش مستند موظف
+    function isCustomer() { return isSignedIn() && !isStaff() && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
+    function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
+    // مجموعات ليها قواعد خاصة ومينفعش القاعدة العامة تفتحها
+    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders']; }
+
+    // ===== المستخدمون =====
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isSignedIn() && request.auth.uid == uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt','currentPage']));
+    }
+
+    // ===== إعدادات النظام =====
+    match /appConfig/{id} {
+      allow read: if id == 'version' || isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ===== محادثة الفريق =====
+    match /teamChat/{id} {
+      allow read, create: if isStaff();
+      allow delete: if isAdminOrManager() || resource.data.senderUsername == myProfile().username;
+      allow update: if false;
+    }
+
+    // ===== بوابة العملاء =====
+    // كتالوج الأصناف (أسعار وخصومات وبونص بدون كميات): العميل والموظف يقرأوا، الأدمن بس ينشر
+    match /catalog/{id} {
+      allow read: if isStaff() || isCustomer();
+      allow write: if isAdmin();
+    }
+    // قايمة الأكواد المسموح لها تدخل البوابة: العميل يقرأ بياناته هو بس
+    match /portalAccounts/{key} {
+      allow read: if isStaff() || (isCustomer() && myKey() == key);
+      allow write: if isAdmin();
+    }
+    // ربط حساب الدخول بكود العميل: بيتعمل مرة واحدة أول دخول، ومربوط بإيميل الحساب نفسه
+    match /customerPortal/{uid} {
+      allow read: if isStaff() || request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && !isStaff()
+        && request.resource.data.keys().hasOnly(['code','pwChanged','createdAt'])
+        && request.resource.data.pwChanged == false
+        && request.auth.token.email == request.resource.data.code + '@portal.apc.local'
+        && exists(/databases/$(database)/documents/portalAccounts/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/portalAccounts/$(request.resource.data.code)).data.active == true;
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pwChanged']);
+      allow delete: if isAdmin();
+    }
+    // طلبيات العملاء: العميل يضيف ويقرأ طلبياته بس، والموظفين يقروا ويحدّثوا الحالة
+    match /portalOrders/{id} {
+      allow create: if isCustomer()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.acctKey == myKey()
+        && request.resource.data.status == 'new'
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 300
+        && get(/databases/$(database)/documents/portalAccounts/$(myKey())).data.active == true;
+      allow read: if isStaff() || (isCustomer() && resource.data.uid == request.auth.uid);
+      allow update: if isStaff();
+      allow delete: if isAdminOrManager();
+    }
+
+    // ===== باقي المجموعات (للموظفين فقط) =====
+    // تنبيه: القاعدة دي بتتجمّع مع القواعد الخاصة (لو أي واحدة سمحت يتسمح)، عشان كده استثنينا المجموعات المحمية فوق
+    match /{collection}/{id} {
+      allow read: if isStaff();
+      allow create, update: if isStaff() && !protectedColl(collection);
+      allow delete: if isAdminOrManager() && !protectedColl(collection);
+    }
+  }
+}

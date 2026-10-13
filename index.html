@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.42)</title>
+<title>نظام زيارات المندوبين - APC (v2.44)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -553,7 +553,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.42';
+const APP_VERSION = '2.44';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -659,6 +659,9 @@ let SUGGESTED_ORDERS = [];
 let ORDER_TEMPLATES = [];
 let suggOrderState = {customer:null, items:[], note:''};
 let suggOrdersUnread = 0;
+let PORTAL_CFG = {};      // appConfig/portal (المستخدم المستلم للإشعارات + آخر نشر)
+let PORTAL_ORDERS = [];   // طلبيات بوابة العملاء
+let portalFilter = 'new', portalShown = 30;
 let BONUS_OFFERS = [];
 let inventoryFilters = { q:'', company:'', bonusOnly:false };
 let routePlanState = { repId:'', date: todayISO() };
@@ -702,6 +705,7 @@ const ALL_PAGES = [
   {id:'customers', label:'العملاء', ic:'🏥'},
   {id:'inventory', label:'المخزون', ic:'📦'},
   {id:'suggestedorders', label:'الطلبيات المقترحة', ic:'🧾'},
+  {id:'portalorders', label:'طلبيات البوابة', ic:'🛒'},
   {id:'reps',      label:'المناديب', ic:'🧑‍💼'},
   {id:'repbonus',  label:'حوافز المناديب', ic:'💰'},
   {id:'definitions', label:'التعريفات', ic:'⚙️'},
@@ -746,7 +750,8 @@ function userPermissions(user){
 }
 function navItemsFor(user){
   const perms = userPermissions(user);
-  return ALL_PAGES.filter(p=>perms[p.id]===true);
+  // مستلم إشعارات البوابة بيشوف صفحة الطلبيات حتى لو دوره مفيهوش الصلاحية دي
+  return ALL_PAGES.filter(p=>perms[p.id]===true || (p.id==='portalorders' && isPortalNotifyUser()));
 }
 function bottomNavItemsFor(user){
   const perms = userPermissions(user);
@@ -781,6 +786,7 @@ function bottomNavItemsFor(user){
 function navBadgeFor(pageId){
   if(pageId==='teamchat' && chatUnread>0) return chatUnread>9?'9+':chatUnread;
   if(pageId==='suggestedorders' && suggOrdersUnread>0) return suggOrdersUnread>9?'9+':suggOrdersUnread;
+  if(pageId==='portalorders'){ const n = PORTAL_ORDERS.filter(o=>(o.status||'new')==='new').length; if(n>0) return n>9?'9+':n; }
   return null;
 }
 function renderNav(){
@@ -1188,6 +1194,7 @@ function dataNeededForView(view){
     case 'routeplan': return ['plannedVisits'];
     case 'inventory': return ['inventory','bonusOffers'];
     case 'suggestedorders': return ['suggestedOrders','inventory','orderTemplates'];
+    case 'portalorders': return ['portalOrders','inventory','bonusOffers','users'];
     case 'users': return ['users'];
     default: return [];
   }
@@ -1196,6 +1203,8 @@ function ensureDataForView(view){
   const needed = dataNeededForView(view);
   // الأدمن والمشرف محتاجين المتابعات والطلبيات المقترحة دايماً عشان تنبيهات العناصر الجديدة
   if(isAdminLike()){ needed.push('followups'); needed.push('suggestedOrders'); }
+  needed.push('portalCfg');
+  if(isAdminLike() || isPortalNotifyUser()) needed.push('portalOrders');
   needed.forEach(n=>{
     if(attachedData.has(n) || !DATA_ATTACHERS[n]) return;
     if(n==='users' && CURRENT_USER.role!=='admin') return;
@@ -1266,6 +1275,37 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
       suggOrdersFirstLoad = false;
       renderIfNeeds('suggestedOrders');
     }, err=>console.error('suggestedOrders listener', err)));
+  };
+})();
+
+/* ==========================================================================
+   بوابة العملاء: إعدادات (المستلم للإشعارات) + طلبيات العملاء لحظياً
+   ========================================================================== */
+(function(){
+  DATA_ATTACHERS['portalCfg'] = ()=>{
+    unsubs.push(db.collection('appConfig').doc('portal').onSnapshot(snap=>{
+      PORTAL_CFG = snap.exists ? snap.data() : {};
+      ensureDataForView(currentView);   // ممكن المستخدم يكون بقى هو مستلم الإشعارات دلوقتي
+      renderNav();
+      if(currentView==='portalorders') renderView();
+    }, err=>console.error('portalCfg listener', err)));
+  };
+  let portalFirstLoad = true;
+  DATA_ATTACHERS['portalOrders'] = ()=>{
+    portalFirstLoad = true;
+    unsubs.push(db.collection('portalOrders').orderBy('createdAt','desc').limit(200).onSnapshot(snap=>{
+      if(!portalFirstLoad && isPortalNotifyUser()){
+        snap.docChanges().forEach(ch=>{ if(ch.type==='added') notifyPortalOrder({id:ch.doc.id, ...ch.doc.data()}); });
+      }
+      PORTAL_ORDERS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(portalFirstLoad){
+        portalFirstLoad = false;
+        const n = PORTAL_ORDERS.filter(o=>(o.status||'new')==='new').length;
+        if(n>0 && isPortalNotifyUser()) toast(`🛒 عندك ${n} طلبية جديدة من بوابة العملاء`,'ok');
+      }
+      renderNav();
+      if(currentView==='portalorders') renderView();
+    }, err=>console.error('portalOrders listener', err)));
   };
 })();
 
@@ -1452,6 +1492,7 @@ function renderView(){
     else if(currentView==='routeplan') main.innerHTML = viewRoutePlan();
     else if(currentView==='repbonus') main.innerHTML = viewRepBonus();
     else if(currentView==='suggestedorders') main.innerHTML = viewSuggestedOrders();
+    else if(currentView==='portalorders') main.innerHTML = viewPortalOrders();
     else if(currentView==='inventory') main.innerHTML = viewInventory();
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
 
@@ -1517,11 +1558,12 @@ const TOP_REPS_MIN_VISITS = 5; // أقل عدد زيارات في الشهر ع�
 function topRepsData(month){
   const reps = REPS.filter(r=>r.active!==false);
   const stats = {};
-  reps.forEach(r=>{ stats[r.id] = {n:0, ratingSum:0, rated:0, collect:0}; });
+  reps.forEach(r=>{ stats[r.id] = {n:0, ratingSum:0, rated:0, collect:0, codes:new Set()}; });
   VISITS.forEach(v=>{
     if(!(v.date||'').startsWith(month)) return;
     const st = stats[v.repId]; if(!st) return;
     st.n++;
+    if(v.customerCode) st.codes.add(v.customerCode);
     const rt = Number(v.rating)||0;
     if(rt){ st.ratingSum += rt; st.rated++; }
     if(String(v.visitResult||'').includes('تحصيل')) st.collect++;
@@ -1530,16 +1572,22 @@ function topRepsData(month){
   const monthRows = CITY_SALES.filter(c=>(c.date||'').startsWith(month));
   const lastDate = monthRows.reduce((m,c)=> c.date>m ? c.date : m, '');
   const lastRows = lastDate ? monthRows.filter(c=>c.date===lastDate) : [];
+  const codesByCity = {};
+  CUSTOMERS.forEach(c=>{ if(!c.city) return; if(!codesByCity[c.city]) codesByCity[c.city] = new Set(); codesByCity[c.city].add(c.code); });
   const rows = reps.map(r=>{
     const st = stats[r.id];
     const cities = Array.isArray(r.cities) ? r.cities : [];
     const cr = lastRows.filter(c=>cities.includes(c.city));
+    // تغطية العملاء: عملاء مدن المندوب اللي اتزاروا هذا الشهر ÷ إجمالي عملاء مدنه
+    const myCodes = new Set(); cities.forEach(ct=>{ (codesByCity[ct]||[]).forEach(cd=>myCodes.add(cd)); });
+    let covered = 0; st.codes.forEach(cd=>{ if(myCodes.has(cd)) covered++; });
+    const covPct = myCodes.size>0 ? covered/myCodes.size*100 : null;
     const sum = k => cr.reduce((a,c)=>a+(Number(c[k])||0),0);
     const sT = sum('salesTarget'), sN = sum('netSales'), cT = sum('customerTarget'), cA = sum('customersActive');
     return {
       id: r.id, name: r.name, visits: st.n,
       avgRating: st.rated ? st.ratingSum/st.rated : null,
-      collect: st.collect,
+      collect: st.collect, covPct,
       salesPct: sT>0 ? sN/sT*100 : null,
       custPct: cT>0 ? cA/cT*100 : null
     };
@@ -1566,6 +1614,8 @@ function topRepsCardHTML(){
     {pub:true,  ic:'🏙️', bg:'#E7F0F8', color:'var(--blue)', lbl:'أعلى مدينة في نسبة البيع', src:cityRows, key:'pct', fmt:v=>v.toFixed(0)+'%', note:noSalesNote},
     {pub:true,  ic:'💰', bg:'var(--teal-light)', color:'var(--teal-dark)', lbl:'أعلى مدينة في قيمة المبيعات', src:cityRows, key:'net', fmt:v=>fmtMoney(v), filter:r=>r.net>0, note:noSalesNote},
     {pub:true,  ic:'👥', bg:'#FBEEDB', color:'var(--amber)', lbl:'أعلى مدينة في عدد العملاء المتعاملين', src:cityRows, key:'active', fmt:v=>v+' عميل', filter:r=>r.active>0, note:noSalesNote},
+    {pub:false, ic:'🚶', bg:'var(--teal-light)', color:'var(--teal-dark)', lbl:'أعلى مندوب في عدد الزيارات', src:rows, key:'visits', fmt:v=>v+' زيارة', filter:r=>r.visits>0, note:'كل نتائج الزيارات'},
+    {pub:false, ic:'🎯', bg:'#E7F0F8', color:'var(--blue)', lbl:'أعلى مندوب في تغطية عملاء مدنه', src:rows, key:'covPct', fmt:v=>v.toFixed(0)+'%', note:'عملاء اتزاروا ÷ كل عملاء مدنه'},
     {pub:false, ic:'💵', bg:'var(--teal-light)', color:'var(--teal-dark)', lbl:'أعلى زيارات تحصيل', src:rows, key:'collect', fmt:v=>v+' زيارة', filter:r=>r.collect>0, note:'نتيجة الزيارة = تحصيل'},
     {pub:false, ic:'💰', bg:'#E7F0F8', color:'var(--blue)', lbl:'أعلى نسبة مبيعات في مدنه', src:rows, key:'salesPct', fmt:v=>v.toFixed(0)+'%', note:noSalesNote},
     {pub:false, ic:'👥', bg:'#FBEEDB', color:'var(--amber)', lbl:'أعلى نسبة عملاء في مدنه', src:rows, key:'custPct', fmt:v=>v.toFixed(0)+'%', note:noSalesNote}
@@ -1618,11 +1668,21 @@ function viewDashboard(){
   const citySalesNet = citySalesToday.reduce((s,c)=>s+(Number(c.netSales)||0),0);
   const citySalesCustCount = citySalesToday.reduce((s,c)=>s+(Number(c.customersActive)||0),0);
 
+  // تغطية العملاء هذا الشهر + زيارات التحصيل
+  const custAll = visibleCustomers();
+  const visitedMonthCodes = new Set(list.filter(v=>(v.date||'').startsWith(monthPrefix)).map(v=>v.customerCode));
+  const visitedCustCount = custAll.filter(c=>visitedMonthCodes.has(c.code)).length;
+  const coveragePctAll = custAll.length ? Math.round(visitedCustCount/custAll.length*100) : 0;
+  const collectMonth = list.filter(v=>(v.date||'').startsWith(monthPrefix) && String(v.visitResult||'').includes('تحصيل')).length;
+  const collectSharePct = visitsMonth ? Math.round(collectMonth/visitsMonth*100) : 0;
+
   let kpiCards = `
     <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">📅</div><div class="lbl">زيارات اليوم</div><div class="val">${visitsToday}</div><div class="sub">${fmtDateArabic(today)}</div></div>
     <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">📈</div><div class="lbl">زيارات الشهر</div><div class="val">${visitsMonth}</div><div class="sub">${list.length} إجمالي مسجل</div></div>
     <div class="kpi"><div class="ic" style="background:#FBEEDB;color:var(--amber);">⭐</div><div class="lbl">متوسط التقييم</div><div class="val">${avgRating}</div><div class="sub">من 5</div></div>
     <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">✨</div><div class="lbl">زيارات آخر 7 أيام</div><div class="val">${visitsWeek}</div><div class="sub">إجمالي العملاء ${CUSTOMERS.length}</div></div>
+    <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">🎯</div><div class="lbl">تغطية العملاء هذا الشهر</div><div class="val">${coveragePctAll}%</div><div class="sub">${visitedCustCount} من ${custAll.length} عميل</div></div>
+    <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">💵</div><div class="lbl">زيارات التحصيل (الشهر)</div><div class="val">${collectMonth}</div><div class="sub">${collectSharePct}% من زيارات الشهر</div></div>
     ${citySalesLatestDate ? `
     <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">💰</div><div class="lbl">صافي مبيعات المدن</div><div class="val" style="font-size:17px;">${fmtMoney(citySalesNet)}</div><div class="sub">آخر تحديث ${fmtDate(citySalesLatestDate)}</div></div>
     <div class="kpi"><div class="ic" style="background:#FBEEDB;color:var(--amber);">👥</div><div class="lbl">عدد العملاء المتعاملين</div><div class="val">${citySalesCustCount}</div><div class="sub">من مبيعات المدن</div></div>
@@ -2385,6 +2445,181 @@ function suggestedOrderCardHTML(o, canManage){
       </div>` : ''}
     </div>`;
 }
+/* ==========================================================================
+   🛒 بوابة العملاء - إدارة الطلبيات (النظام الداخلي)
+   - كود العميل (portalKey) لازم يطابق نفس الدالة في portal.html
+   ========================================================================== */
+function portalKey(code){
+  return String(code==null?'':code)
+    .replace(/[٠-٩]/g, d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[۰-۹]/g, d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+}
+function isPortalNotifyUser(){ return !!(CURRENT_USER && PORTAL_CFG && PORTAL_CFG.notifyUid && PORTAL_CFG.notifyUid===CURRENT_USER.id); }
+function portalCustomerOf(o, map){
+  const c = (map||new Map()).get(o.acctKey);
+  return {name: c ? (c.name||'') : ('كود '+(o.acctKey||'?')), code: c ? c.code : (o.acctKey||''), city: c ? (c.city||'') : ''};
+}
+function portalFmtTs(ts){ try{ const d = ts && ts.toDate ? ts.toDate() : (ts ? new Date(ts) : null); return d ? d.toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'}) : '-'; }catch(e){ return '-'; } }
+function notifyPortalOrder(o){
+  const map = new Map(); CUSTOMERS.forEach(c=>{ const k=portalKey(c.code); if(k && !map.has(k)) map.set(k,c); });
+  const c = portalCustomerOf(o, map);
+  const msg = `🛒 طلبية جديدة ${o.orderNo||''} من ${c.name} - ${o.itemsCount||0} صنف (${fmtMoney(o.total||0)} ج.م)`;
+  toast(msg,'ok'); renderNav();
+  try{
+    if('Notification' in window && Notification.permission==='granted'){
+      const opts = {body:msg, icon:'icon-192.png', tag:o.id};
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistration().then(r=>{ if(r) r.showNotification('طلبية جديدة من البوابة', opts); else new Notification('طلبية جديدة من البوابة', opts); }).catch(()=>{});
+      }else{ new Notification('طلبية جديدة من البوابة', opts); }
+    }
+  }catch(e){}
+  try{ // نغمة قصيرة
+    const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+    const ac = new AC(), os = ac.createOscillator(), g = ac.createGain();
+    os.frequency.value = 880; g.gain.value = 0.08; os.connect(g); g.connect(ac.destination); os.start(); os.stop(ac.currentTime+0.18);
+  }catch(e){}
+}
+function requestPortalNotif(){
+  if(!('Notification' in window)){ toast('المتصفح ده مش بيدعم إشعارات الجهاز','warn'); return; }
+  Notification.requestPermission().then(()=>renderView());
+}
+function setPortalOrderStatus(id, status){
+  const p = db.collection('portalOrders').doc(id).update({status, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.name||CURRENT_USER.username||''});
+  trackWrite(p);
+  p.catch(e=>{ console.error(e); toast('فشل تحديث الحالة','err'); });
+}
+function copyPortalOrder(id){
+  const o = PORTAL_ORDERS.find(x=>x.id===id); if(!o) return;
+  const map = new Map(); CUSTOMERS.forEach(c=>{ const k=portalKey(c.code); if(k && !map.has(k)) map.set(k,c); });
+  const c = portalCustomerOf(o, map);
+  const lines = (o.items||[]).map(it=>`• ${it.n} × ${it.q}${it.b?` (🎁 ${it.b})`:''}`);
+  const txt = `🛒 طلبية بوابة ${o.orderNo||''}\nالعميل: ${c.name} (${c.code})${c.city?' - '+c.city:''}\n${lines.join('\n')}\nالإجمالي: ${fmtMoney(o.total||0)} ج.م${o.note?'\nملاحظات: '+o.note:''}`;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>toast('تم نسخ الطلبية ✔','ok')).catch(()=>{ prompt('انسخ الطلبية:', txt); });
+}
+function copyPortalLink(){
+  const url = new URL('portal.html', location.href).href;
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(()=>toast('تم نسخ رابط البوابة ✔','ok')).catch(()=>{ prompt('رابط البوابة:', url); });
+}
+async function savePortalNotifyUser(uid){
+  if(CURRENT_USER.role!=='admin') return;
+  const u = USERS.find(x=>x.id===uid);
+  try{
+    await db.collection('appConfig').doc('portal').set({notifyUid: uid||'', notifyName: u ? (u.name||u.username||'') : ''}, {merge:true});
+    toast(uid ? `هيوصل الإشعار لـ ${u ? (u.name||u.username) : ''} ✔` : 'تم إلغاء المستلم','ok');
+  }catch(e){ console.error(e); toast('فشل الحفظ','err'); }
+}
+// نشر كتالوج العملاء: الأصناف المتاحة بس (كمية > 0) بأسعارها وخصومها وبونصها - من غير الكميات
+async function publishPortalCatalog(){
+  if(CURRENT_USER.role!=='admin'){ toast('النشر للأدمن فقط','err'); return; }
+  const items = INVENTORY.filter(i=>i.itemName && Number(i.quantity)>0).map(i=>({
+    n: String(i.itemName), c: String(i.company||''),
+    p: Number(i.publicPrice)||0, d: Number(i.pharmacyDiscount)||0,
+    b: bonusTiersFor(i.itemName, i.company).map(t=>[Number(t.qty)||0, Number(t.bonusQty)||0]).filter(t=>t[0]>0 && t[1]>0)
+  })).sort((a,b)=>a.n.localeCompare(b.n,'ar'));
+  if(!items.length){ toast('مفيش أصناف كميتها أكبر من صفر في المخزون','err'); return; }
+  if(!confirm(`هيتم نشر ${items.length} صنف متاح للعملاء بأسعارها وخصوماتها والبونص (بدون الكميات).\nمتابعة؟`)) return;
+  toast('جاري النشر...','warn');
+  try{
+    const CH = 350, chunks = [];
+    for(let i=0;i<items.length;i+=CH) chunks.push(items.slice(i,i+CH));
+    const batch = db.batch(), col = db.collection('catalog');
+    chunks.forEach((arr,ix)=>batch.set(col.doc('chunk_'+String(ix).padStart(3,'0')), {items:arr}));
+    const old = await col.get();
+    old.docs.forEach(d=>{ if(d.id.startsWith('chunk_') && parseInt(d.id.slice(6),10)>=chunks.length) batch.delete(d.ref); });
+    batch.set(col.doc('meta'), {version: Date.now(), chunks: chunks.length, count: items.length, publishedAt: firebase.firestore.FieldValue.serverTimestamp(), publishedBy: CURRENT_USER.name||CURRENT_USER.username||''});
+    batch.set(db.collection('appConfig').doc('portal'), {catalogPublishedAt: firebase.firestore.FieldValue.serverTimestamp(), catalogCount: items.length}, {merge:true});
+    await batch.commit();
+    if(typeof logAudit==='function') logAudit('edit','catalog',`نشر كتالوج العملاء (${items.length} صنف)`);
+    toast(`تم نشر ${items.length} صنف للعملاء ✔`,'ok');
+  }catch(e){ console.error(e); toast('فشل النشر - راجع قواعد Firestore','err'); }
+}
+// تفعيل العملاء: بيكتب قايمة الأكواد المسموح لها تدخل البوابة (portalAccounts) - وبيوقف اللي اتشالوا
+async function publishPortalAccounts(){
+  if(CURRENT_USER.role!=='admin'){ toast('التفعيل للأدمن فقط','err'); return; }
+  const seen = new Map(); let skipped = 0, dup = 0;
+  CUSTOMERS.forEach(c=>{
+    const k = portalKey(c.code);
+    if(!k){ skipped++; return; }
+    if(seen.has(k)){ dup++; return; }
+    seen.set(k, {code:String(c.code), name:c.name||'', city:c.city||'', active:true});
+  });
+  if(!seen.size){ toast('مفيش عملاء أكوادهم صالحة','err'); return; }
+  if(!confirm(`هيتم تفعيل ${seen.size} عميل للدخول على البوابة${skipped?`\n(${skipped} عميل كودهم غير مدعوم - لازم حروف إنجليزي/أرقام)`:''}${dup?`\n(${dup} كود مكرر)`:''}\nمتابعة؟`)) return;
+  toast('جاري التفعيل...','warn');
+  try{
+    const col = db.collection('portalAccounts');
+    const existing = await col.get();
+    const ops = [];
+    seen.forEach((data,k)=>ops.push({ref:col.doc(k), data}));
+    existing.docs.forEach(d=>{ if(!seen.has(d.id) && d.data().active!==false) ops.push({ref:d.ref, data:{active:false}, merge:true}); });
+    for(let i=0;i<ops.length;i+=400){
+      const b = db.batch();
+      ops.slice(i,i+400).forEach(o=>o.merge ? b.set(o.ref,o.data,{merge:true}) : b.set(o.ref,o.data));
+      await b.commit();
+    }
+    await db.collection('appConfig').doc('portal').set({accountsPublishedAt: firebase.firestore.FieldValue.serverTimestamp(), accountsCount: seen.size}, {merge:true});
+    if(typeof logAudit==='function') logAudit('edit','portalAccounts',`تفعيل حسابات البوابة (${seen.size} عميل)`);
+    toast(`تم تفعيل ${seen.size} عميل ✔`,'ok');
+  }catch(e){ console.error(e); toast('فشل التفعيل - راجع قواعد Firestore','err'); }
+}
+function viewPortalOrders(){
+  const isAdmin = CURRENT_USER.role==='admin';
+  const map = new Map(); CUSTOMERS.forEach(c=>{ const k=portalKey(c.code); if(k && !map.has(k)) map.set(k,c); });
+  const ST = {new:['جديد','#E7F0F8','#1F5F99'], progress:['قيد التنفيذ','#FBEEDB','#8a5a06'], done:['تم التنفيذ','var(--teal-light)','var(--teal-dark)'], cancelled:['ملغية','#FBE5E2','#C0392B']};
+  const counts = {new:0, progress:0, done:0, cancelled:0};
+  PORTAL_ORDERS.forEach(o=>{ const st = ST[o.status] ? o.status : 'new'; counts[st]++; });
+  const list = PORTAL_ORDERS.filter(o=>portalFilter==='all' || (ST[o.status]?o.status:'new')===portalFilter);
+  const chip = (id,label,n)=>`<button class="btn ${portalFilter===id?'btn-primary':'btn-ghost'} btn-sm" onclick="portalFilter='${id}';portalShown=30;renderView();">${label}${n!=null?` (${n})`:''}</button>`;
+  const availCount = INVENTORY.filter(i=>Number(i.quantity)>0).length;
+  const notifyOpts = ['<option value="">— بدون مستلم —</option>'].concat(USERS.filter(u=>u.active!==false).map(u=>`<option value="${escapeHTML(u.id)}" ${PORTAL_CFG.notifyUid===u.id?'selected':''}>${escapeHTML(u.name||u.username||'')} (${escapeHTML(u.role||'')})</option>`)).join('');
+  const adminPanel = isAdmin ? `
+    <div class="card" style="margin-bottom:12px;">
+      <h2 style="font-size:14px;margin:0 0 10px;">⚙️ إعدادات البوابة</h2>
+      <div class="field"><label>👤 المستخدم اللي بيوصله إشعار كل طلبية جديدة</label>
+        <select onchange="savePortalNotifyUser(this.value)">${notifyOpts}</select></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+        <button class="btn btn-primary btn-sm" onclick="publishPortalCatalog()">📦 نشر الأصناف للعملاء (${availCount} متاح)</button>
+        <button class="btn btn-ghost btn-sm" onclick="publishPortalAccounts()">👥 تفعيل العملاء (${CUSTOMERS.length})</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyPortalLink()">🔗 نسخ رابط البوابة</button>
+      </div>
+      <div class="smallMuted">آخر نشر للأصناف: ${portalFmtTs(PORTAL_CFG.catalogPublishedAt)}${PORTAL_CFG.catalogCount?` (${PORTAL_CFG.catalogCount} صنف)`:''} · آخر تفعيل للعملاء: ${portalFmtTs(PORTAL_CFG.accountsPublishedAt)}${PORTAL_CFG.accountsCount?` (${PORTAL_CFG.accountsCount} عميل)`:''}<br>
+      انشر الأصناف بعد كل استيراد مخزون أو بونص جديد. العملاء بيشوفوا الأسعار والخصومات والبونص بس، من غير الكميات.</div>
+    </div>` : '';
+  const notifyBox = isPortalNotifyUser() && ('Notification' in window) && Notification.permission==='default'
+    ? `<div class="card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:13px;">🔔 فعّل إشعارات الجهاز عشان توصلك الطلبيات الجديدة</span><button class="btn btn-primary btn-sm" onclick="requestPortalNotif()">تفعيل</button></div>` : '';
+  const rows = list.slice(0, portalShown).map(o=>{
+    const c = portalCustomerOf(o, map), st = ST[o.status] || ST.new, sk = ST[o.status] ? o.status : 'new';
+    return `<div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div><b>${escapeHTML(o.orderNo||'')}</b> · ${escapeHTML(c.name)}</div>
+        <span style="background:${st[1]};color:${st[2]};padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;">${st[0]}</span>
+      </div>
+      <div class="smallMuted" style="margin:3px 0;">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''} · ${portalFmtTs(o.createdAt||o.createdAtClient)} · ${o.itemsCount||(o.items||[]).length} صنف · <b>${fmtMoney(o.total||0)} ج.م</b></div>
+      <details style="margin:6px 0;"><summary style="cursor:pointer;color:var(--teal-dark);font-weight:700;font-size:13px;">تفاصيل الأصناف</summary>
+        <div class="tableWrap"><table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الصافي</th><th>بونص</th></tr></thead><tbody>
+        ${(o.items||[]).map(it=>`<tr><td style="white-space:normal;min-width:160px;">${escapeHTML(it.n)}<div class="smallMuted">${escapeHTML(it.c||'')}</div></td><td>${it.q}</td><td>${fmtMoney(it.p||0)}</td><td>${it.d?it.d+'%':'-'}</td><td>${fmtMoney((it.net||0)*(it.q||0))}</td><td>${it.b?'🎁 '+escapeHTML(it.b):'-'}</td></tr>`).join('')}
+        </tbody></table></div>
+        ${o.note?`<div class="smallMuted">📝 ${escapeHTML(o.note)}</div>`:''}
+      </details>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${sk!=='progress'?`<button class="btn btn-ghost btn-sm" onclick="setPortalOrderStatus('${o.id}','progress')">⏳ قيد التنفيذ</button>`:''}
+        ${sk!=='done'?`<button class="btn btn-primary btn-sm" onclick="setPortalOrderStatus('${o.id}','done')">✅ تم</button>`:''}
+        ${sk!=='cancelled'?`<button class="btn btn-ghost btn-sm" onclick="if(confirm('إلغاء الطلبية؟'))setPortalOrderStatus('${o.id}','cancelled')">✕ إلغاء</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="copyPortalOrder('${o.id}')">📋 نسخ</button>
+      </div></div>`;
+  }).join('');
+  return `
+    <div class="pageHead"><h2>🛒 طلبيات بوابة العملاء</h2></div>
+    ${notifyBox}${adminPanel}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+      ${chip('new','🆕 جديدة',counts.new)}${chip('progress','⏳ قيد التنفيذ',counts.progress)}${chip('done','✅ تمت',counts.done)}${chip('cancelled','✕ ملغية',counts.cancelled)}${chip('all','الكل',PORTAL_ORDERS.length)}
+    </div>
+    ${rows || '<div class="emptyState">مفيش طلبيات في القسم ده</div>'}
+    ${list.length>portalShown?`<div style="text-align:center;"><button class="btn btn-ghost" onclick="portalShown+=30;renderView();">عرض المزيد (${list.length-portalShown})</button></div>`:''}
+  `;
+}
+
 function viewSuggestedOrders(){
   const isAdmin = isAdminLike();
   const myOrders = SUGGESTED_ORDERS.filter(o=>o.repUsername===CURRENT_USER.username);
@@ -6929,56 +7164,97 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES: قواعد أمان Firestore الموصى بها (الصقها في Firebase Console > Firestore Database > Rules ثم اضغط Publish)
-مبنية على Firebase Authentication الحقيقي (تم التفعيل في هذا الإصدار) - كل قراءة/كتابة لازم تبقى من مستخدم مسجّل دخول فعلي،
-والصلاحيات الأدق مبنية على الدور (role) المخزّن في مستند المستخدم users/{uid}.
+REC_RULES (v2.44 - تشمل بوابة العملاء): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+(نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===== تعريفات الأدوار =====
     function isSignedIn() { return request.auth != null; }
+    // موظف = مستخدم عنده مستند في users (حسابات العملاء مالهاش مستند هناك)
+    function isStaff() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
     function myProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function myRole() { return isSignedIn() ? myProfile().role : null; }
+    function myRole() { return isStaff() ? myProfile().role : null; }
     function isAdmin() { return myRole() == 'admin'; }
     function isManager() { return myRole() == 'manager'; }
     function isAdminOrManager() { return isAdmin() || isManager(); }
+    // عميل بوابة = مسجّل دخول وعنده مستند في customerPortal وملوش مستند موظف
+    function isCustomer() { return isSignedIn() && !isStaff() && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
+    function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
+    // مجموعات ليها قواعد خاصة ومينفعش القاعدة العامة تفتحها
+    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders']; }
 
-    // بيانات المستخدمين: أي مستخدم مسجّل دخول يقدر يقرأ (محتاجين ده لعرض أسماء المناديب مثلاً)،
-    // الإنشاء والحذف وتعديل أي حقل للأدمن بس، لكن أي مستخدم مسموحله يعدّل حقلي "آخر ظهور والصفحة الحالية"
-    // في مستنده هو بس (ميزة "مين أونلاين الآن") من غير ما يقدر يغيّر دوره أو صلاحياته أو حالته
+    // ===== المستخدمون =====
     match /users/{uid} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
       allow create, delete: if isAdmin();
       allow update: if isAdmin() ||
         (isSignedIn() && request.auth.uid == uid &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt','currentPage']));
     }
 
-    // إعدادات النظام العامة: مستند "version" بس لازم يتقرا حتى قبل تسجيل الدخول (عشان نظام منع النسخ القديمة)،
-    // باقي المستندات (زي قواعد حوافز المناديب) محتاجة تسجيل دخول على الأقل عشان تتقرا
+    // ===== إعدادات النظام =====
     match /appConfig/{id} {
-      allow read: if id == 'version' || isSignedIn();
+      allow read: if id == 'version' || isStaff();
       allow write: if isAdmin();
     }
 
-    // محادثة الفريق: أي مستخدم مسجّل دخول يقرأ ويكتب، والحذف للأدمن/المشرف أو صاحب الرسالة نفسه
+    // ===== محادثة الفريق =====
     match /teamChat/{id} {
-      allow read, create: if isSignedIn();
+      allow read, create: if isStaff();
       allow delete: if isAdminOrManager() || resource.data.senderUsername == myProfile().username;
       allow update: if false;
     }
 
-    // باقي المجموعات: القراءة لأي مستخدم مسجّل دخول، والكتابة للأدمن/المشرف أو المندوب/التلي سيلز حسب المنطق بتاعهم
-    // (تبسيط آمن: أي مستخدم مسجّل دخول يقدر يضيف/يعدّل بياناته، والحذف والتعديل الحساس للأدمن والمشرف فقط)
-    match /{collection}/{id} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn();
+    // ===== بوابة العملاء =====
+    // كتالوج الأصناف (أسعار وخصومات وبونص بدون كميات): العميل والموظف يقرأوا، الأدمن بس ينشر
+    match /catalog/{id} {
+      allow read: if isStaff() || isCustomer();
+      allow write: if isAdmin();
+    }
+    // قايمة الأكواد المسموح لها تدخل البوابة: العميل يقرأ بياناته هو بس
+    match /portalAccounts/{key} {
+      allow read: if isStaff() || (isCustomer() && myKey() == key);
+      allow write: if isAdmin();
+    }
+    // ربط حساب الدخول بكود العميل: بيتعمل مرة واحدة أول دخول، ومربوط بإيميل الحساب نفسه
+    match /customerPortal/{uid} {
+      allow read: if isStaff() || request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && !isStaff()
+        && request.resource.data.keys().hasOnly(['code','pwChanged','createdAt'])
+        && request.resource.data.pwChanged == false
+        && request.auth.token.email == request.resource.data.code + '@portal.apc.local'
+        && exists(/databases/$(database)/documents/portalAccounts/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/portalAccounts/$(request.resource.data.code)).data.active == true;
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pwChanged']);
+      allow delete: if isAdmin();
+    }
+    // طلبيات العملاء: العميل يضيف ويقرأ طلبياته بس، والموظفين يقروا ويحدّثوا الحالة
+    match /portalOrders/{id} {
+      allow create: if isCustomer()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.acctKey == myKey()
+        && request.resource.data.status == 'new'
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 300
+        && get(/databases/$(database)/documents/portalAccounts/$(myKey())).data.active == true;
+      allow read: if isStaff() || (isCustomer() && resource.data.uid == request.auth.uid);
+      allow update: if isStaff();
       allow delete: if isAdminOrManager();
+    }
+
+    // ===== باقي المجموعات (للموظفين فقط) =====
+    // تنبيه: القاعدة دي بتتجمّع مع القواعد الخاصة (لو أي واحدة سمحت يتسمح)، عشان كده استثنينا المجموعات المحمية فوق
+    match /{collection}/{id} {
+      allow read: if isStaff();
+      allow create, update: if isStaff() && !protectedColl(collection);
+      allow delete: if isAdminOrManager() && !protectedColl(collection);
     }
   }
 }
 
-ملحوظة مهمة: القواعد دي أساس آمن (تمنع أي حد مش مسجّل دخول من الوصول للبيانات نهائياً) لكنها لسه مبسّطة على مستوى
-"كل مستخدم مسجّل دخول يقدر يضيف/يعدّل أي مستند في أي مجموعة" - لو حابب تدقيق أعمق (مثلاً: مندوب يقدر يعدّل زياراته
-هو بس، تلي سيلز يشوف عملاء مدنه المحددة بس) قولي وأظبطها مجموعة مجموعة.
 ============================================================= -->

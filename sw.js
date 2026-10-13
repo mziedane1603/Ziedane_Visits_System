@@ -1,9 +1,9 @@
 /* Service Worker - نظام زيارات المندوبين APC
    غيّر رقم VERSION مع كل إصدار جديد من index.html عشان يظهر للمستخدمين شريط "تحديث جديد". */
-const VERSION = '2.41';
+const VERSION = '2.44';
 const SHELL_CACHE = 'apc-shell-' + VERSION;
 const CDN_CACHE = 'apc-cdn-v1';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const SHELL = ['./', './index.html', './portal.html', './manifest.webmanifest', './portal.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const CDN_HOSTS = ['www.gstatic.com', 'cdn.jsdelivr.net'];
 
 self.addEventListener('install', e => {
@@ -30,15 +30,18 @@ function withTimeout(promise, ms) {
   });
 }
 
-// الصفحة نفسها: الشبكة أولاً (عشان أي تحديث يوصل فوراً) وبعدين النسخة المخزنة لو النت ضعيف أو مقطوع
+// الصفحات (النظام الداخلي والبوابة): الشبكة أولاً (عشان أي تحديث يوصل) وبعدين النسخة المخزنة لو النت ضعيف أو مقطوع
+// كل صفحة بتتخزن باسمها (من غير الـ query) عشان البوابة متتخلطش بالنظام الداخلي
 async function pageNetworkFirst(req) {
   const cache = await caches.open(SHELL_CACHE);
+  const u = new URL(req.url);
+  const key = u.origin + u.pathname;
   try {
     const res = await withTimeout(fetch(req, { cache: 'no-cache' }), 6000);
-    if (res && res.ok) cache.put('./index.html', res.clone());
+    if (res && res.ok) cache.put(key, res.clone());
     return res;
   } catch (err) {
-    return (await cache.match('./index.html')) || Response.error();
+    return (await cache.match(key)) || (await cache.match(new URL('./index.html', self.location).href)) || Response.error();
   }
 }
 
