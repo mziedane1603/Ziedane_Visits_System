@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.49)</title>
+<title>نظام زيارات المندوبين - APC (v2.50)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -274,32 +274,39 @@ tbody tr:hover{background:var(--teal-lighter);}
 }
 .bnItem{position:relative;}
 .bnItem .navBadge{left:calc(50% - 24px);top:-2px;transform:none;}
-.chatCard{display:flex;flex-direction:column;height:calc(100vh - 165px);padding:0;overflow:hidden;}
-@media(max-width:860px){.chatCard{height:calc(100vh - 220px);}}
-.chatMessages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--gray-100);}
-.chatBubbleRow{display:flex;flex-direction:column;max-width:78%;align-self:flex-start;}
-.chatBubbleRow.own{align-self:flex-end;align-items:flex-end;}
-.chatBubbleRow .meta{font-size:11px;color:var(--gray-500);margin-bottom:3px;padding:0 4px;display:flex;gap:6px;align-items:center;}
-.chatBubbleRow .meta .nm{font-weight:700;color:var(--teal-dark);}
-.chatBubble{
-  background:#fff;border-radius:14px 14px 14px 4px;padding:9px 13px;box-shadow:var(--shadow);font-size:13.5px;
-  color:var(--gray-900);white-space:pre-wrap;word-break:break-word;position:relative;
-}
-.chatBubbleRow.own .chatBubble{background:var(--teal);color:#fff;border-radius:14px 14px 4px 14px;}
-.chatBubbleRow.own .meta{flex-direction:row-reverse;}
-.chatDelBtn{
-  border:none;background:transparent;color:var(--gray-500);font-size:11px;cursor:pointer;padding:0 4px;opacity:.75;
-}
-.chatBubbleRow.own .chatDelBtn{color:rgba(255,255,255,.85);}
-.chatDelBtn:hover{opacity:1;text-decoration:underline;}
-.chatInputBar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--gray-300);background:#fff;flex:none;}
-.chatInputBar textarea{
-  flex:1;resize:none;max-height:90px;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:12px;font-size:14px;
-  outline:none;background:var(--gray-100);
-}
-.chatInputBar textarea:focus{border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px var(--teal-light);}
-.chatInputBar button{flex:none;width:44px;height:44px;border-radius:12px;font-size:16px;padding:0;}
-.chatEmpty{margin:auto;text-align:center;color:var(--gray-500);font-size:12.5px;padding:20px;}
+.card.chatCard{display:flex;flex-direction:column;height:calc(100vh - 150px);height:calc(100dvh - 150px);padding:0;overflow:hidden;border-radius:18px;margin-bottom:0;}
+@media(max-width:860px){.card.chatCard{height:calc(100vh - 190px);height:calc(100dvh - 190px);border-radius:14px;}}
+.chatHead{display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));color:#fff;flex:none;}
+.chatHead .av{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none;}
+.chatHead .tt{font-weight:800;font-size:15px;line-height:1.25;} .chatHead .st{font-size:11.5px;opacity:.85;}
+.chatMessages{flex:1;overflow-y:auto;padding:10px 10px 6px;display:flex;flex-direction:column;gap:2px;background-color:#EAF1F0;background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22 viewBox=%220 0 160 160%22 fill=%22none%22 stroke=%22%230F7A6B%22 stroke-opacity=%220.085%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2224%22 cy=%2226%22 r=%228%22/%3E%3Cpath d=%22M70 18l4 9 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z%22/%3E%3Cpath d=%22M122 24c0-6 9-6 9 0 0 5-9 11-9 11s-9-6-9-11c0-6 9-6 9 0z%22/%3E%3Cpath d=%22M20 78h18M29 69v18%22/%3E%3Crect x=%2264%22 y=%2266%22 width=%2222%22 height=%2216%22 rx=%224%22/%3E%3Cpath d=%22M70 82l-3 7 8-4%22/%3E%3Cpath d=%22M118 68a10 10 0 1 0 14 14%22/%3E%3Ccircle cx=%2246%22 cy=%22124%22 r=%225%22/%3E%3Cpath d=%22M92 120l6-10 6 10z%22/%3E%3Cpath d=%22M132 120h14M139 113v14%22/%3E%3Cpath d=%22M12 140q6-8 12 0t12 0%22/%3E%3C/svg%3E");}
+.chatDay{align-self:center;background:rgba(255,255,255,.92);color:var(--gray-500);font-size:11px;font-weight:700;padding:3px 13px;border-radius:99px;margin:10px 0 6px;box-shadow:0 1px 2px rgba(0,0,0,.07);}
+.chatRow{display:flex;align-items:flex-end;gap:6px;max-width:88%;align-self:flex-end;flex-direction:row-reverse;margin-top:1px;}
+.chatRow.first{margin-top:7px;}
+.chatRow.own{align-self:flex-start;flex-direction:row;}
+.chatAv{width:30px;height:30px;border-radius:50%;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;}
+.chatAv.ghost{background:transparent;}
+.chatBubble{background:#fff;border-radius:14px;padding:6px 11px 4px;box-shadow:0 1px 1.5px rgba(0,0,0,.12);font-size:13.5px;color:var(--gray-900);word-break:break-word;min-width:64px;}
+.chatRow.first .chatBubble{border-bottom-left-radius:4px;}
+.chatRow.own .chatBubble{background:#D9F3EE;border-bottom-left-radius:14px;}
+.chatRow.own.first .chatBubble{border-bottom-right-radius:4px;}
+.chatWho{display:flex;gap:6px;align-items:center;font-size:12px;font-weight:800;margin-bottom:1px;}
+.chatWho .rl{font-weight:600;font-size:10px;color:var(--gray-500);background:var(--gray-100);padding:0 6px;border-radius:99px;}
+.chatBubble .txt{white-space:pre-wrap;line-height:1.55;}
+.chatBubble .ft{display:flex;justify-content:flex-end;align-items:center;gap:6px;font-size:10.5px;color:var(--gray-500);margin-top:1px;}
+.chatDelBtn{border:none;background:transparent;color:var(--gray-500);font-size:11px;cursor:pointer;padding:0 2px;opacity:.55;}
+.chatDelBtn:hover{opacity:1;}
+.chatInputBar{display:flex;align-items:flex-end;gap:7px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:#F3F6F6;flex:none;position:relative;}
+.chatField{flex:1;display:flex;align-items:flex-end;background:#fff;border-radius:24px;padding:3px 6px 3px 12px;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.chatField textarea{flex:1;resize:none;max-height:110px;padding:9px 6px;border:none;outline:none;background:transparent;font-size:14.5px;line-height:1.4;}
+.cIcon{flex:none;width:38px;height:38px;border-radius:50%;border:none;background:transparent;font-size:19px;color:var(--teal-dark);display:flex;align-items:center;justify-content:center;padding:0;}
+.cIcon.listening{background:var(--red);color:#fff;animation:micPulse 1s infinite;}
+.chatSend{flex:none;width:44px;height:44px;border-radius:50%;border:none;background:var(--teal);color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(15,122,107,.4);padding:0;}
+.chatSend:active{transform:scale(.93);}
+.chatEmoji{position:absolute;bottom:100%;right:10px;left:10px;max-width:340px;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.2);padding:8px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;z-index:5;}
+.chatEmoji button{border:none;background:none;font-size:22px;padding:4px;border-radius:8px;}
+.chatEmoji button:active{background:var(--teal-light);}
+.chatEmpty{margin:auto;text-align:center;color:var(--gray-500);font-size:12.5px;padding:20px;background:rgba(255,255,255,.85);border-radius:14px;}
 .micBtn.listening{background:var(--red);color:#fff;border-color:var(--red);animation:micPulse 1s infinite;}
 @keyframes micPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
 
@@ -409,6 +416,25 @@ details.card[open]>summary{margin-bottom:10px;}
   .kpi .val{font-size:20px;}
   .pageHead h2{font-size:16px;}
 }
+
+/* ================= شكل التقارير والتبويبات المدمجة ================= */
+.segRow{display:flex;gap:6px;overflow-x:auto;margin:8px 0 12px;padding-bottom:2px;scrollbar-width:none;}
+.segRow::-webkit-scrollbar{display:none;}
+.seg{flex:none;padding:6px 13px;border-radius:99px;border:1.5px solid #D5E3E1;background:#fff;font-size:12.5px;font-weight:700;color:var(--gray-500);white-space:nowrap;}
+.seg.on{background:var(--teal-light);border-color:var(--teal);color:var(--teal-dark);}
+.seg2 .seg{padding:4px 11px;font-size:11.5px;font-weight:600;border-style:dashed;}
+.seg2 .seg.on{border-style:solid;}
+.rpt .tabsRow{background:#fff;border-radius:14px;padding:5px;gap:4px;border-bottom:none;box-shadow:0 1px 4px rgba(15,122,107,.08);margin-bottom:6px;overflow-x:auto;}
+.rpt .tabBtn{border-bottom:none;border-radius:10px;padding:8px 14px;}
+.rpt .tabBtn.active{background:var(--teal);color:#fff;}
+.rpt .card{border:1px solid #E1EAE9;box-shadow:0 1px 3px rgba(15,122,107,.06);border-radius:14px;}
+.rpt .card .pageHead h2{position:relative;padding-right:11px;}
+.rpt .card .pageHead h2::before{content:'';position:absolute;right:0;top:12%;height:76%;width:4px;border-radius:4px;background:var(--teal);}
+.rpt .kpi{border:1px solid #E1EAE9;box-shadow:0 1px 3px rgba(15,122,107,.06);}
+.rpt .tableWrap{border:1px solid #E1EAE9;border-radius:12px;}
+.rpt thead th{background:linear-gradient(180deg,var(--teal-lighter),#fff);}
+.rpt tbody tr:nth-child(even){background:#FAFCFC;}
+.rpt tbody tr:hover{background:var(--teal-lighter);}
 </style>
 </head>
 <body>
@@ -575,7 +601,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.49';
+const APP_VERSION = '2.50';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -806,6 +832,43 @@ function bottomNavItemsFor(user){
   }
   return candidates.filter(c=>perms[c.id]===true);
 }
+
+/* ==========================================================================
+   تبويبات من مستويين: تبويب رئيسي + أزرار فرعية (بتقلل عدد التبويبات في الصفحة)
+   groups = [{label, tabs:[[key, label], ...]}]
+   ========================================================================== */
+function tabs2HTML(groups, current, setFn, pillMain){
+  const g = groups.find(x=>x.tabs.some(t=>t[0]===current)) || groups[0];
+  const main = pillMain
+    ? `<div class="segRow">` + groups.map(x=>`<button class="seg ${x===g?'on':''}" onclick="${setFn}('${x.tabs[0][0]}')">${x.label}</button>`).join('') + `</div>`
+    : `<div class="tabsRow">` + groups.map(x=>`<button class="tabBtn ${x===g?'active':''}" onclick="${setFn}('${x.tabs[0][0]}')">${x.label}</button>`).join('') + `</div>`;
+  const sub = g.tabs.length>1 ? `<div class="segRow ${pillMain?'seg2':''}">` + g.tabs.map(t=>`<button class="seg ${t[0]===current?'on':''}" onclick="${setFn}('${t[0]}')">${t[1]}</button>`).join('') + `</div>` : '';
+  return main + sub;
+}
+const REPORT_GROUPS = [
+  {label:'📊 نظرة عامة', tabs:[['overview','نظرة عامة']]},
+  {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['leaderboard','لوحة الأداء'],['routeadherence','الالتزام بالخطة']]},
+  {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['analytics','تحليلات المبيعات']]},
+  {label:'🏥 العملاء', tabs:[['stale','بدون زيارة'],['coverage','تغطية المدن']]},
+  {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
+];
+const REPORT_DRAW = {overview:'drawReportCharts', leaderboard:'drawLeaderboardChart', sales:'drawSalesReportCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
+function setReportsTab(k){ reportsTab = k; renderView(); const f = REPORT_DRAW[k]; if(f && typeof window[f]==='function') setTimeout(window[f], 30); }
+function saGroups(){
+  return [
+    {label:'نظرة عامة', tabs:[['overview','نظرة عامة']]},
+    {label:'المدن والمناطق', tabs:[['cities','تفاصيل المدن'],['regions','مقارنة المناطق']]},
+    {label:'العملاء', tabs:[['customers','قائمة العملاء'],['zeros','الصفريات'],['lowvalue','تحت '+SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')]]},
+    {label:'شرائح العملاء', tabs:[['segments','شرائح العملاء']]}
+  ];
+}
+function setSATab(k){ salesAnalyticsTab = k; renderView(); setTimeout(drawSalesAnalyticsCharts, 30); }
+const DEF_GROUPS = [
+  {label:'📝 النتائج', tabs:[['results','نتيجة الزيارة (مندوبين)'],['followup','نتيجة المتابعة (تلي سيلز)']]},
+  {label:'🎯 أهداف المناديب', tabs:[['targets','أهداف المناديب']]},
+  {label:'🏢 بيانات الشركة', tabs:[['company','بيانات الشركة']]}
+];
+function setDefTab(k){ definitionsTab = k; renderView(); }
 
 // صفحات متشابهة بتظهر كعنصر واحد في القايمة، وجواها تبويبات للتنقل بينهم (الصلاحيات لسه لكل صفحة لوحدها)
 const NAV_GROUPS = [
@@ -3968,13 +4031,7 @@ let definitionsTab = 'results';
 
 function viewDefinitions(){
   const canEdit = CURRENT_USER.role==='admin';
-  const tabs = `
-    <div class="tabsRow">
-      <button class="tabBtn ${definitionsTab==='results'?'active':''}" onclick="definitionsTab='results'; renderView();">نتيجة الزيارة (مندوبين)</button>
-      <button class="tabBtn ${definitionsTab==='followup'?'active':''}" onclick="definitionsTab='followup'; renderView();">نتيجة المتابعة (تلي سيلز)</button>
-      <button class="tabBtn ${definitionsTab==='targets'?'active':''}" onclick="definitionsTab='targets'; renderView();">أهداف المناديب</button>
-      <button class="tabBtn ${definitionsTab==='company'?'active':''}" onclick="definitionsTab='company'; renderView();">🏢 بيانات الشركة</button>
-    </div>`;
+  const tabs = tabs2HTML(DEF_GROUPS, definitionsTab, 'setDefTab');
 
   if(definitionsTab==='company') return `
     <div class="pageHead">
@@ -4258,32 +4315,78 @@ function chatTime(m){
   const time = d.toLocaleTimeString('ar-EG-u-nu-latn',{hour:'2-digit',minute:'2-digit'});
   return sameDay ? time : `${d.toLocaleDateString('ar-EG-u-nu-latn')} ${time}`;
 }
+const CHAT_COLORS = ['#0F7A6B','#C0392B','#8E44AD','#D68910','#2471A3','#117A65','#AF601A','#5D6D7E'];
+const CHAT_EMOJIS = ['😀','😂','😍','👍','🙏','👏','🔥','🎉','😊','😉','🤝','❤️','✅','❌','⭐','💪','🤔','😅','😢','😡','👌','🙌','📞','📦','💰','🏥','🚚','⏰','📍','📝','👋','✨'];
+function chatColor(key){ let h = 0; for(const ch of String(key||'')) h = (h*31 + ch.charCodeAt(0))>>>0; return CHAT_COLORS[h % CHAT_COLORS.length]; }
+function chatDate(m){ return m.timestamp && m.timestamp.toDate ? m.timestamp.toDate() : (m.timestamp instanceof Date ? m.timestamp : null); }
+function chatClock(m){ const d = chatDate(m); return d ? d.toLocaleTimeString('ar-EG-u-nu-latn',{hour:'2-digit',minute:'2-digit'}) : '...'; }
+function chatDayLabel(d){
+  const t = new Date(), y = new Date(); y.setDate(t.getDate()-1);
+  if(d.toDateString()===t.toDateString()) return 'اليوم';
+  if(d.toDateString()===y.toDateString()) return 'أمس';
+  return d.toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'});
+}
 function viewTeamChat(){
-  const msgs = CHAT_MESSAGES;
-  const body = msgs.length ? msgs.map(m=>{
+  let lastDay = '', lastSender = '', lastTs = 0;
+  const body = CHAT_MESSAGES.length ? CHAT_MESSAGES.map(m=>{
     const own = m.senderUsername===CURRENT_USER.username;
-    return `
-    <div class="chatBubbleRow ${own?'own':''}">
-      <div class="meta">
-        <span class="nm">${own?'أنت':escapeHTML(m.senderName||m.senderUsername||'')}</span>
-        <span>${roleLabel(m.senderRole)}</span>
-        <span>${chatTime(m)}</span>
-        ${canDeleteChatMessage(m)?`<button class="chatDelBtn" onclick="deleteChatMessage('${m.id}')" title="حذف الرسالة">🗑</button>`:''}
-      </div>
-      <div class="chatBubble">${escapeHTML(m.text)}</div>
-    </div>`;
+    const d = chatDate(m), dayKey = d ? d.toDateString() : '';
+    let sep = '';
+    if(d && dayKey!==lastDay){ sep = `<div class="chatDay">${chatDayLabel(d)}</div>`; lastDay = dayKey; lastSender = ''; }
+    const ts = d ? d.getTime() : 0;
+    const first = lastSender!==m.senderUsername || (ts-lastTs) > 5*60*1000;
+    lastSender = m.senderUsername; lastTs = ts;
+    const nm = m.senderName || m.senderUsername || '?', col = chatColor(m.senderUsername);
+    const av = own ? '' : (first ? `<div class="chatAv" style="background:${col}">${escapeHTML(String(nm).trim().charAt(0))}</div>` : '<div class="chatAv ghost"></div>');
+    const who = (!own && first) ? `<div class="chatWho"><span style="color:${col}">${escapeHTML(nm)}</span><span class="rl">${roleLabel(m.senderRole)}</span></div>` : '';
+    const del = canDeleteChatMessage(m) ? `<button class="chatDelBtn" onclick="deleteChatMessage('${m.id}')" title="حذف الرسالة">🗑</button>` : '';
+    return `${sep}<div class="chatRow ${own?'own':''} ${first?'first':''}">${av}<div class="chatBubble">${who}<div class="txt">${escapeHTML(m.text)}</div><div class="ft">${del}<span>${chatClock(m)}</span></div></div></div>`;
   }).join('') : `<div class="chatEmpty">لا توجد رسائل بعد - ابدأ المحادثة مع فريقك 👋</div>`;
 
   return `
-    <div class="pageHead"><div><h2>محادثة الفريق</h2><div class="desc">محادثة جماعية بين كل أعضاء الفريق والإدارة</div></div></div>
     <div class="card chatCard">
+      <div class="chatHead"><div class="av">👥</div><div><div class="tt">محادثة الفريق</div><div class="st">كل أعضاء الفريق والإدارة · ${CHAT_MESSAGES.length} رسالة</div></div></div>
       <div class="chatMessages" id="chatMessagesBox">${body}</div>
       <div class="chatInputBar" id="chatInputBar">
-        <textarea id="chatInput" rows="1" placeholder="اكتب رسالتك... (Enter للإرسال، Shift+Enter لسطر جديد)" onkeydown="handleChatInputKey(event)"></textarea>
-        <button class="btn btn-primary" onclick="sendChatMessage()" title="إرسال">➤</button>
+        <button class="chatSend" onclick="sendChatMessage()" title="إرسال">➤</button>
+        <div class="chatField">
+          <button class="cIcon" type="button" onclick="toggleChatEmoji()" title="إيموجي">😊</button>
+          <textarea id="chatInput" rows="1" placeholder="اكتب هنا..." oninput="autoGrowChat(this)" onkeydown="handleChatInputKey(event)"></textarea>
+        </div>
+        <button class="cIcon" type="button" onclick="startChatVoice(this)" title="إملاء صوتي">🎤</button>
       </div>
     </div>
   `;
+}
+function autoGrowChat(el){ el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 110) + 'px'; }
+function toggleChatEmoji(){
+  const bar = document.getElementById('chatInputBar'); if(!bar) return;
+  const ex = document.getElementById('chatEmoji');
+  if(ex){ ex.remove(); return; }
+  const pn = document.createElement('div'); pn.id = 'chatEmoji'; pn.className = 'chatEmoji';
+  pn.innerHTML = CHAT_EMOJIS.map(e=>`<button type="button" onclick="insertChatEmoji('${e}')">${e}</button>`).join('');
+  bar.appendChild(pn);
+}
+function insertChatEmoji(e){
+  const inp = document.getElementById('chatInput'); if(!inp) return;
+  const st = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? inp.value.length;
+  inp.value = inp.value.slice(0,st) + e + inp.value.slice(en);
+  inp.focus(); inp.selectionStart = inp.selectionEnd = st + e.length; autoGrowChat(inp);
+}
+function startChatVoice(btn){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast('الإملاء الصوتي مش مدعوم في هذا المتصفح - جرب Chrome','warn'); return; }
+  let rec; try{ rec = new SR(); }catch(e){ toast('تعذر تشغيل المايك','err'); return; }
+  rec.lang = 'ar-EG'; rec.interimResults = false;
+  btn.classList.add('listening');
+  rec.onresult = ev=>{
+    const t = (ev.results[0] && ev.results[0][0] && ev.results[0][0].transcript) || '';
+    const inp = document.getElementById('chatInput');
+    if(inp && t){ inp.value = (inp.value ? inp.value + ' ' : '') + t; autoGrowChat(inp); inp.focus(); }
+  };
+  rec.onend = ()=>btn.classList.remove('listening');
+  rec.onerror = ()=>{ btn.classList.remove('listening'); toast('ماقدرتش أسمعك، جرب تاني','warn'); };
+  try{ rec.start(); }catch(e){ btn.classList.remove('listening'); }
 }
 function scrollChatToBottom(){
   const box = document.getElementById('chatMessagesBox');
@@ -4299,7 +4402,7 @@ async function sendChatMessage(){
   const input = document.getElementById('chatInput');
   const text = (input?.value||'').trim();
   if(!text) return;
-  input.value='';
+  input.value=''; input.style.height='auto'; document.getElementById('chatEmoji')?.remove();
   try{
     await db.collection('teamChat').add({
       text,
@@ -4629,19 +4732,7 @@ function viewReportsBody(){
       ${viewFollowupMatrixReport()}
     `;
   }
-  const tabs = `
-    <div class="tabsRow">
-      <button class="tabBtn ${reportsTab==='overview'?'active':''}" onclick="reportsTab='overview'; renderView(); setTimeout(drawReportCharts,30);">نظرة عامة</button>
-      <button class="tabBtn ${reportsTab==='repmatrix'?'active':''}" onclick="reportsTab='repmatrix'; renderView();">تقرير المندوب التفصيلي</button>
-      <button class="tabBtn ${reportsTab==='repssummary'?'active':''}" onclick="reportsTab='repssummary'; renderView();">إجماليات المناديب</button>
-      <button class="tabBtn ${reportsTab==='leaderboard'?'active':''}" onclick="reportsTab='leaderboard'; renderView(); setTimeout(drawLeaderboardChart,30);">لوحة الأداء</button>
-      <button class="tabBtn ${reportsTab==='sales'?'active':''}" onclick="reportsTab='sales'; renderView(); setTimeout(drawSalesReportCharts,30);">تقارير المبيعات</button>
-      <button class="tabBtn ${reportsTab==='claims'?'active':''}" onclick="reportsTab='claims'; renderView(); setTimeout(drawClaimsChart,30);">تقارير المطالبات</button>
-      <button class="tabBtn ${reportsTab==='stale'?'active':''}" onclick="reportsTab='stale'; renderView();">عملاء بدون زيارة</button>
-      <button class="tabBtn ${reportsTab==='coverage'?'active':''}" onclick="reportsTab='coverage'; renderView(); setTimeout(drawCoverageChart,30);">تغطية المدن</button>
-      <button class="tabBtn ${reportsTab==='routeadherence'?'active':''}" onclick="reportsTab='routeadherence'; renderView();">الالتزام بخطة الزيارات</button>
-      <button class="tabBtn ${reportsTab==='analytics'?'active':''}" onclick="reportsTab='analytics'; renderView(); setTimeout(drawSalesAnalyticsCharts,30);">تحليلات المبيعات</button>
-    </div>`;
+  const tabs = tabs2HTML(REPORT_GROUPS, reportsTab, 'setReportsTab');
   const pages = {
     overview: viewReportsOverview,
     repmatrix: viewRepMatrixReport,
@@ -4655,10 +4746,12 @@ function viewReportsBody(){
     analytics: viewSalesAnalytics
   };
   return `
-    <div class="pageHead"><h2 style="font-size:17px;">📊 التقارير والإحصائيات</h2></div>
-    <div class="smallMuted" style="margin:-4px 0 12px;">💬 تقارير التلي سيلز التفصيلية والشهرية انتقلت لصفحة "متابعة العملاء" (تبويب الملخص الشهري) لتجميع كل بيانات المتابعات في مكان واحد.</div>
-    ${tabs}
-    ${(pages[reportsTab] || viewReportsOverview)()}
+    <div class="rpt">
+      <div class="pageHead"><h2 style="font-size:17px;">📊 التقارير والإحصائيات</h2></div>
+      ${tabs}
+      ${(pages[reportsTab] || viewReportsOverview)()}
+      <div class="smallMuted" style="margin-top:4px;">💬 تقارير التلي سيلز التفصيلية انتقلت لصفحة "متابعة العملاء" (تبويب الملخص الشهري).</div>
+    </div>
   `;
 }
 
@@ -7002,16 +7095,7 @@ function viewSalesAnalytics(){
       <input type="file" accept=".xlsx,.xls" onchange="handleSalesAnalyticsExcelImport(this.files[0])" style="display:none;">
     </label>` : '';
 
-  const tabs = `
-    <div class="tabsRow">
-      <button class="tabBtn ${salesAnalyticsTab==='overview'?'active':''}" onclick="salesAnalyticsTab='overview'; renderView();">نظرة عامة</button>
-      <button class="tabBtn ${salesAnalyticsTab==='cities'?'active':''}" onclick="salesAnalyticsTab='cities'; renderView(); setTimeout(drawSalesAnalyticsCharts,30);">تفاصيل المدن</button>
-      <button class="tabBtn ${salesAnalyticsTab==='customers'?'active':''}" onclick="salesAnalyticsTab='customers'; renderView();">قائمة العملاء</button>
-      <button class="tabBtn ${salesAnalyticsTab==='zeros'?'active':''}" onclick="salesAnalyticsTab='zeros'; renderView();">الصفريات</button>
-      <button class="tabBtn ${salesAnalyticsTab==='segments'?'active':''}" onclick="salesAnalyticsTab='segments'; renderView(); setTimeout(drawSalesAnalyticsCharts,30);">شرائح العملاء</button>
-      <button class="tabBtn ${salesAnalyticsTab==='lowvalue'?'active':''}" onclick="salesAnalyticsTab='lowvalue'; renderView();">تحت ${SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')}</button>
-      <button class="tabBtn ${salesAnalyticsTab==='regions'?'active':''}" onclick="salesAnalyticsTab='regions'; renderView(); setTimeout(drawSalesAnalyticsCharts,30);">مقارنة المناطق</button>
-    </div>`;
+  const tabs = tabs2HTML(saGroups(), salesAnalyticsTab, 'setSATab', true);
 
   if(!list.length){
     return `
