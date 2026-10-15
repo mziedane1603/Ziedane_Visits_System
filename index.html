@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.51)</title>
+<title>نظام زيارات المندوبين - APC (v2.52)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -435,6 +435,34 @@ details.card[open]>summary{margin-bottom:10px;}
 .rpt thead th{background:linear-gradient(180deg,var(--teal-lighter),#fff);}
 .rpt tbody tr:nth-child(even){background:#FAFCFC;}
 .rpt tbody tr:hover{background:var(--teal-lighter);}
+
+/* ================= داشبورد: مؤشرات ونجوم مدمجة ================= */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px;margin-bottom:10px;}
+.kpi2{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E3ECEB;border-radius:14px;padding:9px 11px;box-shadow:0 1px 3px rgba(15,122,107,.06);min-width:0;}
+.kpi2 .kic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;}
+.kpi2 .kbody{min-width:0;flex:1;}
+.kpi2 .klbl{font-size:11.5px;color:var(--gray-500);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi2 .kval{font-size:21px;font-weight:900;line-height:1.15;color:var(--gray-900);}
+.kpi2 .kval small{font-size:12px;font-weight:600;color:var(--gray-500);}
+.kpi2 .ksub{font-size:10.5px;color:var(--gray-500);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi2 .ksub b{color:var(--gray-900);}
+@media(max-width:560px){.kpis{grid-template-columns:1fr 1fr;} .kpis .kpi2:last-child:nth-child(odd){grid-column:1/-1;} .kpi2{padding:8px 9px;gap:8px;} .kpi2 .kic{width:30px;height:30px;font-size:15px;} .kpi2 .kval{font-size:18px;}}
+.starsHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.starsHead h2{font-size:15px;margin:0;margin-left:auto;}
+.starsHead input[type=month]{padding:4px 8px;font-size:12px;border:1px solid #D5E3E1;border-radius:8px;background:#fff;}
+.nstars{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;}
+.nstar{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E3ECEB;border-right:4px solid var(--c,var(--teal));border-radius:12px;padding:8px 10px;min-width:0;}
+.nstar .sic{width:32px;height:32px;border-radius:50%;background:#F2F7F6;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;}
+.nstar .sbody{min-width:0;flex:1;}
+.nstar .slbl{font-size:11px;color:var(--gray-500);font-weight:700;}
+.nstar .srow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.nstar .snm{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nstar .sval{font-weight:900;font-size:13px;color:var(--teal-dark);white-space:nowrap;}
+.nstar .sothers{font-size:10.5px;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.starsNote{margin-top:8px;font-size:11.5px;color:var(--gray-500);}
+.starsNote summary{cursor:pointer;font-weight:700;}
+.starsNote div{margin-top:4px;line-height:1.7;}
+@media(max-width:560px){.nstars{grid-template-columns:1fr;} .starsHead h2{width:100%;margin-left:0;}}
 </style>
 </head>
 <body>
@@ -601,7 +629,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.51';
+const APP_VERSION = '2.52';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1733,46 +1761,53 @@ function topRepsRank(rows, key, filter){
   return rows.filter(r=>r[key]!=null && (!filter || filter(r))).sort((a,b)=>b[key]-a[key]).slice(0,3);
 }
 // الكارت بيظهر لكل المستخدمين: التقييم + أعلى مدينة للجميع، والباقي (تحصيل / نسب المندوب) لغير المناديب
+let topRepsGroup = 'reps';
+function setTopRepsGroup(g){ topRepsGroup = g; renderView(); }
 function topRepsCardHTML(){
   const {rows, cityRows, lastDate} = topRepsData(topRepsMonth);
-  const noSalesNote = lastDate ? `حتى ${fmtDate(lastDate)}` : 'مفيش بيانات مبيعات للشهر ده';
   const myRepId = CURRENT_USER && CURRENT_USER.role==='rep' ? CURRENT_USER.repId : null;
   const showAll = !CURRENT_USER || CURRENT_USER.role!=='rep';
   const all = [
-    {pub:true,  ic:'⭐', bg:'#FBEEDB', color:'var(--amber)', lbl:'أعلى مندوب تقييم', src:rows, key:'avgRating', fmt:v=>v.toFixed(2)+' / 5', filter:r=>r.visits>=TOP_REPS_MIN_VISITS, note:`لمن عنده ${TOP_REPS_MIN_VISITS} زيارات فأكتر`},
-    {pub:true,  ic:'🏙️', bg:'#E7F0F8', color:'var(--blue)', lbl:'أعلى مدينة في نسبة البيع', src:cityRows, key:'pct', fmt:v=>v.toFixed(0)+'%', note:noSalesNote},
-    {pub:true,  ic:'💰', bg:'var(--teal-light)', color:'var(--teal-dark)', lbl:'أعلى مدينة في قيمة المبيعات', src:cityRows, key:'net', fmt:v=>fmtMoney(v), filter:r=>r.net>0, note:noSalesNote},
-    {pub:true,  ic:'👥', bg:'#FBEEDB', color:'var(--amber)', lbl:'أعلى مدينة في عدد العملاء المتعاملين', src:cityRows, key:'active', fmt:v=>v+' عميل', filter:r=>r.active>0, note:noSalesNote},
-    {pub:false, ic:'🚶', bg:'var(--teal-light)', color:'var(--teal-dark)', lbl:'أعلى مندوب في عدد الزيارات', src:rows, key:'visits', fmt:v=>v+' زيارة', filter:r=>r.visits>0, note:'كل نتائج الزيارات'},
-    {pub:false, ic:'🎯', bg:'#E7F0F8', color:'var(--blue)', lbl:'أعلى مندوب في تغطية عملاء مدنه', src:rows, key:'covPct', fmt:v=>v.toFixed(0)+'%', note:'عملاء اتزاروا ÷ كل عملاء مدنه'},
-    {pub:false, ic:'💵', bg:'var(--teal-light)', color:'var(--teal-dark)', lbl:'أعلى زيارات تحصيل', src:rows, key:'collect', fmt:v=>v+' زيارة', filter:r=>r.collect>0, note:'نتيجة الزيارة = تحصيل'},
-    {pub:false, ic:'💰', bg:'#E7F0F8', color:'var(--blue)', lbl:'أعلى نسبة مبيعات في مدنه', src:rows, key:'salesPct', fmt:v=>v.toFixed(0)+'%', note:noSalesNote},
-    {pub:false, ic:'👥', bg:'#FBEEDB', color:'var(--amber)', lbl:'أعلى نسبة عملاء في مدنه', src:rows, key:'custPct', fmt:v=>v.toFixed(0)+'%', note:noSalesNote}
+    {g:'reps',   pub:true,  ic:'⭐', color:'var(--amber)',     lbl:'أعلى مندوب تقييم',            src:rows,     key:'avgRating', fmt:v=>v.toFixed(2)+' / 5', filter:r=>r.visits>=TOP_REPS_MIN_VISITS},
+    {g:'reps',   pub:false, ic:'🚶', color:'var(--teal)',      lbl:'أعلى مندوب في الزيارات',      src:rows,     key:'visits',    fmt:v=>v+' زيارة',          filter:r=>r.visits>0},
+    {g:'reps',   pub:false, ic:'💵', color:'var(--teal-dark)', lbl:'أعلى زيارات تحصيل',            src:rows,     key:'collect',   fmt:v=>v+' زيارة',          filter:r=>r.collect>0},
+    {g:'reps',   pub:false, ic:'💰', color:'var(--blue)',      lbl:'أعلى نسبة مبيعات في مدنه',    src:rows,     key:'salesPct',  fmt:v=>v.toFixed(0)+'%'},
+    {g:'reps',   pub:false, ic:'👥', color:'var(--amber)',     lbl:'أعلى نسبة عملاء في مدنه',     src:rows,     key:'custPct',   fmt:v=>v.toFixed(0)+'%'},
+    {g:'reps',   pub:false, ic:'🎯', color:'var(--blue)',      lbl:'أعلى تغطية لعملاء مدنه',      src:rows,     key:'covPct',    fmt:v=>v.toFixed(0)+'%'},
+    {g:'cities', pub:true,  ic:'🏙️', color:'var(--blue)',      lbl:'أعلى مدينة في نسبة البيع',    src:cityRows, key:'pct',       fmt:v=>v.toFixed(0)+'%'},
+    {g:'cities', pub:true,  ic:'💰', color:'var(--teal-dark)', lbl:'أعلى مدينة في قيمة المبيعات', src:cityRows, key:'net',       fmt:v=>fmtMoney(v)+' ج.م',  filter:r=>r.net>0},
+    {g:'cities', pub:true,  ic:'👥', color:'var(--amber)',     lbl:'أعلى مدينة في عدد العملاء',   src:cityRows, key:'active',    fmt:v=>v+' عميل',           filter:r=>r.active>0}
   ];
-  const defs = all.filter(d=>d.pub || showAll);
+  const avail = all.filter(d=>d.pub || showAll);
+  const grp = showAll ? topRepsGroup : null;                 // المندوب بيشوف كل بطاقاته (4) من غير تبويبات
+  const defs = grp ? avail.filter(d=>d.g===grp) : avail;
   const label = r => escapeHTML(r.name) + (myRepId && r.id===myRepId ? ' (أنت)' : '');
   const tiles = defs.map(d=>{
-    const top = topRepsRank(d.src, d.key, d.filter);
-    const w = top[0];
-    const others = top.slice(1).map((r,i)=>`${i===0?'الثاني':'الثالث'}: ${label(r)} (${d.fmt(r[d.key])})`).join(' · ');
-    return `<div class="kpi">
-      <div class="ic" style="background:${d.bg};color:${d.color};">${d.ic}</div>
-      <div class="lbl">${d.lbl}</div>
-      ${w ? `<div class="val" style="font-size:17px;">🏆 ${label(w)}</div>
-            <div class="sub" style="font-weight:800;color:var(--teal-dark);font-size:13px;">${d.fmt(w[d.key])}</div>
-            ${others ? `<div class="sub">${others}</div>` : ''}`
-          : `<div class="val" style="font-size:15px;color:var(--gray-500);">لا توجد بيانات</div>`}
-    </div>`;
+    const top = topRepsRank(d.src, d.key, d.filter), w = top[0];
+    const others = top.slice(1).map((r,i)=>`${i===0?'٢':'٣'}. ${label(r)} (${d.fmt(r[d.key])})`).join(' · ');
+    return `<div class="nstar" style="--c:${d.color};">
+      <div class="sic">${d.ic}</div>
+      <div class="sbody">
+        <div class="slbl">${d.lbl}</div>
+        ${w ? `<div class="srow"><span class="snm">🏆 ${label(w)}</span><span class="sval">${d.fmt(w[d.key])}</span></div>
+               ${others ? `<div class="sothers">${others}</div>` : ''}`
+            : `<div class="srow"><span class="snm" style="color:var(--gray-500);font-weight:600;">لا توجد بيانات</span></div>`}
+      </div></div>`;
   }).join('');
-  const notesLine = [...new Set(defs.map(d=>d.note))].join(' · ') + (showAll ? ' · نسب مدن المندوب = إجمالي مبيعات (أو عملاء) مدنه ÷ أهدافها (مندوبين على نفس المدينة بياخدوا نفس النسبة)' : '');
-  const gridCls = defs.length<=2 ? 'grid-2' : defs.length===4 ? 'grid-4' : 'grid-3';
-  return `<div class="card">
-    <div class="pageHead" style="margin-bottom:10px;">
-      <h2 style="font-size:15px;">🏆 نجوم الشهر</h2>
+  const notes = [`المندوب لازم يكون عنده ${TOP_REPS_MIN_VISITS} زيارات فأكتر في التقييم`, lastDate ? `بيانات المدن حتى ${fmtDate(lastDate)}` : 'مفيش بيانات مبيعات للشهر ده'];
+  if(showAll) notes.push('نسب مدن المندوب = إجمالي مبيعات (أو عملاء) مدنه ÷ أهدافها، ومندوبين على نفس المدينة بياخدوا نفس النسبة', 'التغطية = عملاء اتزاروا ÷ كل عملاء مدنه');
+  const grpCount = g => avail.filter(d=>d.g===g).length;
+  return `<div class="card starsCard">
+    <div class="starsHead">
+      <h2>🏆 نجوم الشهر</h2>
+      ${showAll ? `<div class="segRow" style="margin:0;">
+        <button class="seg ${grp==='reps'?'on':''}" onclick="setTopRepsGroup('reps')">🧑‍💼 المناديب (${grpCount('reps')})</button>
+        <button class="seg ${grp==='cities'?'on':''}" onclick="setTopRepsGroup('cities')">🏙️ المدن (${grpCount('cities')})</button>
+      </div>` : ''}
       <input type="month" value="${topRepsMonth}" onchange="topRepsMonth=this.value||topRepsMonth; renderView();">
     </div>
-    <div class="grid ${gridCls}">${tiles}</div>
-    <div class="smallMuted" style="margin-top:6px;font-size:11.5px;">${notesLine}</div>
+    <div class="nstars">${tiles}</div>
+    <details class="starsNote"><summary>ℹ️ طريقة الحساب</summary><div>${notes.join(' · ')}</div></details>
   </div>`;
 }
 function viewDashboard(){
@@ -1805,18 +1840,10 @@ function viewDashboard(){
   const collectMonth = list.filter(v=>(v.date||'').startsWith(monthPrefix) && String(v.visitResult||'').includes('تحصيل')).length;
   const collectSharePct = visitsMonth ? Math.round(collectMonth/visitsMonth*100) : 0;
 
-  let kpiCards = `
-    <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">📅</div><div class="lbl">زيارات اليوم</div><div class="val">${visitsToday}</div><div class="sub">${fmtDateArabic(today)}</div></div>
-    <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">📈</div><div class="lbl">زيارات الشهر</div><div class="val">${visitsMonth}</div><div class="sub">${list.length} إجمالي مسجل</div></div>
-    <div class="kpi"><div class="ic" style="background:#FBEEDB;color:var(--amber);">⭐</div><div class="lbl">متوسط التقييم</div><div class="val">${avgRating}</div><div class="sub">من 5</div></div>
-    <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">✨</div><div class="lbl">زيارات آخر 7 أيام</div><div class="val">${visitsWeek}</div><div class="sub">إجمالي العملاء ${CUSTOMERS.length}</div></div>
-    <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">🎯</div><div class="lbl">تغطية العملاء هذا الشهر</div><div class="val">${coveragePctAll}%</div><div class="sub">${visitedCustCount} من ${custAll.length} عميل</div></div>
-    <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">💵</div><div class="lbl">زيارات التحصيل (الشهر)</div><div class="val">${collectMonth}</div><div class="sub">${collectSharePct}% من زيارات الشهر</div></div>
-    ${citySalesLatestDate ? `
-    <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">💰</div><div class="lbl">صافي مبيعات المدن</div><div class="val" style="font-size:17px;">${fmtMoney(citySalesNet)}</div><div class="sub">آخر تحديث ${fmtDate(citySalesLatestDate)}</div></div>
-    <div class="kpi"><div class="ic" style="background:#FBEEDB;color:var(--amber);">👥</div><div class="lbl">عدد العملاء المتعاملين</div><div class="val">${citySalesCustCount}</div><div class="sub">من مبيعات المدن</div></div>
-    ` : ''}
-  `;
+  const kpiCards = dashboardKpisHTML({
+    visitsToday, visitsMonth, visitsWeek, avgRating, coveragePctAll, visitedCustCount, totalCust: custAll.length,
+    collectMonth, collectSharePct, citySalesLatestDate, citySalesNet, citySalesCustCount
+  });
 
   let repBlock='';
   if(CURRENT_USER.role!=='rep'){
@@ -1842,7 +1869,7 @@ function viewDashboard(){
         ${userPermissions(CURRENT_USER).addvisit ? `<button class="btn btn-primary" onclick="goTo('addvisit')">+ تسجيل زيارة جديدة</button>` : ''}
       </div>
     </div>
-    <div class="grid grid-4">${kpiCards}</div>
+    <div class="kpis">${kpiCards}</div>
     ${CURRENT_USER.role==='rep' ? repStaleCustomersWidgetHTML() : ''}
     ${topRepsCardHTML()}
     ${repBlock}
@@ -1854,6 +1881,19 @@ function viewDashboard(){
     </div>
     ${viewReportsBody()}
   `;
+}
+// مؤشرات الداشبورد: بطاقات أفقية مدمجة (الزيارات اليوم/الشهر/7 أيام في بطاقة واحدة، ومبيعات المدن مع عدد العملاء)
+function dashboardKpisHTML(d){
+  const tile = (ic, bg, color, lbl, val, sub) => `<div class="kpi2">
+    <div class="kic" style="background:${bg};color:${color};">${ic}</div>
+    <div class="kbody"><div class="klbl">${lbl}</div><div class="kval">${val}</div>${sub?`<div class="ksub">${sub}</div>`:''}</div></div>`;
+  return [
+    tile('📅','var(--teal-light)','var(--teal-dark)','زيارات اليوم', d.visitsToday, `الشهر <b>${d.visitsMonth}</b> · آخر 7 أيام <b>${d.visitsWeek}</b>`),
+    tile('⭐','#FBEEDB','var(--amber)','متوسط التقييم', `${d.avgRating}<small> / 5</small>`, ''),
+    tile('🎯','#E7F0F8','var(--blue)','تغطية العملاء (الشهر)', `${d.coveragePctAll}%`, `${d.visitedCustCount} من ${d.totalCust} عميل`),
+    tile('💵','var(--teal-light)','var(--teal-dark)','زيارات التحصيل (الشهر)', d.collectMonth, `${d.collectSharePct}% من زيارات الشهر`),
+    d.citySalesLatestDate ? tile('💰','#E7F0F8','var(--blue)','صافي مبيعات المدن', `<span style="font-size:16px;">${fmtMoney(d.citySalesNet)}</span>`, `<b>${d.citySalesCustCount}</b> عميل متعامل · حتى ${String(d.citySalesLatestDate).slice(5).replace('-','/')}`) : ''
+  ].join('');
 }
 function fmtDateArabic(iso){
   const d = new Date(iso);
