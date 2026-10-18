@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.52)</title>
+<title>نظام زيارات المندوبين - APC (v2.54)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -463,6 +463,20 @@ details.card[open]>summary{margin-bottom:10px;}
 .starsNote summary{cursor:pointer;font-weight:700;}
 .starsNote div{margin-top:4px;line-height:1.7;}
 @media(max-width:560px){.nstars{grid-template-columns:1fr;} .starsHead h2{width:100%;margin-left:0;}}
+
+/* ================= محتاج تدخل + تقدّم الهدف ================= */
+.goal{background:#fff;border:1px solid #E3ECEB;border-radius:14px;padding:10px 13px;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,122,107,.06);}
+.goalTop{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;}
+.goalTop b{color:var(--teal-dark);}
+.goalBar{position:relative;height:10px;background:#E8F0EF;border-radius:99px;margin:8px 0 6px;overflow:visible;}
+.goalFill{height:100%;background:linear-gradient(270deg,var(--teal),#2DB5A3);border-radius:99px;margin-right:0;float:right;}
+.goalTick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--amber);border-radius:2px;}
+.goalSub{font-size:11.5px;color:var(--gray-500);}
+.alerts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.alertChip{border:1px solid #F2D49B;background:#FFF6E5;color:#7a5200;border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:700;font-family:inherit;}
+button.alertChip{cursor:pointer;} button.alertChip:active{transform:scale(.97);}
+.alertChip.red{border-color:#F1B8B1;background:#FDECEA;color:#A93226;}
+.alertChip.ok{border-color:#BFE3DC;background:var(--teal-light);color:var(--teal-dark);}
 </style>
 </head>
 <body>
@@ -629,7 +643,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.52';
+const APP_VERSION = '2.54';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -876,11 +890,11 @@ function tabs2HTML(groups, current, setFn, pillMain){
 const REPORT_GROUPS = [
   {label:'📊 نظرة عامة', tabs:[['overview','نظرة عامة']]},
   {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['leaderboard','لوحة الأداء'],['routeadherence','الالتزام بالخطة']]},
-  {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['analytics','تحليلات المبيعات']]},
+  {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['citycompare','مقارنة المدن سنوياً'],['analytics','تحليلات المبيعات']]},
   {label:'🏥 العملاء', tabs:[['stale','بدون زيارة'],['coverage','تغطية المدن']]},
   {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
 ];
-const REPORT_DRAW = {overview:'drawReportCharts', leaderboard:'drawLeaderboardChart', sales:'drawSalesReportCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
+const REPORT_DRAW = {overview:'drawReportCharts', leaderboard:'drawLeaderboardChart', sales:'drawSalesReportCharts', citycompare:'drawCityCompareCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
 function setReportsTab(k){ reportsTab = k; renderView(); const f = REPORT_DRAW[k]; if(f && typeof window[f]==='function') setTimeout(window[f], 30); }
 function saGroups(){
   return [
@@ -1331,8 +1345,8 @@ function dataNeededForView(view){
   const role = CURRENT_USER ? CURRENT_USER.role : '';
   switch(view){
     case 'dashboard':
-      if(role==='rep') return ['citySales'];
-      if(role==='telesales') return ['citySales','followups'];
+      if(role==='rep') return ['citySales'].concat(reportsTab==='citycompare' ? ['customerSales'] : []);
+      if(role==='telesales') return ['citySales','followups'].concat(reportsTab==='citycompare' ? ['customerSales'] : []);
       return ['citySales','claims','customerSales','followups','plannedVisits','users'].concat(reportsTab==='analytics' ? ['salesAnalytics'] : []);
     case 'addvisit': return ['claims'];
     case 'claims': return ['claims'];
@@ -1660,6 +1674,7 @@ function renderView(){
     if(currentView==='dashboard') setTimeout(drawSalesReportCharts, 30);
     if(currentView==='dashboard') setTimeout(drawCoverageChart, 30);
     if(currentView==='dashboard' && reportsTab==='analytics') setTimeout(drawSalesAnalyticsCharts, 30);
+    if(currentView==='dashboard' && reportsTab==='citycompare') setTimeout(drawCityCompareCharts, 30);
     if(currentView==='customerstatement') setTimeout(drawCustomerStatementChart, 30);
     if(currentView==='citysales') setTimeout(drawCitySalesChart, 30);
     if(currentView==='citysales') setTimeout(loadCityThresholds, 30);
@@ -1870,6 +1885,7 @@ function viewDashboard(){
       </div>
     </div>
     <div class="kpis">${kpiCards}</div>
+    ${dashboardAttentionHTML(list)}
     ${CURRENT_USER.role==='rep' ? repStaleCustomersWidgetHTML() : ''}
     ${topRepsCardHTML()}
     ${repBlock}
@@ -1879,8 +1895,61 @@ function viewDashboard(){
         <th>التاريخ</th><th>المندوب</th><th>العميل</th><th>المدينة</th><th>النتيجة</th><th>التقييم</th>
       </tr></thead><tbody>${recentRows}</tbody></table></div>
     </div>
+    <div id="rptAnchor"></div>
     ${viewReportsBody()}
   `;
+}
+// عدد العملاء المتأخرين عن الزيارة بسرعة (خريطة آخر زيارة بدل البحث لكل عميل)
+function staleCountFast(){
+  const last = new Map();
+  VISITS.forEach(v=>{ const c = v.customerCode; if(c && v.date && (!last.has(c) || v.date > last.get(c))) last.set(c, v.date); });
+  let n = 0;
+  visibleCustomers().forEach(c=>{ if(daysSince(last.get(c.code) || null) >= staleThresholdDays) n++; });
+  return n;
+}
+function openStaleReport(){
+  setReportsTab('stale');
+  setTimeout(()=>document.getElementById('rptAnchor')?.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+}
+// شريط "محتاج تدخل" + تقدّم هدف الزيارات الشهري
+function dashboardAttentionHTML(list){
+  const isRep = CURRENT_USER.role==='rep';
+  const now = new Date(), monthPrefix = todayISO().slice(0,7);
+  const reps = REPS.filter(r=>r.active!==false);
+  const scope = isRep ? reps.filter(r=>r.id===CURRENT_USER.repId) : reps;
+  const withTarget = scope.filter(r=>(Number(r.monthlyVisitTarget)||0) > 0);
+  let goal = '';
+  if(withTarget.length){
+    const ids = new Set(withTarget.map(r=>r.id));
+    const target = withTarget.reduce((a,r)=>a+(Number(r.monthlyVisitTarget)||0),0);
+    const done = list.filter(v=>ids.has(v.repId) && (v.date||'').startsWith(monthPrefix)).length;
+    const pct = Math.min(100, Math.round(done/target*100));
+    const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    const daysLeft = Math.max(1, dim - now.getDate() + 1);
+    const remaining = Math.max(0, target - done);
+    const perDay = Math.ceil(remaining/daysLeft);
+    const elapsed = Math.round(now.getDate()/dim*100);
+    const state = pct>=100 ? 'تم تحقيق الهدف 🎉' : (pct>=elapsed ? 'ماشي في المعدل ✅' : 'متأخر عن المعدل ⚠️');
+    goal = `<div class="goal">
+      <div class="goalTop"><span>🎯 ${isRep ? 'هدفك' : 'هدف زيارات المناديب'} هذا الشهر</span><span><b>${pct}%</b> · ${done} من ${target} زيارة</span></div>
+      <div class="goalBar"><div class="goalFill" style="width:${pct}%"></div><div class="goalTick" style="right:${elapsed}%" title="المفروض نكون هنا"></div></div>
+      <div class="goalSub">${state}${remaining>0 ? ` · باقي ${remaining} زيارة (≈ ${perDay} في اليوم لمدة ${daysLeft} يوم)` : ''}</div>
+    </div>`;
+  }
+  const chips = [];
+  if(!isRep){
+    const newOrders = (isAdminLike() || isPortalNotifyUser()) ? PORTAL_ORDERS.filter(o=>(o.status||'new')==='new').length : 0;
+    if(newOrders>0) chips.push(`<button class="alertChip red" onclick="goTo('portalorders')">🛒 ${newOrders} طلبية بوابة جديدة</button>`);
+    const stale = staleCountFast();
+    if(stale>0) chips.push(`<button class="alertChip" onclick="openStaleReport()">⏳ ${stale} عميل بدون زيارة +${staleThresholdDays} يوم</button>`);
+    if(now.getDay()!==5){ // الجمعة إجازة
+      const todayIds = new Set(list.filter(v=>v.date===todayISO()).map(v=>v.repId));
+      const idle = reps.filter(r=>!todayIds.has(r.id)).length;
+      if(todayIds.size>0 && idle>0) chips.push(`<span class="alertChip">🚶 ${idle} مندوب لسه ما سجّلش زيارات اليوم</span>`);
+    }
+  }
+  const chipRow = !isRep ? `<div class="alerts">${chips.length ? chips.join('') : '<span class="alertChip ok">✅ مفيش حاجة معلّقة دلوقتي</span>'}</div>` : '';
+  return goal + chipRow;
 }
 // مؤشرات الداشبورد: بطاقات أفقية مدمجة (الزيارات اليوم/الشهر/7 أيام في بطاقة واحدة، ومبيعات المدن مع عدد العملاء)
 function dashboardKpisHTML(d){
@@ -4788,6 +4857,7 @@ function viewReportsBody(){
     repssummary: viewRepsSummaryReport,
     leaderboard: viewLeaderboardReport,
     sales: viewSalesReport,
+    citycompare: viewCityYearCompare,
     claims: viewClaimsReport,
     stale: viewStaleCustomersReport,
     coverage: viewCoverageReport,
@@ -7050,6 +7120,112 @@ function viewCoverageReport(){
     </div>
   `;
 }
+/* ==========================================================================
+   📊 مقارنة المدن سنوياً: المبيعات + عدد العملاء المتعاملين فعلياً (عميل مبيعاته في الشهر > 0)
+   المصدر: "مبيعات العملاء" (ملف السنة بالشهور)
+   ========================================================================== */
+let cityCmpState = {year:null, city:'', mode:'both'};   // mode: both | sales | cust
+const MONTH_SHORT = ['ينا','فبر','مار','أبر','ماي','يون','يول','أغس','سبت','أكت','نوف','ديس'];
+function fmtK(n){
+  n = Number(n)||0; const a = Math.abs(n);
+  if(a>=1e6) return (n/1e6).toFixed(a>=1e7?1:2).replace(/\.?0+$/,'')+'M';
+  if(a>=1e3) return Math.round(n/1e3)+'K';
+  return String(Math.round(n));
+}
+function cityYearData(year){
+  const map = new Map();
+  visibleCustomerSales().filter(c=>c.year===year && c.city).forEach(c=>{
+    let m = map.get(c.city);
+    if(!m){ m = {city:c.city, sales:Array(12).fill(0), cust:Array(12).fill(0), yearCust:0, totalCust:0}; map.set(c.city, m); }
+    m.totalCust++;
+    let any = false;
+    MONTH_KEYS.forEach((k,i)=>{ const v = Number(c[k])||0; m.sales[i] += v; if(v>0){ m.cust[i]++; any = true; } });
+    if(any) m.yearCust++;
+  });
+  return [...map.values()].map(m=>({...m, total:m.sales.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
+}
+function setCityCmp(key, val){ cityCmpState[key] = val; renderView(); setTimeout(drawCityCompareCharts, 40); }
+function viewCityYearCompare(){
+  const years = availableSalesYears();
+  if(!years.includes(cityCmpState.year)) cityCmpState.year = years[0];
+  const data = cityYearData(cityCmpState.year);
+  const yearSel = `<select onchange="setCityCmp('year', Number(this.value))">${years.map(y=>`<option value="${y}" ${cityCmpState.year===y?'selected':''}>${y}</option>`).join('')}</select>`;
+  if(!data.length){
+    return `<div class="card"><div class="pageHead"><h2 style="font-size:15px;">مقارنة المدن سنوياً</h2>${yearSel}</div>
+      <div class="emptyState">مفيش بيانات مبيعات عملاء لسنة ${cityCmpState.year}. استورد ملف "مبيعات العملاء" الأول.</div></div>`;
+  }
+  const mode = cityCmpState.mode;
+  const totSales = Array(12).fill(0), totCust = Array(12).fill(0);
+  data.forEach(d=>d.sales.forEach((v,i)=>{ totSales[i]+=v; totCust[i]+=d.cust[i]; }));
+  const yearTotal = totSales.reduce((a,b)=>a+b,0), yearCustTotal = data.reduce((a,d)=>a+d.yearCust,0);
+  const bestIdx = totSales.indexOf(Math.max(...totSales)), peakCustIdx = totCust.indexOf(Math.max(...totCust));
+  const kpi = (ic,lbl,val,sub)=>`<div class="kpi2"><div class="kic" style="background:var(--teal-light);color:var(--teal-dark);">${ic}</div><div class="kbody"><div class="klbl">${lbl}</div><div class="kval" style="font-size:17px;">${val}</div><div class="ksub">${sub}</div></div></div>`;
+  const cell = (d,i,ratio)=>{
+    const bg = `background:rgba(15,122,107,${(0.06+0.5*ratio).toFixed(2)});`;
+    const s = d.sales[i], c = d.cust[i];
+    const body = mode==='sales' ? fmtK(s) : mode==='cust' ? (c||'·') : `<div style="font-weight:800;">${fmtK(s)}</div><div style="font-size:10px;opacity:.75;">👥${c}</div>`;
+    return `<td style="${bg}text-align:center;padding:5px 3px;font-size:11.5px;white-space:nowrap;">${body}</td>`;
+  };
+  const rows = data.map(d=>{
+    const keyArr = mode==='cust' ? d.cust : d.sales, mx = Math.max(...keyArr, 1);
+    return `<tr><td style="white-space:nowrap;font-weight:700;">${escapeHTML(d.city)}</td>${d.sales.map((_,i)=>cell(d,i,Math.max(0,keyArr[i])/mx)).join('')}
+      <td style="font-weight:800;text-align:center;">${fmtK(d.total)}</td><td style="text-align:center;font-weight:800;color:var(--teal-dark);">${d.yearCust}<div style="font-size:10px;color:var(--gray-500);font-weight:600;">من ${d.totalCust}</div></td>
+      <td style="text-align:center;font-size:12px;">${d.yearCust? fmtK(d.total/d.yearCust):'-'}</td></tr>`;
+  }).join('');
+  const totalRow = `<tr style="font-weight:800;background:var(--teal-lighter);"><td>الإجمالي</td>${totSales.map((v,i)=>`<td style="text-align:center;font-size:11.5px;white-space:nowrap;">${mode==='cust'? totCust[i] : fmtK(v)}${mode==='both'?`<div style="font-size:10px;opacity:.75;">👥${totCust[i]}</div>`:''}</td>`).join('')}
+    <td style="text-align:center;">${fmtK(yearTotal)}</td><td style="text-align:center;">${yearCustTotal}</td><td style="text-align:center;font-size:12px;">${yearCustTotal?fmtK(yearTotal/yearCustTotal):'-'}</td></tr>`;
+  const seg = (k,l)=>`<button class="seg ${mode===k?'on':''}" onclick="setCityCmp('mode','${k}')">${l}</button>`;
+  const cityOpts = `<select onchange="setCityCmp('city', this.value)"><option value="">كل المدن (إجمالي)</option>${data.map(d=>`<option value="${escapeHTML(d.city)}" ${cityCmpState.city===d.city?'selected':''}>${escapeHTML(d.city)}</option>`).join('')}</select>`;
+  return `
+    <div class="card">
+      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">مقارنة المدن سنوياً - ${cityCmpState.year}</h2>${yearSel}</div>
+      <div class="kpis" style="margin-bottom:0;">
+        ${kpi('💰','إجمالي مبيعات السنة', fmtMoney(yearTotal), `${data.length} مدينة`)}
+        ${kpi('👥','عملاء تعاملوا خلال السنة', yearCustTotal, `من ${data.reduce((a,d)=>a+d.totalCust,0)} عميل مسجل`)}
+        ${kpi('🧮','متوسط المبيعات لكل عميل', yearCustTotal?fmtMoney(yearTotal/yearCustTotal):'-', 'إجمالي ÷ عملاء السنة')}
+        ${kpi('🏆','أعلى شهر مبيعات', MONTH_LABELS[bestIdx], fmtMoney(totSales[bestIdx]))}
+        ${kpi('📈','ذروة العملاء المتعاملين', MONTH_LABELS[peakCustIdx], `${totCust[peakCustIdx]} عميل`)}
+      </div>
+    </div>
+    <div class="card">
+      <div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">المبيعات والعملاء المتعاملين شهرياً</h2>${cityOpts}</div>
+      <div class="chartBox"><canvas id="chCityCmp1"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">مقارنة المدن: المبيعات مقابل العملاء المتعاملين</h2></div>
+      <div class="chartBox"><canvas id="chCityCmp2"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">الجدول الشهري لكل مدينة</h2>
+        <div class="segRow" style="margin:0;">${seg('both','مبيعات + عملاء')}${seg('sales','المبيعات')}${seg('cust','العملاء المتعاملين')}</div></div>
+      <div class="tableWrap"><table><thead><tr><th>المدينة</th>${MONTH_SHORT.map(m=>`<th style="text-align:center;padding:8px 3px;font-size:11px;">${m}</th>`).join('')}<th style="text-align:center;">الإجمالي</th><th style="text-align:center;">عملاء السنة</th><th style="text-align:center;">متوسط/عميل</th></tr></thead>
+        <tbody>${rows}${totalRow}</tbody></table></div>
+      <div class="smallMuted" style="margin-top:6px;">العميل المتعامل في شهر = مبيعاته في الشهر دي أكبر من صفر. "عملاء السنة" = عملاء تعاملوا في شهر واحد على الأقل. الأرقام بالمختصر (K = ألف، M = مليون)، وتدرّج اللون بيوضح الأعلى في كل مدينة.</div>
+    </div>`;
+}
+function drawCityCompareCharts(){
+  destroyCharts(['chCityCmp1','chCityCmp2']);
+  if(reportsTab!=='citycompare' || typeof Chart==='undefined') return;
+  const data = cityYearData(cityCmpState.year); if(!data.length) return;
+  const pick = cityCmpState.city ? data.filter(d=>d.city===cityCmpState.city) : data;
+  const sales = Array(12).fill(0), cust = Array(12).fill(0);
+  pick.forEach(d=>d.sales.forEach((v,i)=>{ sales[i]+=v; cust[i]+=d.cust[i]; }));
+  const dual = {y:{beginAtZero:true,position:'right'}, y1:{beginAtZero:true,position:'left',grid:{drawOnChartArea:false}}};
+  mkChart('chCityCmp1','bar',{
+    labels: MONTH_LABELS,
+    datasets:[
+      {type:'bar',  label:'المبيعات (ج.م)', data:sales, backgroundColor:'#0F7A6B', borderRadius:6, yAxisID:'y'},
+      {type:'line', label:'عملاء متعاملين', data:cust, borderColor:'#D68910', backgroundColor:'#D68910', tension:.3, pointRadius:3, yAxisID:'y1'}
+    ]}, {scales:dual, interaction:{mode:'index',intersect:false}});
+  const top = data.slice(0,15);
+  mkChart('chCityCmp2','bar',{
+    labels: top.map(d=>d.city),
+    datasets:[
+      {type:'bar',  label:'إجمالي المبيعات (ج.م)', data:top.map(d=>Math.round(d.total)), backgroundColor:'#2471A3', borderRadius:6, yAxisID:'y'},
+      {type:'line', label:'عملاء تعاملوا خلال السنة', data:top.map(d=>d.yearCust), borderColor:'#D68910', backgroundColor:'#D68910', pointRadius:4, showLine:false, yAxisID:'y1'}
+    ]}, {scales:dual});
+}
+
 function drawCoverageChart(){
   destroyCharts(['chCoverage']);
   if(reportsTab!=='coverage') return;
