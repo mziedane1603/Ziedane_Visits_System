@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.55)</title>
+<title>نظام زيارات المندوبين - APC (v2.56)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -685,7 +685,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.55';
+const APP_VERSION = '2.56';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -3698,7 +3698,7 @@ function rbDefaults(){
       p1:{enabled:true, weight:25, threshold:15},          // أيام فيها X زيارة فأكتر (أي نتيجة)
       p2:{enabled:true, weight:25, cap:100},               // نسبة تحقيق هدف الزيارات (بحد أقصى cap%)
       p3:{enabled:true, weight:25, threshold:5},           // أيام فيها X زيارة بيع فأكتر
-      p4:{enabled:true, weight:25, maxRating:5, minRating:0} // متوسط التقييم ÷ maxRating (ولو أقل من minRating = صفر)
+      p4:{enabled:true, weight:25, maxRating:5, minRating:0, unvisitedOn:false, unvisitedValue:-1} // متوسط التقييم ÷ maxRating (ولو أقل من minRating = صفر). unvisited: كل عميل في مدن المندوب ما اتزارش في الشهر بيدخل في المتوسط بقيمة unvisitedValue (-1 أو 0 أو 1)
     }
   };
 }
@@ -3718,7 +3718,10 @@ function rbNormalize(d){
       p1: part('p1',{threshold:15}),
       p2: Object.assign(part('p2',{}), {cap}),
       p3: part('p3',{threshold:5}),
-      p4: part('p4',{maxRating:5, minRating:0})
+      p4: Object.assign(part('p4',{maxRating:5, minRating:0}), {
+        unvisitedOn: !!(dp.p4 && dp.p4.unvisitedOn),
+        unvisitedValue: [-1,0,1].includes(Number(dp.p4 && dp.p4.unvisitedValue)) ? Number(dp.p4.unvisitedValue) : -1
+      })
     }
   };
 }
@@ -3782,6 +3785,12 @@ function rbSetExtraHolidays(raw){
   if(v>0) d.holidayOverrides[repBonusMonth] = v; else delete d.holidayOverrides[repBonusMonth];
   renderView();
 }
+function rbSetUnvisited(mode){   // 'off' | -1 | 0 | 1
+  const d = rbEdit(); const p4 = d.parts.p4;
+  p4.unvisitedOn = (mode!=='off');
+  if(mode!=='off') p4.unvisitedValue = Number(mode);
+  renderView();
+}
 function rbCancelDraft(){ rbDraft = null; renderView(); toast('اترجعت القواعد المحفوظة','warn'); }
 async function saveRepBonusRules(){
   const d = rbNormalize(rbCurrent());
@@ -3816,6 +3825,9 @@ function repBonusRowsForMonth(month, rulesArg){
   const shares = rbShares(rules);
   const salesNames = new Set(rules.salesResultNames);
   const workDays = workDaysInMonth(month, rules);
+  // العملاء اللي اتزاروا في الشهر (من أي مندوب) - لحساب "عملاء ما اتزاروش" لكل مندوب
+  const visitedCodes = new Set();
+  if(P.p4.unvisitedOn) VISITS.forEach(v=>{ if((v.date||'').startsWith(month) && v.customerCode) visitedCodes.add(v.customerCode); });
   return REPS.filter(r=>r.active!==false).map(r=>{
     const monthVisits = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(month));
     const visitCount = monthVisits.length;
@@ -3836,8 +3848,16 @@ function repBonusRowsForMonth(month, rulesArg){
     const visitRatio = Math.min(rawRatio, (P.p2.cap||0)/100);
 
     const ratingSum = monthVisits.reduce((s,v)=>s+(Number(v.rating)||0),0);
-    const avgRating = visitCount ? (ratingSum/visitCount) : 0;
-    const ratingFactor = (avgRating >= P.p4.minRating && P.p4.maxRating>0) ? Math.min(1, avgRating/P.p4.maxRating) : 0;
+    const rawAvgRating = visitCount ? (ratingSum/visitCount) : 0;
+    // كل عميل في مدن المندوب (أو كل العملاء لو مفيش مدن محددة) ما اتزارش في الشهر بيدخل في المتوسط بالقيمة المحددة في القواعد
+    let unvisitedCount = 0;
+    if(P.p4.unvisitedOn){
+      const cs = (r.cities && r.cities.length) ? CUSTOMERS.filter(c=>r.cities.includes(c.city)) : CUSTOMERS;
+      unvisitedCount = cs.filter(c=>!visitedCodes.has(c.code)).length;
+    }
+    const denom = visitCount + unvisitedCount;
+    const avgRating = denom ? (ratingSum + unvisitedCount*P.p4.unvisitedValue)/denom : 0;
+    const ratingFactor = (avgRating >= P.p4.minRating && P.p4.maxRating>0) ? Math.max(0, Math.min(1, avgRating/P.p4.maxRating)) : 0;
 
     const part1 = (shares.p1/workDays) * fullDaysCount;
     const part2 = shares.p2 * visitRatio;
@@ -3845,7 +3865,7 @@ function repBonusRowsForMonth(month, rulesArg){
     const part4 = shares.p4 * ratingFactor;
     const bonus = part1+part2+part3+part4;
 
-    return {repId:r.id, name:r.name, visitCount, avgRating, visitTarget, visitRatio, fullDaysCount, salesDaysCount, part1, part2, part3, part4, bonus};
+    return {repId:r.id, name:r.name, visitCount, avgRating, rawAvgRating, unvisitedCount, visitTarget, visitRatio, fullDaysCount, salesDaysCount, part1, part2, part3, part4, bonus};
   }).sort((a,b)=>b.bonus-a.bonus);
 }
 function viewRepBonus(){
@@ -3893,7 +3913,8 @@ function viewRepBonus(){
         ${P.p1.enabled?`<span title="أيام فيها ${P.p1.threshold} زيارة فأكتر">📅 ${r.fullDaysCount} يوم</span>`:''}
         ${P.p2.enabled?`<span title="تحقيق هدف الزيارات">🎯 ${r.visitTarget ? (r.visitRatio*100).toFixed(0)+'%' : 'لا هدف'}</span>`:''}
         ${P.p3.enabled?`<span title="أيام فيها ${P.p3.threshold} زيارة بيع فأكتر">💰 ${r.salesDaysCount} يوم</span>`:''}
-        ${P.p4.enabled?`<span title="متوسط التقييم">⭐ ${r.avgRating.toFixed(1)}</span>`:''}
+        ${P.p4.enabled?`<span title="متوسط التقييم${P.p4.unvisitedOn?` بعد احتساب العملاء اللي ما اتزاروش (الفعلي ${r.rawAvgRating.toFixed(1)})`:''}">⭐ ${r.avgRating.toFixed(1)}</span>`:''}
+        ${P.p4.enabled && P.p4.unvisitedOn?`<span title="عملاء في مدنه ما اتزاروش هذا الشهر">⛔ ${r.unvisitedCount} لم يُزر</span>`:''}
       </div>
       <div class="rbSplit">
         ${[['p1',r.part1],['p2',r.part2],['p3',r.part3],['p4',r.part4]].map(([k,v],i)=>P[k].enabled?`<span class="sp sp${i+1}">${['①','②','③','④'][i]} ${money(v)}</span>`:'').join('')}
@@ -3925,9 +3946,13 @@ function viewRepBonus(){
            `<label>الحد الأدنى لزيارات البيع في اليوم ${numIn('parts.p3.threshold', P.p3.threshold, 1, null, 64)}</label>
             <div class="rbSales"><span>نتايج تُعتبر "بيع":</span><div class="rbChips">${salesChips}</div></div>`)}
         ${partCard('p4','⭐','متوسط التقييم',
-           `المبلغ × (متوسط التقييم ÷ <b>${P.p4.maxRating}</b>)${P.p4.minRating>0?` — ولو المتوسط أقل من <b>${P.p4.minRating}</b> يبقى صفر`:''}.`,
+           `المبلغ × (متوسط التقييم ÷ <b>${P.p4.maxRating}</b>)${P.p4.minRating>0?` — ولو المتوسط أقل من <b>${P.p4.minRating}</b> يبقى صفر`:''}.${P.p4.unvisitedOn?` كل عميل في مدنه ما اتزارش في الشهر بيدخل في المتوسط كأنه تقييم <b>${P.p4.unvisitedValue}</b>.`:''}`,
            `<label>أعلى تقييم ${numIn('parts.p4.maxRating', P.p4.maxRating, 1, 100, 60)}</label>
-            <label>أقل متوسط للاستحقاق ${numIn('parts.p4.minRating', P.p4.minRating, 0, 100, 60)}</label>`)}
+            <label>أقل متوسط للاستحقاق ${numIn('parts.p4.minRating', P.p4.minRating, 0, 100, 60)}</label>
+            <div class="rbSales"><span>العميل اللي ما اتزارش في الشهر:</span><div class="rbChips">
+              <button type="button" class="rbChip ${!P.p4.unvisitedOn?'on':''}" onclick="rbSetUnvisited('off')">لا يُحتسب</button>
+              ${[[-1,'<span dir="ltr">−1</span>'],[0,'صفر'],[1,'<span dir="ltr">+1</span>']].map(([v,l])=>`<button type="button" class="rbChip ${P.p4.unvisitedOn&&P.p4.unvisitedValue===v?'on':''}" onclick="rbSetUnvisited(${v})">${l}</button>`).join('')}
+            </div></div>`)}
       </div>
 
       <div class="rbActions">
