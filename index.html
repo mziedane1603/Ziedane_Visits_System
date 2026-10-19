@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.54)</title>
+<title>نظام زيارات المندوبين - APC (v2.55)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -477,6 +477,48 @@ details.card[open]>summary{margin-bottom:10px;}
 button.alertChip{cursor:pointer;} button.alertChip:active{transform:scale(.97);}
 .alertChip.red{border-color:#F1B8B1;background:#FDECEA;color:#A93226;}
 .alertChip.ok{border-color:#BFE3DC;background:var(--teal-light);color:var(--teal-dark);}
+
+/* ================= حوافز المناديب: قواعد قابلة للتعديل ================= */
+.rbCard>summary{cursor:pointer;font-weight:800;font-size:14px;list-style:none;display:flex;align-items:center;gap:10px;}
+.rbCard>summary::-webkit-details-marker{display:none;}
+.rbCard[open]>summary{margin-bottom:10px;}
+.rbDirty{background:#FFF1D6;color:#8a5a06;border:1px solid #F2D49B;border-radius:99px;padding:2px 10px;font-size:11.5px;font-weight:700;}
+.rbGeneral{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:12.5px;font-weight:700;margin-bottom:4px;}
+.rbGeneral>label{display:flex;align-items:center;gap:8px;}
+.rbIn{padding:6px 8px;border:1.5px solid #D5E3E1;border-radius:9px;background:#fff;text-align:center;font-weight:800;font-size:13.5px;}
+.rbIn:focus{outline:none;border-color:var(--teal);}
+.rbDaysBox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rbChips{display:flex;flex-wrap:wrap;gap:5px;}
+.rbChip{display:inline-flex;align-items:center;padding:4px 11px;border-radius:99px;border:1.5px solid #D5E3E1;background:#fff;font-size:12px;font-weight:700;color:var(--gray-500);cursor:pointer;user-select:none;}
+.rbChip input{display:none;}
+.rbChip.on{background:var(--teal-light);border-color:var(--teal);color:var(--teal-dark);}
+.rbParts{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:10px;margin-top:6px;}
+.rbPart{border:1px solid #E3ECEB;border-radius:14px;padding:10px 12px;background:#fff;}
+.rbPart.off{opacity:.55;background:#F6F8F8;}
+.rbPartHead{display:flex;align-items:center;gap:9px;}
+.rbPartTitle{font-weight:800;font-size:13.5px;flex:1;}
+.rbPartAmt{font-weight:900;color:var(--teal-dark);font-size:14px;}
+.rbDesc{font-size:11.8px;color:var(--gray-500);line-height:1.7;margin:5px 0 7px;}
+.rbCtrls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:12px;font-weight:700;}
+.rbCtrls label{display:flex;align-items:center;gap:6px;}
+.rbSales{width:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.rbSwitch{position:relative;width:38px;height:22px;flex:none;}
+.rbSwitch input{display:none;}
+.rbSwitch span{position:absolute;inset:0;background:#C9D3D2;border-radius:99px;transition:.15s;}
+.rbSwitch span::after{content:'';position:absolute;top:3px;right:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.15s;}
+.rbSwitch input:checked+span{background:var(--teal);}
+.rbSwitch input:checked+span::after{right:19px;}
+.rbActions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;}
+.rbBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+.rbBar input[type=month]{padding:6px 10px;border:1.5px solid #D5E3E1;border-radius:9px;}
+.rbReps{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:8px;}
+.rbRep{border:1px solid #E3ECEB;border-radius:12px;padding:9px 11px;background:#fff;}
+.rbRepTop{display:flex;justify-content:space-between;align-items:center;}
+.rbRepTop .nm{font-weight:800;font-size:14px;} .rbRepTop .amt{font-weight:900;color:var(--teal-dark);font-size:15px;}
+.rbRepChips{display:flex;flex-wrap:wrap;gap:5px 10px;margin:5px 0 4px;font-size:11.5px;color:var(--gray-500);font-weight:700;}
+.rbSplit{display:flex;flex-wrap:wrap;gap:4px;}
+.rbSplit .sp{font-size:10.5px;font-weight:700;border-radius:99px;padding:1px 8px;background:#F2F7F6;color:var(--gray-500);}
+.rbSplit .sp1{background:#E7F0F8;color:#1F5F99;} .rbSplit .sp2{background:#E3F3F0;color:#0B5C51;} .rbSplit .sp3{background:#FBEEDB;color:#8a5a06;} .rbSplit .sp4{background:#F3E8F8;color:#6C3483;}
 </style>
 </head>
 <body>
@@ -643,7 +685,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.54';
+const APP_VERSION = '2.55';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -3647,15 +3689,50 @@ async function deleteCustomer(id){
 /* ==========================================================================
    حوافز المناديب (Rep Bonus) - قواعد قابلة للتعديل + حساب شهري تلقائي - أدمن فقط
    ========================================================================== */
-let REP_BONUS_RULES = {totalPool:0, salesResultNames:[], holidayOverrides:{}, targetCapPct:100};
-function workDaysInMonth(monthStr){
-  // أيام الشهر - كل الجمع (يوم العطلة الأسبوعية) - أي عطلات رسمية إضافية (زي أيام العيد) محددة يدوياً لنفس الشهر
+// ---- القواعد الافتراضية (بتتدمج مع أي قواعد قديمة محفوظة، فمفيش حاجة بتتكسر) ----
+function rbDefaults(){
+  return {
+    totalPool:0, salesResultNames:[], holidayOverrides:{}, targetCapPct:100,
+    offDays:[5],   // أيام الإجازة الأسبوعية (0=الأحد ... 5=الجمعة ... 6=السبت)
+    parts:{
+      p1:{enabled:true, weight:25, threshold:15},          // أيام فيها X زيارة فأكتر (أي نتيجة)
+      p2:{enabled:true, weight:25, cap:100},               // نسبة تحقيق هدف الزيارات (بحد أقصى cap%)
+      p3:{enabled:true, weight:25, threshold:5},           // أيام فيها X زيارة بيع فأكتر
+      p4:{enabled:true, weight:25, maxRating:5, minRating:0} // متوسط التقييم ÷ maxRating (ولو أقل من minRating = صفر)
+    }
+  };
+}
+function rbNormalize(d){
+  const def = rbDefaults(); d = d || {};
+  const dp = d.parts || {};
+  const num = (v,f)=> (v===undefined||v===null||v==='' || isNaN(Number(v))) ? f : Number(v);
+  const part = (k, extra)=>{ const o = dp[k]||{}; const r = {enabled: o.enabled===undefined ? true : !!o.enabled, weight: Math.max(0, num(o.weight, def.parts[k].weight))}; Object.keys(extra).forEach(x=>{ r[x] = num(o[x], extra[x]); }); return r; };
+  const cap = num((dp.p2||{}).cap, d.targetCapPct!=null ? Number(d.targetCapPct) : 100);
+  return {
+    totalPool: num(d.totalPool,0),
+    salesResultNames: Array.isArray(d.salesResultNames) ? d.salesResultNames : [],
+    holidayOverrides: (d.holidayOverrides && typeof d.holidayOverrides==='object') ? d.holidayOverrides : {},
+    targetCapPct: cap,
+    offDays: Array.isArray(d.offDays) ? d.offDays.map(Number).filter(x=>x>=0&&x<=6) : [5],
+    parts:{
+      p1: part('p1',{threshold:15}),
+      p2: Object.assign(part('p2',{}), {cap}),
+      p3: part('p3',{threshold:5}),
+      p4: part('p4',{maxRating:5, minRating:0})
+    }
+  };
+}
+let REP_BONUS_RULES = rbNormalize({});
+function workDaysInMonth(monthStr, rules){
+  // أيام الشهر - أيام الإجازة الأسبوعية المحددة في القواعد - أي عطلات رسمية إضافية محددة يدوياً لنفس الشهر
+  rules = rules || REP_BONUS_RULES;
   const [y,m] = monthStr.split('-').map(Number);
   const daysCount = new Date(y, m, 0).getDate();
-  let fridays = 0;
-  for(let d=1; d<=daysCount; d++){ if(new Date(y, m-1, d).getDay()===5) fridays++; }
-  const extra = Number(REP_BONUS_RULES.holidayOverrides[monthStr]) || 0;
-  return Math.max(1, daysCount - fridays - extra);
+  const off = new Set(rules.offDays||[5]);
+  let offCount = 0;
+  for(let d=1; d<=daysCount; d++){ if(off.has(new Date(y, m-1, d).getDay())) offCount++; }
+  const extra = Number((rules.holidayOverrides||{})[monthStr]) || 0;
+  return Math.max(1, daysCount - offCount - extra);
 }
 let repBonusMonth = todayISO().slice(0,7);
 let repBonusRulesLoadedAt = 0;
@@ -3667,15 +3744,8 @@ async function loadRepBonusRules(){
   try{
     const snap = await db.collection('appConfig').doc('repBonusRules').get();
     if(snap.exists){
-      const d = snap.data();
-      const next = {
-        totalPool: Number(d.totalPool)||0,
-        salesResultNames: Array.isArray(d.salesResultNames) ? d.salesResultNames : [],
-        holidayOverrides: (d.holidayOverrides && typeof d.holidayOverrides==='object') ? d.holidayOverrides : {},
-        targetCapPct: d.targetCapPct!=null ? Number(d.targetCapPct) : 100
-      };
-      // نعيد الرسم بس لو القيم فعلاً اختلفت
-      // (مش بنلمس repBonusSalesDraft: اختيارات الأدمن اللي لسه مش محفوظة بتفضل زي ما هي)
+      const next = rbNormalize(snap.data());
+      // نعيد الرسم بس لو القيم فعلاً اختلفت (ومش بنلمس المسودة: تعديلاتك اللي لسه مش محفوظة بتفضل)
       if(JSON.stringify(next) !== JSON.stringify(REP_BONUS_RULES)){
         REP_BONUS_RULES = next;
         if(currentView==='repbonus') renderView();
@@ -3683,47 +3753,69 @@ async function loadRepBonusRules(){
     }
   }catch(e){ console.error('loadRepBonusRules failed', e); repBonusRulesLoadedAt = 0; }
 }
-// "مسودة" محلية لخانات "زيارة بيع" - بتفضل زي ما الأدمن سابها حتى لو حصل أي تحديث خلفي للصفحة
-// (زيارة جديدة من مندوب تاني مثلاً) قبل ما يضغط "حفظ القواعد"، فمش بتتمسح اختياراته نص الطريق
-let repBonusSalesDraft = null;
-function ensureRepBonusSalesDraft(resultNames){
-  if(repBonusSalesDraft==null){
-    repBonusSalesDraft = REP_BONUS_RULES.salesResultNames.length
-      ? [...REP_BONUS_RULES.salesResultNames]
-      : (resultNames.includes('مبيعات') ? ['مبيعات'] : []);
-  }
-  return repBonusSalesDraft;
+// ---- مسودة التعديل: كل خانة بتتسجّل هنا فور تغييرها وبتفضل لحد الحفظ أو الإلغاء ----
+let rbDraft = null;
+function rbCurrent(){ return rbDraft || REP_BONUS_RULES; }
+function rbEdit(){ if(!rbDraft) rbDraft = JSON.parse(JSON.stringify(REP_BONUS_RULES)); return rbDraft; }
+function rbSet(path, value){
+  const d = rbEdit(), keys = path.split('.'); let o = d;
+  for(let i=0;i<keys.length-1;i++){ if(o[keys[i]]==null || typeof o[keys[i]]!=='object') o[keys[i]] = {}; o = o[keys[i]]; }
+  o[keys[keys.length-1]] = value;
+  renderView();
 }
-function toggleRepBonusSalesDraft(name, checked){
-  if(repBonusSalesDraft==null) repBonusSalesDraft=[...REP_BONUS_RULES.salesResultNames];
-  if(checked){ if(!repBonusSalesDraft.includes(name)) repBonusSalesDraft.push(name); }
-  else{ repBonusSalesDraft = repBonusSalesDraft.filter(n=>n!==name); }
+function rbSetNum(path, raw, min, max){
+  let v = Number(raw); if(isNaN(v)) v = 0;
+  if(min!=null) v = Math.max(min, v); if(max!=null) v = Math.min(max, v);
+  rbSet(path, v);
 }
+function rbToggleList(path, item, on){
+  const d = rbEdit(), keys = path.split('.'); let o = d;
+  for(let i=0;i<keys.length-1;i++) o = o[keys[i]];
+  const k = keys[keys.length-1]; const cur = Array.isArray(o[k]) ? [...o[k]] : [];
+  const has = cur.includes(item);
+  if(on && !has) cur.push(item); else if(!on && has) cur.splice(cur.indexOf(item),1);
+  o[k] = cur; renderView();
+}
+function rbSetExtraHolidays(raw){
+  const d = rbEdit(); d.holidayOverrides = {...(d.holidayOverrides||{})};
+  const v = Math.max(0, Math.floor(Number(raw)||0));
+  if(v>0) d.holidayOverrides[repBonusMonth] = v; else delete d.holidayOverrides[repBonusMonth];
+  renderView();
+}
+function rbCancelDraft(){ rbDraft = null; renderView(); toast('اترجعت القواعد المحفوظة','warn'); }
 async function saveRepBonusRules(){
-  const totalPool = Number(document.getElementById('rbPool').value)||0;
-  const targetCapPct = Number(document.getElementById('rbTargetCap').value)||0;
-  const salesResultNames = repBonusSalesDraft!=null ? [...repBonusSalesDraft] : Array.from(document.querySelectorAll('.rbSalesResult:checked')).map(cb=>cb.value);
-  const holidayOverrides = {...REP_BONUS_RULES.holidayOverrides};
-  const extraHolidays = Number(document.getElementById('rbExtraHolidays').value)||0;
-  if(extraHolidays>0) holidayOverrides[repBonusMonth] = extraHolidays;
-  else delete holidayOverrides[repBonusMonth];
+  const d = rbNormalize(rbCurrent());
+  const en = Object.values(d.parts).filter(x=>x.enabled);
+  if(!en.length){ toast('لازم تفعّل معيار واحد على الأقل','err'); return; }
+  if(en.reduce((a,x)=>a+x.weight,0) <= 0){ toast('مجموع الأوزان لازم يكون أكبر من صفر','err'); return; }
+  if(d.offDays.length>=7){ toast('مينفعش كل أيام الأسبوع إجازة','err'); return; }
   try{
     await db.collection('appConfig').doc('repBonusRules').set({
-      totalPool, salesResultNames, holidayOverrides, targetCapPct,
+      totalPool:d.totalPool, salesResultNames:d.salesResultNames, holidayOverrides:d.holidayOverrides,
+      targetCapPct:d.parts.p2.cap, offDays:d.offDays, parts:d.parts,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.username
     });
-    REP_BONUS_RULES = {totalPool, salesResultNames, holidayOverrides, targetCapPct};
+    REP_BONUS_RULES = d;
     repBonusRulesLoadedAt = Date.now();
-    repBonusSalesDraft = null; // رجّعها تتبع القيمة المحفوظة الجديدة من هنا
-    logAudit('edit','appConfig', `قواعد حوافز المناديب: إجمالي ${totalPool} ج، نتائج البيع: ${salesResultNames.join('، ')||'-'}`);
-    toast('تم حفظ قواعد الحوافز بنجاح','ok');
+    rbDraft = null;
+    logAudit('edit','appConfig', `قواعد حوافز المناديب: إجمالي ${d.totalPool} ج، أوزان ${['p1','p2','p3','p4'].map(k=>d.parts[k].enabled?d.parts[k].weight:'-').join('/')}، نتائج البيع: ${d.salesResultNames.join('، ')||'-'}`);
+    toast('تم حفظ قواعد الحوافز بنجاح ✔','ok');
     renderView();
-  }catch(e){ console.error(e); toast('فشل الحفظ','err'); }
+  }catch(e){ console.error(e); toast('فشل الحفظ: ' + (e.code==='permission-denied' ? 'الصلاحيات (راجع قواعد Firestore)' : (e.message||'خطأ')),'err'); }
 }
-function repBonusRowsForMonth(month){
-  const share = REP_BONUS_RULES.totalPool / 4;
-  const salesNames = new Set(REP_BONUS_RULES.salesResultNames);
-  const workDays = workDaysInMonth(month);
+// مبلغ كل معيار = الإجمالي × وزنه ÷ مجموع أوزان المعايير المفعّلة (فالإجمالي بيتوزع كامل مهما كان مجموع الأوزان)
+function rbShares(rules){
+  const P = rules.parts, en = ['p1','p2','p3','p4'].filter(k=>P[k].enabled);
+  const sumW = en.reduce((a,k)=>a+P[k].weight,0);
+  const out = {p1:0,p2:0,p3:0,p4:0};
+  if(sumW>0) en.forEach(k=>{ out[k] = rules.totalPool * P[k].weight / sumW; });
+  return out;
+}
+function repBonusRowsForMonth(month, rulesArg){
+  const rules = rulesArg || REP_BONUS_RULES, P = rules.parts;
+  const shares = rbShares(rules);
+  const salesNames = new Set(rules.salesResultNames);
+  const workDays = workDaysInMonth(month, rules);
   return REPS.filter(r=>r.active!==false).map(r=>{
     const monthVisits = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(month));
     const visitCount = monthVisits.length;
@@ -3736,20 +3828,21 @@ function repBonusRowsForMonth(month){
       byDate[d].total++;
       if(salesNames.has(v.visitResult)) byDate[d].sales++;
     });
-    const fullDaysCount = Object.values(byDate).filter(d=>d.total>=15).length;
-    const salesDaysCount = Object.values(byDate).filter(d=>d.sales>=5).length;
+    const fullDaysCount = Object.values(byDate).filter(d=>d.total>=P.p1.threshold).length;
+    const salesDaysCount = Object.values(byDate).filter(d=>d.sales>=P.p3.threshold).length;
 
     const visitTarget = Number(r.monthlyVisitTarget)||0;
     const rawRatio = visitTarget>0 ? (visitCount/visitTarget) : 0;
-    const visitRatio = Math.min(rawRatio, (REP_BONUS_RULES.targetCapPct||100)/100);
+    const visitRatio = Math.min(rawRatio, (P.p2.cap||0)/100);
 
     const ratingSum = monthVisits.reduce((s,v)=>s+(Number(v.rating)||0),0);
     const avgRating = visitCount ? (ratingSum/visitCount) : 0;
+    const ratingFactor = (avgRating >= P.p4.minRating && P.p4.maxRating>0) ? Math.min(1, avgRating/P.p4.maxRating) : 0;
 
-    const part1 = (share/workDays) * fullDaysCount;
-    const part2 = share * visitRatio;
-    const part3 = (share/workDays) * salesDaysCount;
-    const part4 = share * (avgRating/5);
+    const part1 = (shares.p1/workDays) * fullDaysCount;
+    const part2 = shares.p2 * visitRatio;
+    const part3 = (shares.p3/workDays) * salesDaysCount;
+    const part4 = shares.p4 * ratingFactor;
     const bonus = part1+part2+part3+part4;
 
     return {repId:r.id, name:r.name, visitCount, avgRating, visitTarget, visitRatio, fullDaysCount, salesDaysCount, part1, part2, part3, part4, bonus};
@@ -3757,78 +3850,100 @@ function repBonusRowsForMonth(month){
 }
 function viewRepBonus(){
   const month = repBonusMonth;
-  const rows = repBonusRowsForMonth(month);
+  const rules = rbNormalize(rbCurrent()), P = rules.parts;
+  const dirty = !!rbDraft && JSON.stringify(rbNormalize(rbDraft)) !== JSON.stringify(REP_BONUS_RULES);
+  const rows = repBonusRowsForMonth(month, rules);
   const totalBonus = rows.reduce((s,r)=>s+r.bonus,0);
+  const shares = rbShares(rules);
   const resultNames = currentResultDefs().map(d=>d.name);
-  const workDays = workDaysInMonth(month);
-  const currentExtraHolidays = Number(REP_BONUS_RULES.holidayOverrides[month])||0;
+  const workDays = workDaysInMonth(month, rules);
+  const extraHolidays = Number((rules.holidayOverrides||{})[month])||0;
+  const sumW = ['p1','p2','p3','p4'].filter(k=>P[k].enabled).reduce((a,k)=>a+P[k].weight,0);
+  const money = n => Math.round(n).toLocaleString('en-US');
+  const DAYS = [['6','سبت'],['0','أحد'],['1','اثنين'],['2','ثلاثاء'],['3','أربعاء'],['4','خميس'],['5','جمعة']];
+  const numIn = (path, val, min, max, w) => `<input type="number" class="rbIn" min="${min}" ${max!=null?`max="${max}"`:''} step="1" value="${val}" style="width:${w||74}px;" onchange="rbSetNum('${path}', this.value, ${min}, ${max==null?'null':max})">`;
 
-  const activeSalesNames = ensureRepBonusSalesDraft(resultNames);
+  const partCard = (k, ic, title, desc, controls) => `
+    <div class="rbPart ${P[k].enabled?'':'off'}">
+      <div class="rbPartHead">
+        <label class="rbSwitch"><input type="checkbox" ${P[k].enabled?'checked':''} onchange="rbSet('parts.${k}.enabled', this.checked)"><span></span></label>
+        <div class="rbPartTitle">${ic} ${title}</div>
+        <div class="rbPartAmt">${P[k].enabled ? money(shares[k])+' ج' : 'موقوف'}</div>
+      </div>
+      <div class="rbDesc">${desc}</div>
+      <div class="rbCtrls">
+        <label>الوزن % ${numIn('parts.'+k+'.weight', P[k].weight, 0, 100)}</label>
+        ${controls}
+      </div>
+    </div>`;
 
-  // بطاقات بدل جدول عريض - عشان تتقرا كاملة على الموبايل من غير تمرير جانبي
+  const salesChips = resultNames.length ? resultNames.map(n=>`
+    <label class="rbChip ${rules.salesResultNames.includes(n)?'on':''}">
+      <input type="checkbox" ${rules.salesResultNames.includes(n)?'checked':''} onchange="rbToggleList('salesResultNames', ${escapeHTML(JSON.stringify(n))}, this.checked)">${escapeHTML(n)}
+    </label>`).join('') : `<span class="smallMuted">لا توجد نتائج زيارة معرّفة بعد</span>`;
+
+  const dayChips = DAYS.map(([v,l])=>`<label class="rbChip ${rules.offDays.includes(Number(v))?'on':''}"><input type="checkbox" ${rules.offDays.includes(Number(v))?'checked':''} onchange="rbToggleList('offDays', ${v}, this.checked)">${l}</label>`).join('');
+
+  // بطاقات المناديب (مدمجة، في شبكة)
   const repCards = rows.length ? rows.map(r=>`
-    <div class="planItem" style="align-items:flex-start;flex-direction:column;gap:8px;">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-        <div class="nm" style="font-size:14px;">${escapeHTML(r.name)}</div>
-        <div style="font-weight:800;font-size:15px;color:var(--teal-dark);">${r.bonus.toLocaleString('en-US',{maximumFractionDigits:0})} ج.م</div>
+    <div class="rbRep">
+      <div class="rbRepTop"><span class="nm">${escapeHTML(r.name)}</span><span class="amt">${money(r.bonus)} ج.م</span></div>
+      <div class="rbRepChips">
+        <span title="زيارات الشهر">📋 ${r.visitCount}</span>
+        ${P.p1.enabled?`<span title="أيام فيها ${P.p1.threshold} زيارة فأكتر">📅 ${r.fullDaysCount} يوم</span>`:''}
+        ${P.p2.enabled?`<span title="تحقيق هدف الزيارات">🎯 ${r.visitTarget ? (r.visitRatio*100).toFixed(0)+'%' : 'لا هدف'}</span>`:''}
+        ${P.p3.enabled?`<span title="أيام فيها ${P.p3.threshold} زيارة بيع فأكتر">💰 ${r.salesDaysCount} يوم</span>`:''}
+        ${P.p4.enabled?`<span title="متوسط التقييم">⭐ ${r.avgRating.toFixed(1)}</span>`:''}
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        <span class="badge badge-gray">📋 ${r.visitCount} زيارة</span>
-        <span class="badge badge-gray">📅 ${r.fullDaysCount} يوم ≥15</span>
-        <span class="badge badge-gray">🎯 ${r.visitTarget ? (r.visitRatio*100).toFixed(0)+'%' : 'لا هدف'}</span>
-        <span class="badge badge-gray">💰 ${r.salesDaysCount} يوم بيع</span>
-        <span class="badge badge-gray">⭐ ${r.avgRating.toFixed(1)}</span>
+      <div class="rbSplit">
+        ${[['p1',r.part1],['p2',r.part2],['p3',r.part3],['p4',r.part4]].map(([k,v],i)=>P[k].enabled?`<span class="sp sp${i+1}">${['①','②','③','④'][i]} ${money(v)}</span>`:'').join('')}
       </div>
-      <div class="smallMuted" style="font-size:11px;">تفصيل الأرباع: ${r.part1.toFixed(0)} + ${r.part2.toFixed(0)} + ${r.part3.toFixed(0)} + ${r.part4.toFixed(0)}</div>
     </div>`).join('') : `<div class="chatEmpty">لا يوجد مناديب نشطين</div>`;
 
   return `
-    <div class="pageHead"><div><h2>حوافز المناديب</h2><div class="desc">حساب البونص الشهري حسب 4 معايير - مرئي للأدمن فقط</div></div></div>
+    <div class="pageHead"><div><h2>حوافز المناديب</h2><div class="desc">كل القواعد قابلة للتعديل، والنتائج تحت بتتحدّث فوراً (معاينة) قبل ما تحفظ</div></div></div>
 
-    <div class="card" style="margin-bottom:16px;">
-      <h2 style="font-size:14px;margin:0 0 10px;">⚙️ قواعد الحساب</h2>
-      <div class="grid grid-3">
-        <div class="field">
-          <label>إجمالي البونص الشهري (جنيه)</label>
-          <input id="rbPool" type="number" min="0" step="1" value="${REP_BONUS_RULES.totalPool}">
-        </div>
-        <div class="field">
-          <label>الحد الأقصى لنسبة تحقيق الهدف % (الجزء الثاني)</label>
-          <input id="rbTargetCap" type="number" min="0" step="1" value="${REP_BONUS_RULES.targetCapPct}">
-        </div>
-        <div class="field">
-          <label>أيام عطلات رسمية إضافية في شهر ${month} (عيد فطر/أضحى)</label>
-          <input id="rbExtraHolidays" type="number" min="0" step="1" value="${currentExtraHolidays}">
-        </div>
+    <details class="card rbCard" open>
+      <summary>⚙️ قواعد الحساب ${dirty?'<span class="rbDirty">● تعديلات غير محفوظة</span>':''}</summary>
+
+      <div class="rbGeneral">
+        <label>إجمالي البونص الشهري (جنيه) ${numIn('totalPool', rules.totalPool, 0, null, 110).replace("rbSetNum('totalPool'","rbSetNum('totalPool'")}</label>
+        <label>عطلات رسمية إضافية في ${month} ${numIn('extra', extraHolidays, 0, 31, 60).replace(/rbSetNum\('extra', this\.value, 0, 31\)/, 'rbSetExtraHolidays(this.value)')}</label>
+        <div class="rbDaysBox"><span>الإجازة الأسبوعية:</span><div class="rbChips">${dayChips}</div></div>
       </div>
-      <div class="smallMuted" style="margin:6px 0 12px;">
-        بيتقسم أوتوماتيك 4 أرباع متساوية (${(REP_BONUS_RULES.totalPool/4).toLocaleString('en-US',{maximumFractionDigits:0})} ج للربع الواحد حالياً).
-        أيام العمل لشهر ${month} = أيام الشهر - كل الجمع فيه - العطلات الإضافية أعلاه = <b>${workDays} يوم</b>.
-        <br>1) ربع ÷ ${workDays} يوم × عدد الأيام اللي سجّل فيها 15 زيارة فأكتر (أي نتيجة).
-        <br>2) ربع × (عدد زيارات الشهر ÷ هدف الزيارات الشهري المحدد للمندوب من صفحة "التعريفات ← أهداف المناديب") - بحد أقصى ${REP_BONUS_RULES.targetCapPct}%.
-        <br>3) ربع ÷ ${workDays} يوم × عدد الأيام اللي سجّل فيها 5 "زيارات بيع" فأكتر (حسب النتائج المحددة تحت).
-        <br>4) ربع × (متوسط تقييم زيارات المندوب ÷ 5).
+      <div class="smallMuted" style="margin:2px 0 8px;">أيام العمل في ${month} = <b>${workDays} يوم</b> (أيام الشهر − الإجازة الأسبوعية − العطلات الإضافية). مجموع أوزان المعايير المفعّلة: <b style="color:${sumW===100?'var(--teal-dark)':'var(--amber)'};">${sumW}%</b> ${sumW===100?'✓':'(الإجمالي هيتوزع بالنسبة بينهم)'}</div>
+
+      <div class="rbParts">
+        ${partCard('p1','📅','أيام الالتزام بعدد الزيارات',
+           `المبلغ ÷ أيام العمل × عدد الأيام اللي سجّل فيها <b>${P.p1.threshold}</b> زيارة فأكتر (أي نتيجة).`,
+           `<label>الحد الأدنى للزيارات في اليوم ${numIn('parts.p1.threshold', P.p1.threshold, 1, null, 64)}</label>`)}
+        ${partCard('p2','🎯','تحقيق هدف الزيارات',
+           `المبلغ × (زيارات الشهر ÷ هدف المندوب) بحد أقصى <b>${P.p2.cap}%</b>. الهدف بيتحدد من التعريفات ← أهداف المناديب.`,
+           `<label>الحد الأقصى للنسبة % ${numIn('parts.p2.cap', P.p2.cap, 0, 1000, 70)}</label>`)}
+        ${partCard('p3','💰','أيام زيارات البيع',
+           `المبلغ ÷ أيام العمل × عدد الأيام اللي سجّل فيها <b>${P.p3.threshold}</b> زيارة بيع فأكتر.`,
+           `<label>الحد الأدنى لزيارات البيع في اليوم ${numIn('parts.p3.threshold', P.p3.threshold, 1, null, 64)}</label>
+            <div class="rbSales"><span>نتايج تُعتبر "بيع":</span><div class="rbChips">${salesChips}</div></div>`)}
+        ${partCard('p4','⭐','متوسط التقييم',
+           `المبلغ × (متوسط التقييم ÷ <b>${P.p4.maxRating}</b>)${P.p4.minRating>0?` — ولو المتوسط أقل من <b>${P.p4.minRating}</b> يبقى صفر`:''}.`,
+           `<label>أعلى تقييم ${numIn('parts.p4.maxRating', P.p4.maxRating, 1, 100, 60)}</label>
+            <label>أقل متوسط للاستحقاق ${numIn('parts.p4.minRating', P.p4.minRating, 0, 100, 60)}</label>`)}
       </div>
-      <div class="field">
-        <label>أي نتائج زيارة تُعتبر "زيارة بيع" (لحساب الجزء الثالث)؟ - تقدر تعلّم على أكتر من واحدة</label>
-        <div class="permGrid">
-          ${resultNames.length ? resultNames.map(n=>`
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" class="rbSalesResult" value="${escapeHTML(n)}" ${activeSalesNames.includes(n)?'checked':''} onchange="toggleRepBonusSalesDraft(${escapeHTML(JSON.stringify(n))}, this.checked)">
-              ${escapeHTML(n)}
-            </label>`).join('') : `<span class="smallMuted">لا توجد نتائج زيارة معرّفة بعد</span>`}
-        </div>
+
+      <div class="rbActions">
+        <button class="btn btn-primary btn-sm" onclick="saveRepBonusRules()">💾 حفظ القواعد</button>
+        ${dirty?`<button class="btn btn-ghost btn-sm" onclick="rbCancelDraft()">↩ تراجع عن التعديلات</button>`:''}
+        <span class="smallMuted">العطلات الإضافية بتتسجل لشهر ${month} بس (غيّر الشهر من تحت لشهر تاني).</span>
       </div>
-      <div class="smallMuted" style="margin-top:4px;color:var(--amber);">⚠️ "أيام العطلات الإضافية" بتتسجل لشهر ${month} بس (الشهر المختار تحت) - لو هتحسب شهر رمضان/العيد غيّر الشهر الأول ثم حدد عدد أيامه وسيف.</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveRepBonusRules()">💾 حفظ القواعد</button>
-    </div>
+    </details>
 
     <div class="card">
-      <div class="filterBar">
+      <div class="rbBar">
         <input type="month" value="${month}" onchange="repBonusMonth=this.value; renderView();">
-        <span class="badge badge-teal" style="padding:9px 14px;">إجمالي حوافز الشهر: ${totalBonus.toLocaleString('en-US',{maximumFractionDigits:0})} ج.م</span>
+        <span class="badge badge-teal" style="padding:7px 12px;">إجمالي حوافز الشهر: ${money(totalBonus)} ج.م</span>
+        ${dirty?'<span class="rbDirty">معاينة بتعديلات لم تُحفظ</span>':''}
       </div>
-      <div class="planList" style="margin-top:12px;">${repCards}</div>
+      <div class="rbReps">${repCards}</div>
     </div>
   `;
 }
