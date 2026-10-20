@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.56)</title>
+<title>نظام زيارات المندوبين - APC (v2.57)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -519,6 +519,42 @@ button.alertChip{cursor:pointer;} button.alertChip:active{transform:scale(.97);}
 .rbSplit{display:flex;flex-wrap:wrap;gap:4px;}
 .rbSplit .sp{font-size:10.5px;font-weight:700;border-radius:99px;padding:1px 8px;background:#F2F7F6;color:var(--gray-500);}
 .rbSplit .sp1{background:#E7F0F8;color:#1F5F99;} .rbSplit .sp2{background:#E3F3F0;color:#0B5C51;} .rbSplit .sp3{background:#FBEEDB;color:#8a5a06;} .rbSplit .sp4{background:#F3E8F8;color:#6C3483;}
+
+/* ================= الأذكار + التقارير المختصرة + المساعد ================= */
+.card.athkarCard{padding:0;overflow:hidden;border-radius:16px;margin-bottom:0;height:calc(100vh - 130px);height:calc(100dvh - 130px);}
+@media(max-width:860px){.card.athkarCard{height:calc(100vh - 175px);height:calc(100dvh - 175px);border-radius:12px;}}
+.athkarCard iframe{width:100%;height:100%;border:0;display:block;background:#2a1330;}
+.kpi2.clickable{cursor:pointer;transition:transform .08s,box-shadow .12s;position:relative;}
+.kpi2.clickable:hover{box-shadow:0 3px 10px rgba(15,122,107,.16);}
+.kpi2.clickable:active{transform:scale(.98);}
+.kpi2.clickable::after{content:'‹';position:absolute;left:9px;top:8px;color:#9fb3b0;font-size:16px;font-weight:700;}
+.qrBg,.asBg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
+.qrSheet,.asSheet{background:#fff;width:100%;max-width:600px;max-height:90vh;max-height:90dvh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 30px rgba(0,0,0,.25);}
+@media(min-width:861px){.qrBg,.asBg{align-items:center;} .qrSheet,.asSheet{border-radius:20px;}}
+.qrHead,.asHead{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 6px;}
+.qrHead h3,.asTitle{margin:0;font-size:16px;font-weight:800;} .asTitle small{font-size:11.5px;color:var(--gray-500);font-weight:600;margin-right:8px;}
+.qrBody,.asBody{overflow-y:auto;padding:4px 14px 12px;flex:1;}
+.qrFoot{padding:8px 14px 14px;border-top:1px solid #E3ECEB;} .qrFoot .btn{width:100%;}
+.qrStats{display:flex;gap:8px;margin:6px 0 10px;}
+.qrStat{flex:1;background:#F2F8F7;border-radius:12px;padding:8px 6px;text-align:center;} .qrStat b{display:block;font-size:19px;font-weight:900;color:var(--teal-dark);} .qrStat span{font-size:11px;color:var(--gray-500);font-weight:700;}
+.qrSub,.asSub{font-size:12px;font-weight:800;color:var(--gray-500);margin:12px 0 5px;}
+.qrTable{font-size:12.5px;} .qrTotal td{font-weight:800;background:var(--teal-lighter);}
+.qrLine,.asLine{display:flex;justify-content:space-between;gap:8px;padding:6px 2px;border-bottom:1px dashed #E3ECEB;font-size:12.5px;} .qrLine small,.asLine small{color:var(--gray-500);white-space:nowrap;}
+.qrDist{display:flex;gap:6px;margin-bottom:10px;} .qrDist span{flex:1;background:#FBF4E4;border-radius:10px;text-align:center;padding:5px 2px;font-size:10px;color:#B7791F;} .qrDist b{display:block;font-size:15px;color:var(--gray-900);}
+.asBar{display:flex;gap:8px;padding:4px 14px 8px;align-items:center;}
+.asBar input{flex:1;padding:11px 14px;border:1.5px solid #D5E3E1;border-radius:14px;font-size:15px;background:#F6FAF9;font-family:inherit;} .asBar input:focus{outline:none;border-color:var(--teal);background:#fff;}
+#asMic.listening{background:var(--red);color:#fff;animation:micPulse 1s infinite;}
+.asHello{background:#F2F8F7;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.7;margin:4px 0 8px;}
+.asChips{display:flex;flex-wrap:wrap;gap:6px;} .asChip{border:1.5px solid #D5E3E1;background:#fff;border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--teal-dark);font-family:inherit;cursor:pointer;} .asChip:active{background:var(--teal-light);}
+.asRow{border-bottom:1px solid #EEF3F2;} .asRowMain{display:flex;align-items:center;gap:10px;padding:9px 2px;cursor:pointer;}
+.asIc{width:34px;height:34px;border-radius:10px;background:#F2F8F7;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;}
+.asTx{flex:1;min-width:0;line-height:1.5;} .asTx b{display:block;font-size:13.5px;} .asTx small{display:block;color:var(--gray-500);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.asGo{color:#9fb3b0;font-size:18px;}
+.asAns{display:flex;align-items:center;gap:10px;background:#FFFBEF;border:1px solid #F2E2B5;border-radius:12px;padding:9px 10px;margin-bottom:6px;font-size:13px;}
+.asCard{background:#F7FBFA;border-radius:12px;padding:8px 12px;margin:0 0 8px;}
+.asKV{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px;border-bottom:1px dashed #E3ECEB;} .asKV:last-of-type{border-bottom:none;} .asKV span{color:var(--gray-500);}
+.asActs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.asEmpty{text-align:center;color:var(--gray-500);padding:30px 10px;line-height:1.9;} .asNote{color:var(--gray-500);font-size:12.5px;padding:6px 2px;}
 </style>
 </head>
 <body>
@@ -577,6 +613,7 @@ button.alertChip{cursor:pointer;} button.alertChip:active{transform:scale(.97);}
         <div id="alertsPanel" class="hidden" style="position:absolute;top:44px;left:0;width:300px;background:#fff;border:1px solid var(--gray-300);border-radius:12px;box-shadow:var(--shadow-lg);max-height:360px;overflow-y:auto;z-index:900;"></div>
       </div>
       <button class="iconBtn mobileMenuBtn hidden" id="mobileMenuIcon" onclick="toggleMobileMenu()" title="كل الصفحات">☰</button>
+      <button class="iconBtn" id="assistantBtn" onclick="openAssistant()" title="المساعد: ابحث عن أي حاجة (Ctrl+K)">🤖</button>
       <button class="iconBtn hidden" id="installBtn" onclick="installApp()" title="تثبيت التطبيق على الجهاز">📲</button>
       <button class="iconBtn" onclick="refreshAll()" title="تحديث">⟳</button>
       <div class="userChip">
@@ -685,7 +722,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.56';
+const APP_VERSION = '2.57';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -840,6 +877,7 @@ const ALL_PAGES = [
   {id:'inventory', label:'المخزون', ic:'📦'},
   {id:'suggestedorders', label:'الطلبيات المقترحة', ic:'🧾'},
   {id:'portalorders', label:'طلبيات البوابة', ic:'🛒'},
+  {id:'athkar', label:'الأذكار', ic:'🕌'},
   {id:'reps',      label:'المناديب', ic:'🧑‍💼'},
   {id:'repbonus',  label:'حوافز المناديب', ic:'💰'},
   {id:'definitions', label:'التعريفات', ic:'⚙️'},
@@ -885,7 +923,7 @@ function userPermissions(user){
 function navItemsFor(user){
   const perms = userPermissions(user);
   // مستلم إشعارات البوابة بيشوف صفحة الطلبيات حتى لو دوره مفيهوش الصلاحية دي
-  return ALL_PAGES.filter(p=>perms[p.id]===true || (p.id==='portalorders' && isPortalNotifyUser()));
+  return ALL_PAGES.filter(p=>perms[p.id]===true || p.id==='athkar' || (p.id==='portalorders' && isPortalNotifyUser()));   // الأذكار متاحة لكل المستخدمين
 }
 function bottomNavItemsFor(user){
   const perms = userPermissions(user);
@@ -1705,6 +1743,7 @@ function renderView(){
     else if(currentView==='repbonus') main.innerHTML = viewRepBonus();
     else if(currentView==='suggestedorders') main.innerHTML = viewSuggestedOrders();
     else if(currentView==='portalorders') main.innerHTML = viewPortalOrders();
+    else if(currentView==='athkar'){ if(!document.getElementById('athkarFrame')) main.innerHTML = viewAthkar(); }   // مبنعيدش رسمها عشان العدّاد جواها ميتصفرش مع تحديثات الخلفية
     else if(currentView==='inventory') main.innerHTML = viewInventory();
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
     { const gt = groupTabsHTML(); if(gt) main.insertAdjacentHTML('afterbegin', gt); }
@@ -1993,17 +2032,323 @@ function dashboardAttentionHTML(list){
   const chipRow = !isRep ? `<div class="alerts">${chips.length ? chips.join('') : '<span class="alertChip ok">✅ مفيش حاجة معلّقة دلوقتي</span>'}</div>` : '';
   return goal + chipRow;
 }
+/* ==========================================================================
+   🕌 الأذكار: صفحة الأذكار الكاملة بتتفتح جوه التطبيق (athkar.html)
+   ========================================================================== */
+function viewAthkar(){
+  return `<div class="card athkarCard"><iframe id="athkarFrame" src="athkar.html" title="الأذكار"></iframe></div>`;
+}
+
+/* ==========================================================================
+   📋 تقارير مختصرة: الضغط على أي بطاقة في الداشبورد بيفتح ملخص سريع
+   ========================================================================== */
+function openReportTab(tab){
+  if(currentView!=='dashboard') goTo('dashboard');
+  setReportsTab(tab);
+  setTimeout(()=>document.getElementById('rptAnchor')?.scrollIntoView({behavior:'smooth', block:'start'}), 120);
+}
+function closeQuickReport(){ document.getElementById('qrOverlay')?.remove(); }
+function openQuickReport(title, bodyHTML, openLabel, openFn){
+  closeQuickReport();
+  const bg = document.createElement('div');
+  bg.id = 'qrOverlay'; bg.className = 'qrBg';
+  bg.onclick = e=>{ if(e.target===bg) closeQuickReport(); };
+  bg.innerHTML = `<div class="qrSheet">
+    <div class="qrHead"><h3>${title}</h3><button class="iconBtn" onclick="closeQuickReport()" title="إغلاق">✕</button></div>
+    <div class="qrBody">${bodyHTML}</div>
+    ${openLabel ? `<div class="qrFoot"><button class="btn btn-primary" onclick="closeQuickReport();${openFn}">${openLabel}</button></div>` : ''}
+  </div>`;
+  document.body.appendChild(bg);
+}
+function qrTable(headers, rows, totalRow){
+  return `<div class="tableWrap"><table class="qrTable"><thead><tr>${headers.map((h,i)=>`<th ${i?'style="text-align:center;"':''}>${h}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map(r=>`<tr>${r.map((c,i)=>`<td ${i?'style="text-align:center;"':''}>${c}</td>`).join('')}</tr>`).join('')}
+    ${totalRow ? `<tr class="qrTotal">${totalRow.map((c,i)=>`<td ${i?'style="text-align:center;"':''}>${c}</td>`).join('')}</tr>` : ''}
+  </tbody></table></div>`;
+}
+function qrStat(label, val){ return `<div class="qrStat"><b>${val}</b><span>${label}</span></div>`; }
+function qrDayISO(offset){ const d = new Date(); d.setDate(d.getDate()-offset); return d.toISOString().slice(0,10); }
+function openKpiReport(key){
+  const isRep = CURRENT_USER.role==='rep';
+  const list = visibleVisits(), today = todayISO(), month = today.slice(0,7), weekStart = qrDayISO(6);
+  const reps = REPS.filter(r=>r.active!==false);
+  const repName = id => (REPS.find(r=>r.id===id)||{}).name || '-';
+  const full = tab => isRep ? '' : `openReportTab('${tab}')`;
+  if(key==='visits'){
+    const by = new Map(reps.map(r=>[r.id,{n:r.name,t:0,w:0,m:0}]));
+    list.forEach(v=>{ const x = by.get(v.repId); if(!x) return; const d = v.date||'';
+      if(d===today) x.t++; if(d>=weekStart && d<=today) x.w++; if(d.startsWith(month)) x.m++; });
+    const rows = [...by.values()].filter(x=>x.m>0||x.t>0||x.w>0).sort((a,b)=>b.t-a.t||b.m-a.m);
+    const tot = rows.reduce((a,x)=>({t:a.t+x.t,w:a.w+x.w,m:a.m+x.m}),{t:0,w:0,m:0});
+    const todays = list.filter(v=>v.date===today).slice(0,8);
+    openQuickReport('📅 ملخص الزيارات',
+      `<div class="qrStats">${qrStat('اليوم',tot.t)}${qrStat('آخر 7 أيام',tot.w)}${qrStat('الشهر',tot.m)}</div>`+
+      (rows.length ? qrTable(['المندوب','اليوم','7 أيام','الشهر'], rows.map(x=>[escapeHTML(x.n),x.t,x.w,x.m]), ['الإجمالي',tot.t,tot.w,tot.m]) : '<div class="emptyState">مفيش زيارات مسجلة</div>')+
+      (todays.length ? `<div class="qrSub">زيارات اليوم</div>`+todays.map(v=>`<div class="qrLine"><span>${escapeHTML(v.customerName||v.customerCode||'')}</span><small>${escapeHTML(v.visitResult||'')}${isRep?'':' · '+escapeHTML(repName(v.repId))}</small></div>`).join('') : ''),
+      'كل الزيارات', "goTo('visits')");
+  }else if(key==='rating'){
+    const by = new Map(reps.map(r=>[r.id,{n:r.name,c:0,s:0}])), dist = [0,0,0,0,0,0];
+    list.forEach(v=>{ if(!(v.date||'').startsWith(month)) return; const rt = Number(v.rating)||0; const x = by.get(v.repId); if(x){ x.c++; x.s+=rt; } if(rt>=1&&rt<=5) dist[Math.round(rt)]++; });
+    const rows = [...by.values()].filter(x=>x.c>0).map(x=>({...x,avg:x.s/x.c})).sort((a,b)=>b.avg-a.avg);
+    const all = rows.reduce((a,x)=>({c:a.c+x.c,s:a.s+x.s}),{c:0,s:0});
+    openQuickReport('⭐ ملخص التقييم (هذا الشهر)',
+      `<div class="qrStats">${qrStat('متوسط عام', all.c?(all.s/all.c).toFixed(2):'-')}${qrStat('زيارات متقيّمة',all.c)}</div>`+
+      `<div class="qrDist">${[5,4,3,2,1].map(n=>`<span><b>${dist[n]}</b>${'★'.repeat(n)}</span>`).join('')}</div>`+
+      (rows.length ? qrTable(['المندوب','المتوسط','زيارات'], rows.map(x=>[escapeHTML(x.n),`<b style="color:${x.avg>=4?'var(--teal-dark)':x.avg>=3?'var(--amber)':'var(--red)'}">${x.avg.toFixed(2)}</b>`,x.c])) : '<div class="emptyState">مفيش تقييمات</div>'),
+      isRep?'':'تقرير المناديب الكامل', full('repssummary'));
+  }else if(key==='coverage'){
+    const custs = visibleCustomers();
+    const visited = new Set(list.filter(v=>(v.date||'').startsWith(month)).map(v=>v.customerCode));
+    const by = new Map();
+    custs.forEach(c=>{ const k = c.city||'(بدون مدينة)'; let x = by.get(k); if(!x){ x={city:k,t:0,v:0}; by.set(k,x); } x.t++; if(visited.has(c.code)) x.v++; });
+    const rows = [...by.values()].map(x=>({...x,pct:x.t?Math.round(x.v/x.t*100):0})).sort((a,b)=>a.pct-b.pct);
+    const T = rows.reduce((a,x)=>({t:a.t+x.t,v:a.v+x.v}),{t:0,v:0});
+    openQuickReport('🎯 تغطية العملاء (هذا الشهر)',
+      `<div class="qrStats">${qrStat('التغطية',(T.t?Math.round(T.v/T.t*100):0)+'%')}${qrStat('اتزاروا',T.v)}${qrStat('لم يُزاروا',T.t-T.v)}</div>`+
+      `<div class="qrSub">المدن الأقل تغطية أولاً</div>`+
+      qrTable(['المدينة','العملاء','اتزاروا','النسبة'], rows.slice(0,12).map(x=>[escapeHTML(x.city),x.t,x.v,`<b style="color:${x.pct<30?'var(--red)':x.pct<60?'var(--amber)':'var(--teal-dark)'}">${x.pct}%</b>`])),
+      isRep?'':'تقرير التغطية الكامل', full('coverage'));
+  }else if(key==='collect'){
+    const isC = v=>String(v.visitResult||'').includes('تحصيل');
+    const month_ = list.filter(v=>(v.date||'').startsWith(month));
+    const col = month_.filter(isC);
+    const by = new Map();
+    col.forEach(v=>{ by.set(v.repId,(by.get(v.repId)||0)+1); });
+    const rows = [...by.entries()].map(([id,n])=>[escapeHTML(repName(id)),n,Math.round(n/col.length*100)+'%']).sort((a,b)=>b[1]-a[1]);
+    const last = col.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,6);
+    openQuickReport('💵 ملخص زيارات التحصيل (الشهر)',
+      `<div class="qrStats">${qrStat('زيارات تحصيل',col.length)}${qrStat('من زيارات الشهر',month_.length?Math.round(col.length/month_.length*100)+'%':'-')}</div>`+
+      (rows.length ? qrTable(['المندوب','التحصيل','النسبة'], rows) : '<div class="emptyState">مفيش زيارات تحصيل</div>')+
+      (last.length ? `<div class="qrSub">آخر زيارات التحصيل</div>`+last.map(v=>`<div class="qrLine"><span>${escapeHTML(v.customerName||v.customerCode||'')}</span><small>${escapeHTML(String(v.date||''))}${isRep?'':' · '+escapeHTML(repName(v.repId))}</small></div>`).join('') : ''),
+      'كل الزيارات', "goTo('visits')");
+  }else if(key==='citysales'){
+    const months = CITY_SALES.map(c=>c.date||'').filter(d=>d.startsWith(month));
+    const last = months.reduce((m,d)=>d>m?d:m,'');
+    const rows = CITY_SALES.filter(c=>c.date===last);
+    if(!rows.length){ openQuickReport('💰 مبيعات المدن','<div class="emptyState">مفيش بيانات مبيعات مدن لهذا الشهر</div>'); return; }
+    const sorted = rows.slice().sort((a,b)=>(Number(b.netSales)||0)-(Number(a.netSales)||0));
+    const net = rows.reduce((a,c)=>a+(Number(c.netSales)||0),0), act = rows.reduce((a,c)=>a+(Number(c.customersActive)||0),0);
+    openQuickReport('💰 مبيعات المدن (حتى '+String(last).slice(5).replace('-','/')+')',
+      `<div class="qrStats">${qrStat('صافي المبيعات',fmtMoney(net))}${qrStat('عملاء متعاملين',act)}</div>`+
+      `<div class="qrSub">أعلى 8 مدن</div>`+
+      qrTable(['المدينة','المبيعات','من الهدف','عملاء'], sorted.slice(0,8).map(c=>{ const t = Number(c.salesTarget)||0, pct = t>0?Math.round((Number(c.netSales)||0)/t*100):null; return [escapeHTML(c.city),fmtMoney(Number(c.netSales)||0),pct==null?'-':`<b style="color:${pct>=100?'var(--teal-dark)':pct>=60?'var(--amber)':'var(--red)'}">${pct}%</b>`,Number(c.customersActive)||0]; })),
+      'صفحة مبيعات المدن', "goTo('citysales')");
+  }
+}
+
+/* ==========================================================================
+   🤖 المساعد الشخصي: بحث ذكي في كل حاجة جوه التطبيق (عملاء، مناديب، أصناف، زيارات، طلبيات، صفحات)
+   + إجابات سريعة لأسئلة شائعة. بيشتغل على بيانات التطبيق نفسها من غير إنترنت.
+   ========================================================================== */
+const AS = {open:false, q:'', expanded:'', recog:null, reloadTimer:null};
+function asNorm(s){
+  return String(s==null?'':s).toLowerCase()
+    .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .replace(/[إأآا]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[\u064B-\u0652\u0640]/g,'').replace(/\s+/g,' ').trim();
+}
+function asEnsureData(){
+  // بنشغّل تحميل البيانات اللي المساعد محتاجها (لو لسه ما اتحمّلتش)
+  const want = ['inventory','bonusOffers','customerSales','claims'];
+  if(isAdminLike() || isPortalNotifyUser()) want.push('portalOrders');
+  let started = false;
+  want.forEach(n=>{ if(!attachedData.has(n) && DATA_ATTACHERS[n]){ attachedData.add(n); DATA_ATTACHERS[n](); started = true; } });
+  return started;
+}
+function openAssistant(prefill){
+  if(AS.open){ document.getElementById('asInput')?.focus(); return; }
+  AS.open = true; AS.expanded = ''; AS.q = prefill || '';
+  const started = asEnsureData();
+  const bg = document.createElement('div');
+  bg.id = 'asOverlay'; bg.className = 'asBg';
+  bg.onclick = e=>{ if(e.target===bg) closeAssistant(); };
+  bg.innerHTML = `<div class="asSheet">
+    <div class="asHead"><div class="asTitle">🤖 المساعد <small>ابحث عن أي حاجة في التطبيق</small></div><button class="iconBtn" onclick="closeAssistant()" title="إغلاق">✕</button></div>
+    <div class="asBar">
+      <input id="asInput" type="search" autocomplete="off" placeholder="ابحث: عميل، مندوب، صنف، صفحة…" oninput="asOnInput(this.value)" onkeydown="if(event.key==='Escape')closeAssistant()">
+      <button class="iconBtn" id="asMic" onclick="asVoice(this)" title="بحث بالصوت">🎤</button>
+    </div>
+    <div class="asBody" id="asBody"></div>
+  </div>`;
+  document.body.appendChild(bg);
+  const inp = document.getElementById('asInput'); inp.value = AS.q;
+  asRender();
+  setTimeout(()=>inp.focus(), 60);
+  if(started){ clearTimeout(AS.reloadTimer); AS.reloadTimer = setTimeout(()=>{ if(AS.open) asRender(); }, 1800); }
+}
+function closeAssistant(){
+  AS.open = false;
+  try{ if(AS.recog) AS.recog.stop(); }catch(e){}
+  document.getElementById('asOverlay')?.remove();
+}
+let _asT; function asOnInput(v){ AS.q = v; AS.expanded = ''; clearTimeout(_asT); _asT = setTimeout(asRender, 140); }
+function asSet(v){ AS.q = v; AS.expanded = ''; const i = document.getElementById('asInput'); if(i){ i.value = v; i.focus(); } asRender(); }
+function asVoice(btn){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast('البحث بالصوت مش مدعوم في هذا المتصفح - جرب Chrome','warn'); return; }
+  let rec; try{ rec = new SR(); }catch(e){ return; }
+  AS.recog = rec; rec.lang = 'ar-EG'; rec.interimResults = false;
+  btn.classList.add('listening');
+  rec.onresult = ev=>{ const t = (ev.results[0]&&ev.results[0][0]&&ev.results[0][0].transcript)||''; if(t) asSet(t); };
+  rec.onend = ()=>btn.classList.remove('listening');
+  rec.onerror = ()=>{ btn.classList.remove('listening'); toast('ماقدرتش أسمعك، جرب تاني','warn'); };
+  try{ rec.start(); }catch(e){ btn.classList.remove('listening'); }
+}
+function asGo(view){ closeAssistant(); goTo(view); }
+function asToggle(key){ AS.expanded = (AS.expanded===key) ? '' : key; asRender(); }
+function asRow(icon, title, sub, onclick, extra){
+  return `<div class="asRow"><div class="asRowMain" onclick="${onclick}"><span class="asIc">${icon}</span><div class="asTx"><b>${title}</b>${sub?`<small>${sub}</small>`:''}</div><span class="asGo">‹</span></div>${extra||''}</div>`;
+}
+function asLastVisit(code){
+  let best = null; VISITS.forEach(v=>{ if(v.customerCode===code && (!best || (v.date||'')>(best.date||''))) best = v; }); return best;
+}
+function asCustomerCard(c){
+  const allowed = new Set(navItemsFor(CURRENT_USER).map(i=>i.id));
+  const lv = asLastVisit(c.code), month = todayISO().slice(0,7);
+  const mv = VISITS.filter(v=>v.customerCode===c.code && (v.date||'').startsWith(month)).length;
+  const sales = CUSTOMER_SALES.filter(x=>x.code===c.code);
+  const yr = sales.length ? Math.max(...sales.map(x=>x.year||0)) : null;
+  const yrTotal = yr ? sales.filter(x=>x.year===yr).reduce((a,x)=>a+(Number(x.total)||0),0) : null;
+  const cs = CITY_SALES.length ? null : null;
+  const rows = [
+    ['الكود', escapeHTML(c.code)], ['المدينة', escapeHTML(c.city||'-')], c.area?['المنطقة', escapeHTML(c.area)]:null,
+    c.payment?['حالة الدفع', escapeHTML(c.payment)]:null,
+    ['آخر زيارة', lv ? `${escapeHTML(String(lv.date||''))} · ${escapeHTML(lv.visitResult||'')}${lv.rating?` · ⭐${lv.rating}`:''}` : 'لم يُزر'],
+    ['زيارات هذا الشهر', mv],
+    yr ? [`مبيعات ${yr}`, fmtMoney(yrTotal)] : null
+  ].filter(Boolean);
+  const phone = c.phone || c.mobile || '';
+  return `<div class="asCard">${rows.map(r=>`<div class="asKV"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}
+    <div class="asActs">
+      ${allowed.has('addvisit') ? `<button class="btn btn-primary btn-sm" onclick="asGo('addvisit');pickCustomer(${escapeHTML(JSON.stringify(String(c.code)))})">📝 تسجيل زيارة</button>` : ''}
+      ${allowed.has('customerstatement') ? `<button class="btn btn-ghost btn-sm" onclick="asGo('customerstatement');pickStatementCustomer(${escapeHTML(JSON.stringify(String(c.code)))})">📄 كشف الحساب</button>` : ''}
+      ${phone ? `<a class="btn btn-ghost btn-sm" href="tel:${escapeHTML(phone)}">📞 اتصال</a>` : ''}
+    </div></div>`;
+}
+function asRepCard(r){
+  const today = todayISO(), month = today.slice(0,7);
+  const mv = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(month));
+  const td = mv.filter(v=>v.date===today).length;
+  const avg = mv.length ? (mv.reduce((a,v)=>a+(Number(v.rating)||0),0)/mv.length) : 0;
+  const tg = Number(r.monthlyVisitTarget)||0;
+  const rows = [['زيارات اليوم',td],['زيارات الشهر',mv.length],['متوسط التقييم',avg?avg.toFixed(2):'-'],['هدف الزيارات',tg?`${tg} (${Math.round(mv.length/tg*100)}%)`:'لا هدف'],['المدن',escapeHTML((r.cities||[]).join('، ')||'كل المدن')]];
+  return `<div class="asCard">${rows.map(x=>`<div class="asKV"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div>`;
+}
+function asItemCard(i){
+  const tiers = (typeof bonusTiersFor==='function') ? bonusTiersFor(i.itemName, i.company) : [];
+  const price = Number(i.publicPrice)||0, d = Number(i.pharmacyDiscount)||0;
+  return `<div class="asCard">
+    <div class="asKV"><span>الشركة</span><b>${escapeHTML(i.company||'-')}</b></div>
+    <div class="asKV"><span>سعر الجمهور</span><b>${fmtMoney(price)}</b></div>
+    <div class="asKV"><span>خصم الصيدلية</span><b>${d}%${d>0?` → ${fmtMoney(price*(1-d/100))}`:''}</b></div>
+    <div class="asKV"><span>الكمية المتاحة</span><b>${Number(i.quantity)||0}</b></div>
+    ${tiers.length?`<div class="asKV"><span>البونص</span><b>${tiers.map(t=>`🎁 ${t.qty}+${t.bonusQty}`).join(' · ')}</b></div>`:''}
+  </div>`;
+}
+// إجابات سريعة لأسئلة شائعة (بتتعرف على كلمات في السؤال)
+function asIntents(qn){
+  const out = [], has = (...w)=>w.some(x=>qn.includes(x));
+  const month = todayISO().slice(0,7), isRep = CURRENT_USER.role==='rep';
+  if(has('زيار') && has('اليوم')){
+    const n = visibleVisits().filter(v=>v.date===todayISO()).length;
+    out.push(['📅', `زيارات النهارده: <b>${n}</b>`, "closeAssistant();openKpiReport('visits')", 'عرض الملخص']);
+  }
+  if(has('تغطيه')){
+    out.push(['🎯','تغطية العملاء هذا الشهر', "closeAssistant();openKpiReport('coverage')", 'عرض التفاصيل']);
+  }
+  if(has('تحصيل') && !has('نتيجه')){
+    out.push(['💵','ملخص زيارات التحصيل', "closeAssistant();openKpiReport('collect')", 'عرض التفاصيل']);
+  }
+  if(has('تقييم') && !has('اعلي','افضل','احسن')){
+    out.push(['⭐','ملخص التقييم', "closeAssistant();openKpiReport('rating')", 'عرض التفاصيل']);
+  }
+  if(!isRep && (has('متاخر','بدون زياره','ما اتزار','لم يزر','مش متزار'))){
+    out.push(['⏳', `عملاء بدون زيارة +${staleThresholdDays} يوم: <b>${staleCountFast()}</b>`, "closeAssistant();openStaleReport()", 'فتح التقرير']);
+  }
+  if(has('اعلي','افضل','احسن','اكتر','اكثر') && has('مندوب','مناديب')){
+    const d = topRepsData(month), best = (key,filter)=>d.rows.filter(r=>r[key]!=null && (!filter||filter(r))).sort((a,b)=>b[key]-a[key])[0];
+    const lines = [['⭐ التقييم','avgRating',x=>x.avgRating.toFixed(2),r=>r.visits>=TOP_REPS_MIN_VISITS],['🚶 الزيارات','visits',x=>x.visits+' زيارة'],['💵 التحصيل','collect',x=>x.collect+' زيارة',r=>r.collect>0]]
+      .map(([l,k,f,flt])=>{ const b = best(k,flt); return b ? `${l}: <b>${escapeHTML(b.name)}</b> (${f(b)})` : null; }).filter(Boolean);
+    if(lines.length) out.push(['🏆', lines.join('<br>'), '', '']);
+  }
+  if((isAdminLike()||isPortalNotifyUser()) && has('طلبيه','طلبيات','اوردر') && has('جديد','بوابه')){
+    const n = PORTAL_ORDERS.filter(o=>(o.status||'new')==='new').length;
+    out.push(['🛒', `طلبيات بوابة جديدة: <b>${n}</b>`, "closeAssistant();goTo('portalorders')", 'فتح الطلبيات']);
+  }
+  if(has('مبيعات') || has('عملاء متعاملين') || has('متعامل')){
+    const months = CITY_SALES.map(c=>c.date||'').filter(d=>d.startsWith(month)), last = months.reduce((m,d)=>d>m?d:m,'');
+    const rows = CITY_SALES.filter(c=>c.date===last);
+    const hit = rows.filter(c=>c.city && qn.includes(asNorm(c.city)));
+    hit.slice(0,3).forEach(c=>{ const t = Number(c.salesTarget)||0, net = Number(c.netSales)||0;
+      out.push(['🏙️', `${escapeHTML(c.city)}: مبيعات <b>${fmtMoney(net)}</b>${t>0?` (${Math.round(net/t*100)}% من الهدف)`:''} · ${Number(c.customersActive)||0} عميل متعامل`, '', '']); });
+    if(!hit.length && has('مبيعات') && rows.length) out.push(['💰','مبيعات المدن', "closeAssistant();openKpiReport('citysales')", 'عرض الملخص']);
+  }
+  if(has('كام عميل','عدد العملاء','عدد عملاء')){
+    const cs = visibleCustomers(); const hit = [...new Set(cs.map(c=>c.city).filter(Boolean))].filter(ct=>qn.includes(asNorm(ct)));
+    out.push(['👥', hit.length ? hit.slice(0,3).map(ct=>`${escapeHTML(ct)}: <b>${cs.filter(c=>c.city===ct).length}</b> عميل`).join('<br>') : `إجمالي العملاء: <b>${cs.length}</b>`, '', '']);
+  }
+  return out;
+}
+function asRender(){
+  const body = document.getElementById('asBody'); if(!body) return;
+  const q = AS.q, qn = asNorm(q);
+  if(!qn){
+    const chips = ['زيارات اليوم','عملاء بدون زيارة','أعلى مندوب','التحصيل','التقييم','طلبيات بوابة جديدة','بونص'];
+    body.innerHTML = `<div class="asHello">أهلاً ${escapeHTML((CURRENT_USER.name||'').split(' ')[0]||'')} 👋 اكتب اسم عميل أو كود، أو مندوب، أو صنف، أو اسم صفحة، أو اسألني سؤال سريع.</div>
+      <div class="asChips">${chips.map(c=>`<button class="asChip" onclick="asSet('${c}')">${c}</button>`).join('')}</div>
+      <div class="asSub">الصفحات</div>${navItemsFor(CURRENT_USER).slice(0,12).map(p=>asRow(p.ic,escapeHTML(p.label),'',`asGo('${p.id}')`)).join('')}`;
+    return;
+  }
+  const terms = qn.split(' ').filter(Boolean);
+  const hit = text => { const t = asNorm(text); return terms.every(x=>t.includes(x)); };
+  const sections = [];
+  const intents = asIntents(qn);
+  if(intents.length) sections.push(['إجابة سريعة', intents.map(([ic,txt,fn,lbl])=>`<div class="asAns"><span class="asIc">${ic}</span><div class="asTx">${txt}</div>${fn?`<button class="btn btn-ghost btn-sm" onclick="${fn}">${lbl}</button>`:''}</div>`).join('')]);
+  // صفحات
+  const pages = navItemsFor(CURRENT_USER).filter(p=>hit(p.label)).slice(0,5);
+  if(pages.length) sections.push(['الصفحات', pages.map(p=>asRow(p.ic,escapeHTML(p.label),'',`asGo('${p.id}')`)).join('')]);
+  // عملاء
+  const custs = visibleCustomers().filter(c=>hit((c.name||'')+' '+(c.code||'')+' '+(c.city||'')+' '+(c.phone||'')+' '+(c.area||''))).slice(0,8);
+  if(custs.length) sections.push([`العملاء (${custs.length}${custs.length===8?'+':''})`, custs.map(c=>{ const key = 'c:'+c.code; return asRow('🏥',escapeHTML(c.name||c.code),`${escapeHTML(String(c.code))} · ${escapeHTML(c.city||'')}`,`asToggle(${escapeHTML(JSON.stringify(key))})`, AS.expanded===key?asCustomerCard(c):''); }).join('')]);
+  // مناديب
+  const reps = REPS.filter(r=>r.active!==false && hit((r.name||'')+' '+(r.cities||[]).join(' '))).slice(0,5);
+  if(reps.length) sections.push(['المناديب', reps.map(r=>{ const key = 'r:'+r.id; return asRow('🧑‍💼',escapeHTML(r.name),escapeHTML((r.cities||[]).join('، ')),`asToggle(${escapeHTML(JSON.stringify(key))})`, AS.expanded===key?asRepCard(r):''); }).join('')]);
+  // أصناف
+  const items = INVENTORY.filter(i=>hit((i.itemName||'')+' '+(i.company||''))).slice(0,8);
+  if(items.length) sections.push([`الأصناف (${items.length}${items.length===8?'+':''})`, items.map((i,ix)=>{ const key = 'i:'+(i.id||ix); return asRow('💊',escapeHTML(i.itemName||''),`${escapeHTML(i.company||'')} · ${fmtMoney(Number(i.publicPrice)||0)}`,`asToggle(${escapeHTML(JSON.stringify(key))})`, AS.expanded===key?asItemCard(i):''); }).join('')]);
+  else if(!INVENTORY.length && terms.length) sections.push(['الأصناف','<div class="asNote">⏳ جاري تحميل الأصناف…</div>']);
+  // زيارات (على اسم العميل/الكود)
+  const custMap = new Map(CUSTOMERS.map(c=>[c.code,c.name]));
+  const vis = visibleVisits().filter(v=>hit((v.customerName||custMap.get(v.customerCode)||'')+' '+(v.customerCode||''))).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,5);
+  if(vis.length) sections.push(['آخر زيارات مطابقة', vis.map(v=>`<div class="asLine"><span>${escapeHTML(v.customerName||custMap.get(v.customerCode)||v.customerCode||'')}</span><small>${escapeHTML(String(v.date||''))} · ${escapeHTML(v.visitResult||'')}${v.rating?' · ⭐'+v.rating:''}</small></div>`).join('')]);
+  // طلبيات البوابة
+  if(isAdminLike() || isPortalNotifyUser()){
+    const ords = PORTAL_ORDERS.filter(o=>hit((o.orderNo||'')+' '+(o.acctKey||''))).slice(0,4);
+    if(ords.length) sections.push(['طلبيات البوابة', ords.map(o=>asRow('🛒',escapeHTML(o.orderNo||''),`كود ${escapeHTML(o.acctKey||'')} · ${fmtMoney(o.total||0)} · ${escapeHTML(o.status||'new')}`,"asGo('portalorders')")).join('')]);
+  }
+  body.innerHTML = sections.length
+    ? sections.map(([t,h])=>`<div class="asSub">${t}</div>${h}`).join('')
+    : `<div class="asEmpty">😕 مفيش نتيجة لـ «${escapeHTML(q)}»<br><small>جرّب جزء من الاسم أو الكود، أو سؤال زي: زيارات اليوم</small></div>`;
+}
+// اختصارات لوحة المفاتيح: Ctrl+K أو / لفتح المساعد، و Esc للإغلاق
+document.addEventListener('keydown', e=>{
+  const tag = (e.target && e.target.tagName) || '';
+  const typing = /INPUT|TEXTAREA|SELECT/.test(tag) || (e.target && e.target.isContentEditable);
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ if(CURRENT_USER){ e.preventDefault(); openAssistant(); } }
+  else if(e.key==='/' && !typing && CURRENT_USER){ e.preventDefault(); openAssistant(); }
+  else if(e.key==='Escape'){ if(AS.open) closeAssistant(); closeQuickReport(); }
+});
+
 // مؤشرات الداشبورد: بطاقات أفقية مدمجة (الزيارات اليوم/الشهر/7 أيام في بطاقة واحدة، ومبيعات المدن مع عدد العملاء)
 function dashboardKpisHTML(d){
-  const tile = (ic, bg, color, lbl, val, sub) => `<div class="kpi2">
+  const tile = (key, ic, bg, color, lbl, val, sub) => `<div class="kpi2 clickable" onclick="openKpiReport('${key}')" role="button" tabindex="0" title="اضغط لعرض ملخص سريع">
     <div class="kic" style="background:${bg};color:${color};">${ic}</div>
     <div class="kbody"><div class="klbl">${lbl}</div><div class="kval">${val}</div>${sub?`<div class="ksub">${sub}</div>`:''}</div></div>`;
   return [
-    tile('📅','var(--teal-light)','var(--teal-dark)','زيارات اليوم', d.visitsToday, `الشهر <b>${d.visitsMonth}</b> · آخر 7 أيام <b>${d.visitsWeek}</b>`),
-    tile('⭐','#FBEEDB','var(--amber)','متوسط التقييم', `${d.avgRating}<small> / 5</small>`, ''),
-    tile('🎯','#E7F0F8','var(--blue)','تغطية العملاء (الشهر)', `${d.coveragePctAll}%`, `${d.visitedCustCount} من ${d.totalCust} عميل`),
-    tile('💵','var(--teal-light)','var(--teal-dark)','زيارات التحصيل (الشهر)', d.collectMonth, `${d.collectSharePct}% من زيارات الشهر`),
-    d.citySalesLatestDate ? tile('💰','#E7F0F8','var(--blue)','صافي مبيعات المدن', `<span style="font-size:16px;">${fmtMoney(d.citySalesNet)}</span>`, `<b>${d.citySalesCustCount}</b> عميل متعامل · حتى ${String(d.citySalesLatestDate).slice(5).replace('-','/')}`) : ''
+    tile('visits','📅','var(--teal-light)','var(--teal-dark)','زيارات اليوم', d.visitsToday, `الشهر <b>${d.visitsMonth}</b> · آخر 7 أيام <b>${d.visitsWeek}</b>`),
+    tile('rating','⭐','#FBEEDB','var(--amber)','متوسط التقييم', `${d.avgRating}<small> / 5</small>`, ''),
+    tile('coverage','🎯','#E7F0F8','var(--blue)','تغطية العملاء (الشهر)', `${d.coveragePctAll}%`, `${d.visitedCustCount} من ${d.totalCust} عميل`),
+    tile('collect','💵','var(--teal-light)','var(--teal-dark)','زيارات التحصيل (الشهر)', d.collectMonth, `${d.collectSharePct}% من زيارات الشهر`),
+    d.citySalesLatestDate ? tile('citysales','💰','#E7F0F8','var(--blue)','صافي مبيعات المدن', `<span style="font-size:16px;">${fmtMoney(d.citySalesNet)}</span>`, `<b>${d.citySalesCustCount}</b> عميل متعامل · حتى ${String(d.citySalesLatestDate).slice(5).replace('-','/')}`) : ''
   ].join('');
 }
 function fmtDateArabic(iso){

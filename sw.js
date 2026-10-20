@@ -1,9 +1,9 @@
 /* Service Worker - نظام زيارات المندوبين APC
    غيّر رقم VERSION مع كل إصدار جديد من index.html عشان يظهر للمستخدمين شريط "تحديث جديد". */
-const VERSION = '2.56';
+const VERSION = '2.57';
 const SHELL_CACHE = 'apc-shell-' + VERSION;
 const CDN_CACHE = 'apc-cdn-v1';
-const SHELL = ['./', './index.html', './portal.html', './manifest.webmanifest', './portal.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const SHELL = ['./', './index.html', './portal.html', './athkar.html', './manifest.webmanifest', './portal.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const CDN_HOSTS = ['www.gstatic.com', 'cdn.jsdelivr.net'];
 
 self.addEventListener('install', e => {
@@ -63,6 +63,14 @@ async function staleWhileRevalidate(req) {
   return hit || (await net) || Response.error();
 }
 
+// ملف CSS الخطوط: من الكاش فوراً وبيتحدّث في الخلفية
+async function fontCss(req) {
+  const cache = await caches.open(CDN_CACHE);
+  const hit = await cache.match(req);
+  const net = fetch(req).then(res => { if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone()); return res; }).catch(() => null);
+  return hit || (await net) || Response.error();
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -74,6 +82,9 @@ self.addEventListener('fetch', e => {
     e.respondWith(staleWhileRevalidate(req));
     return;
   }
+  // خطوط Google (صفحة الأذكار): ملف الـ CSS يتحدّث في الخلفية، وملفات الخطوط نفسها من الكاش أولاً
+  if (url.hostname === 'fonts.googleapis.com') { e.respondWith(fontCss(req)); return; }
+  if (url.hostname === 'fonts.gstatic.com') { e.respondWith(cdnCacheFirst(req)); return; }
   // مكتبات Firebase/Chart.js/xlsx فقط. طلبات Firestore والمصادقة (googleapis.com) مبنلمسهاش خالص.
   if (CDN_HOSTS.includes(url.hostname) && (url.pathname.startsWith('/firebasejs/') || url.pathname.startsWith('/npm/'))) {
     e.respondWith(cdnCacheFirst(req));
