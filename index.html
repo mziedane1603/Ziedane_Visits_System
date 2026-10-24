@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.57)</title>
+<title>نظام زيارات المندوبين - APC (v2.58)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -555,6 +555,54 @@ button.alertChip{cursor:pointer;} button.alertChip:active{transform:scale(.97);}
 .asKV{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px;border-bottom:1px dashed #E3ECEB;} .asKV:last-of-type{border-bottom:none;} .asKV span{color:var(--gray-500);}
 .asActs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .asEmpty{text-align:center;color:var(--gray-500);padding:30px 10px;line-height:1.9;} .asNote{color:var(--gray-500);font-size:12.5px;padding:6px 2px;}
+
+/* ================= تنظيم وأناقة عامة (طبقة تحسين فوق الستايل الأساسي) ================= */
+body{background:#F3F7F6;}
+::-webkit-scrollbar{width:8px;height:8px;} ::-webkit-scrollbar-thumb{background:#C9D6D5;border-radius:8px;} ::-webkit-scrollbar-track{background:transparent;}
+.topbar{box-shadow:0 1px 8px rgba(15,122,107,.07);border-bottom:1px solid #E3ECEB;}
+.topbar .brand .mark{border-radius:11px;box-shadow:0 2px 6px rgba(15,122,107,.28);}
+.topbar .brand .mark.hasLogo{background:#fff;border:1px solid #E3ECEB;box-shadow:none;width:auto;min-width:34px;max-width:110px;padding:2px 5px;letter-spacing:0;}
+.topbar .brand .mark.hasLogo img{height:28px;width:auto;max-width:100px;object-fit:contain;display:block;}
+.iconBtn{border-radius:11px;}
+.sidebar{background:#fff;border-left:1px solid #E3ECEB;padding:12px 10px;width:222px;}
+.sidebar{max-height:calc(100vh - 57px);overflow-y:auto;}
+.navSec{font-size:10.5px;font-weight:800;color:#8CA0A3;letter-spacing:.4px;padding:14px 12px 5px;}
+.sidebar .navItem{padding:9px 12px;border-radius:12px;font-size:13.2px;margin-bottom:2px;transition:background .12s,color .12s;}
+.sidebar .navItem .ic{width:26px;height:26px;border-radius:8px;background:#F2F7F6;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;}
+.sidebar .navItem.active{background:var(--teal-light);color:var(--teal-dark);box-shadow:inset -3px 0 0 var(--teal);font-weight:800;}
+.sidebar .navItem.active .ic{background:#fff;}
+.secTitle{font-size:12.5px;font-weight:800;color:var(--gray-500);margin:2px 2px 7px;letter-spacing:.2px;}
+.card{border:1px solid #E7EEED;box-shadow:0 1px 4px rgba(15,122,107,.06);border-radius:16px;}
+.pageHead h2{font-weight:800;letter-spacing:-.1px;}
+.btn{border-radius:11px;font-weight:700;}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal-dark));box-shadow:0 2px 6px rgba(15,122,107,.22);}
+.btn-primary:hover{background:linear-gradient(135deg,#12907E,var(--teal-dark));}
+.btn-ghost{border:1.5px solid #D5E3E1;background:#fff;color:var(--teal-dark);}
+.btn-ghost:hover{background:var(--teal-lighter);}
+.field input,.field select,.field textarea,input[type=month],input[type=date],select{border-radius:10px;}
+.tabsRow{background:#fff;border-radius:14px;padding:5px;gap:4px;border-bottom:none;box-shadow:0 1px 4px rgba(15,122,107,.07);margin-bottom:12px;}
+.tabBtn{border-bottom:none;border-radius:10px;padding:8px 14px;}
+.tabBtn.active{background:var(--teal);color:#fff;}
+thead th{background:linear-gradient(180deg,var(--teal-lighter),#fff);color:var(--teal-dark);font-weight:800;}
+tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--teal-lighter);}
+.tableWrap{border:1px solid #E7EEED;border-radius:12px;}
+.badge{border-radius:99px;font-weight:700;}
+.emptyState{background:#fff;border:1px dashed #D5E3E1;border-radius:14px;padding:26px 14px;color:var(--gray-500);}
+/* القايمة السفلية والموبايل */
+.bottomNav{background:#fff;border-top:1px solid #E3ECEB;box-shadow:0 -2px 12px rgba(15,122,107,.08);}
+.bottomNav .bnItem{border-radius:12px;}
+.bottomNav .bnItem.active{color:var(--teal-dark);background:var(--teal-light);}
+.mobileMenuSheet{padding:8px 14px calc(14px + env(safe-area-inset-bottom,0px));max-height:80vh;max-height:80dvh;}
+.mmHandle{width:42px;height:4px;border-radius:4px;background:#D5E3E1;margin:2px auto 10px;}
+.mmSec{font-size:11.5px;font-weight:800;color:#8CA0A3;margin:12px 4px 6px;}
+.mmGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+@media(max-width:420px){.mmGrid{grid-template-columns:repeat(3,1fr);}}
+.mmTile{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 4px 9px;border-radius:14px;background:#F6FAF9;border:1.5px solid transparent;text-align:center;cursor:pointer;}
+.mmTile .ic{font-size:21px;line-height:1;}
+.mmTile .lb{font-size:11px;font-weight:700;color:var(--gray-700);line-height:1.3;}
+.mmTile.active{background:var(--teal-light);border-color:var(--teal);} .mmTile.active .lb{color:var(--teal-dark);}
+.mmTile .navBadge{position:absolute;top:4px;left:4px;}
+.athkarCard iframe{background:#F4F8F7;}
 </style>
 </head>
 <body>
@@ -722,7 +770,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.57';
+const APP_VERSION = '2.58';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1031,13 +1079,38 @@ function groupTabsHTML(){
   }).join('') + `</div>`;
 }
 
+// أقسام القايمة: كل صفحة تابعة لقسم، والقايمة بتتعرض مقسّمة بعناوين
+const PAGE_SECTION = {
+  dashboard:'main',
+  routeplan:'daily', addvisit:'daily', visits:'daily', customers:'daily', followup:'daily',
+  inventory:'sales', suggestedorders:'sales', portalorders:'sales', customersales:'sales', citysales:'sales', customerstatement:'sales', claims:'sales',
+  teamchat:'comm', announcements:'comm',
+  reps:'admin', repbonus:'admin', definitions:'admin', users:'admin', auditlog:'admin',
+  athkar:'more'
+};
+const NAV_SECTIONS = [['main',''],['daily','العمل اليومي'],['sales','المبيعات والطلبيات'],['comm','التواصل'],['admin','الإدارة'],['more','أخرى']];
+function navSectionsFor(user){
+  const entries = navEntriesFor(user);
+  return NAV_SECTIONS.map(([k,label])=>({key:k, label, items:entries.filter(e=>(PAGE_SECTION[e.id]||'more')===k)})).filter(x=>x.items.length);
+}
+function renderBrand(){
+  const nm = (COMPANY && (COMPANY.nameAr || COMPANY.name)) || '';
+  const t = document.getElementById('brandTitle'); if(t && nm) t.textContent = nm;
+  const mark = document.querySelector('.topbar .brand .mark');
+  if(mark){
+    if(COMPANY && COMPANY.logoSmall){ mark.classList.add('hasLogo'); if(!mark.querySelector('img') || mark.querySelector('img').src!==COMPANY.logoSmall) mark.innerHTML = `<img src="${COMPANY.logoSmall}" alt="">`; }
+  }
+}
 function renderNav(){
   const side = document.getElementById('sideNav');
-  side.innerHTML = navEntriesFor(CURRENT_USER).map(it=>`
+  side.innerHTML = navSectionsFor(CURRENT_USER).map(sec=>`
+    ${sec.label ? `<div class="navSec">${sec.label}</div>` : ''}
+    ${sec.items.map(it=>`
     <div class="navItem ${it.members.includes(currentView)?'active':''}" onclick="goTo('${it.id}')">
       <span class="ic">${it.ic}</span><span>${it.label}</span>
       ${navEntryBadge(it)!=null ? `<span class="navBadge">${navEntryBadge(it)}</span>` : ''}
-    </div>`).join('');
+    </div>`).join('')}`).join('');
+  renderBrand();
 
   const bn = document.getElementById('bottomNav');
   bn.innerHTML = bottomNavItemsFor(CURRENT_USER).map(it=>`
@@ -1069,12 +1142,14 @@ function toggleMobileMenu(){
   bg.onclick = (e)=>{ if(e.target===bg) bg.remove(); };
   bg.innerHTML = `
     <div class="mobileMenuSheet">
-      <div style="text-align:center;padding:6px 0 12px;font-weight:800;color:var(--gray-900);">كل الصفحات</div>
-      ${navEntriesFor(CURRENT_USER).map(it=>`
-        <div class="navItem ${it.members.includes(currentView)?'active':''}" onclick="goTo('${it.id}'); document.getElementById('mobileMenuBg')?.remove();">
-          <span class="ic">${it.ic}</span><span>${it.label}</span>
-          ${navEntryBadge(it)!=null ? `<span class="navBadge">${navEntryBadge(it)}</span>` : ''}
-        </div>`).join('')}
+      <div class="mmHandle"></div>
+      ${navSectionsFor(CURRENT_USER).map(sec=>`
+        ${sec.label ? `<div class="mmSec">${sec.label}</div>` : ''}
+        <div class="mmGrid">${sec.items.map(it=>`
+          <div class="mmTile ${it.members.includes(currentView)?'active':''}" onclick="goTo('${it.id}'); document.getElementById('mobileMenuBg')?.remove();">
+            <span class="ic">${it.ic}</span><span class="lb">${it.label}</span>
+            ${navEntryBadge(it)!=null ? `<span class="navBadge">${navEntryBadge(it)}</span>` : ''}
+          </div>`).join('')}</div>`).join('')}
     </div>`;
   document.body.appendChild(bg);
 }
@@ -1448,6 +1523,7 @@ function ensureDataForView(view){
   // الأدمن والمشرف محتاجين المتابعات والطلبيات المقترحة دايماً عشان تنبيهات العناصر الجديدة
   if(isAdminLike()){ needed.push('followups'); needed.push('suggestedOrders'); }
   needed.push('portalCfg');
+  needed.push('companyCfg');   // اسم الشركة ولوجو الشريط العلوي
   if(isAdminLike() || isPortalNotifyUser()) needed.push('portalOrders');
   needed.forEach(n=>{
     if(attachedData.has(n) || !DATA_ATTACHERS[n]) return;
@@ -1537,6 +1613,7 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
   DATA_ATTACHERS['companyCfg'] = ()=>{
     unsubs.push(db.collection('appConfig').doc('company').onSnapshot(snap=>{
       COMPANY = snap.exists ? snap.data() : {};
+      renderBrand();
       if(currentView==='definitions' && definitionsTab==='company' && !document.activeElement?.closest?.('#companyForm')) renderView();
     }, err=>console.error('companyCfg listener', err)));
   };
@@ -1965,6 +2042,7 @@ function viewDashboard(){
         ${userPermissions(CURRENT_USER).addvisit ? `<button class="btn btn-primary" onclick="goTo('addvisit')">+ تسجيل زيارة جديدة</button>` : ''}
       </div>
     </div>
+    <div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>
     ${dashboardAttentionHTML(list)}
     ${CURRENT_USER.role==='rep' ? repStaleCustomersWidgetHTML() : ''}
