@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.58)</title>
+<title>نظام زيارات المندوبين - APC (v2.59)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -603,6 +603,34 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .mmTile.active{background:var(--teal-light);border-color:var(--teal);} .mmTile.active .lb{color:var(--teal-dark);}
 .mmTile .navBadge{position:absolute;top:4px;left:4px;}
 .athkarCard iframe{background:#F4F8F7;}
+
+.rbIc{font-size:17px;flex:none;}
+.rbLabel{flex:1;min-width:0;border:1.5px solid transparent;background:transparent;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--gray-900);padding:3px 6px;border-radius:8px;}
+.rbLabel:hover{border-color:#D5E3E1;background:#fff;} .rbLabel:focus{outline:none;border-color:var(--teal);background:#fff;}
+.rbDel{border:none;background:#FDECEA;color:#C0392B;border-radius:9px;width:30px;height:30px;font-size:14px;cursor:pointer;flex:none;}
+.rbDel:hover{background:#F9D4CF;}
+.rbAddPanel{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;margin-top:10px;}
+.rbAddOpt{display:flex;align-items:center;gap:10px;text-align:right;border:1.5px dashed #BFD8D4;background:#F6FBFA;border-radius:12px;padding:10px 12px;cursor:pointer;font-family:inherit;}
+.rbAddOpt:hover{background:var(--teal-light);border-style:solid;border-color:var(--teal);}
+.rbAddOpt .ic{font-size:22px;} .rbAddOpt b{display:block;font-size:13px;color:var(--gray-900);} .rbAddOpt small{display:block;font-size:11px;color:var(--gray-500);line-height:1.5;margin-top:2px;}
+
+/* ================= شريط الأصناف + مقياس التقييم ================= */
+.tickerBar{display:flex;align-items:center;height:38px;overflow:hidden;background:linear-gradient(90deg,var(--teal-dark),var(--teal));color:#fff;font-size:12.5px;border-bottom:1px solid rgba(0,0,0,.08);}
+.tickerBar.hidden{display:none;}
+.tkLabel{flex:none;background:rgba(0,0,0,.22);padding:0 12px;height:100%;display:flex;align-items:center;font-weight:800;white-space:nowrap;}
+.tkView{flex:1;overflow:hidden;height:100%;display:flex;align-items:center;direction:rtl;}
+.tkTrack{display:inline-flex;align-items:center;white-space:nowrap;animation:tkMove 60s linear infinite;will-change:transform;}
+.tkView:hover .tkTrack,.tkView:active .tkTrack{animation-play-state:paused;}
+@keyframes tkMove{from{transform:translateX(0);}to{transform:translateX(50%);}}
+.tkItem{cursor:pointer;padding:0 6px;}
+.tkItem b{font-weight:800;} .tkItem small{opacity:.8;} .tkItem em{font-style:normal;background:#FFD66B;color:#5a3d00;border-radius:99px;padding:1px 9px;font-weight:800;font-size:11.5px;margin:0 4px;} .tkItem i{font-style:normal;opacity:.9;font-size:11.5px;}
+.tkSep{opacity:.45;padding:0 10px;font-size:9px;}
+@media(prefers-reduced-motion:reduce){.tkTrack{animation:none;} .tkView{overflow-x:auto;}}
+.tkGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 18px;margin-bottom:6px;}
+.tkRow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:700;padding:6px 2px;border-bottom:1px dashed #E3ECEB;}
+.tkRow select{padding:6px 8px;border:1.5px solid #D5E3E1;border-radius:9px;font-family:inherit;}
+.ratingPreview{font-size:26px;color:var(--amber);letter-spacing:3px;line-height:1.4;word-break:break-all;}
+.rbWarn{background:#FFF6E5;border:1px solid #F2D49B;color:#7a5200;border-radius:10px;padding:8px 10px;font-size:12px;margin-top:6px;}
 </style>
 </head>
 <body>
@@ -681,7 +709,8 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
     <div class="tickerTrack"><div class="tickerContent" id="tickerContent"></div></div>
   </div>
 
-  <div class="layout">
+  <div id="tickerBar" class="tickerBar hidden"></div>
+<div class="layout">
     <div class="sidebar" id="sideNav"></div>
     <div class="main" id="mainView"></div>
   </div>
@@ -770,7 +799,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.58';
+const APP_VERSION = '2.59';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1036,6 +1065,8 @@ function setSATab(k){ salesAnalyticsTab = k; renderView(); setTimeout(drawSalesA
 const DEF_GROUPS = [
   {label:'📝 النتائج', tabs:[['results','نتيجة الزيارة (مندوبين)'],['followup','نتيجة المتابعة (تلي سيلز)']]},
   {label:'🎯 أهداف المناديب', tabs:[['targets','أهداف المناديب']]},
+  {label:'⭐ التقييم', tabs:[['rating','مقياس التقييم']]},
+  {label:'📢 شريط الأصناف', tabs:[['ticker','شريط الأصناف']]},
   {label:'🏢 بيانات الشركة', tabs:[['company','بيانات الشركة']]}
 ];
 function setDefTab(k){ definitionsTab = k; renderView(); }
@@ -1393,7 +1424,7 @@ async function submitChangePassword(){
 function checkVisitForAlert(v){
   const def = VISIT_RESULT_DEFS.find(d=>d.name===v.visitResult);
   const isFlagged = def && def.alert===true;
-  const isLowRating = v.rating && Number(v.rating)<=2;
+  const isLowRating = v.rating && ratingLow(v.rating);
   if(!isFlagged && !isLowRating) return;
   const reason = isFlagged ? (v.visitResult||'نتيجة تستدعي الانتباه') : `تقييم منخفض (${v.rating}★)`;
   const msg = `⚠️ ${reason}: ${repName(v.repId)} - ${v.customerName||''}`;
@@ -1408,7 +1439,7 @@ function checkVisitForAlert(v){
 function checkFollowupForAlert(f){
   const def = FOLLOWUP_RESULTS.find(d=>d.name===f.resultName);
   const isFlagged = def && def.alert===true;
-  const isLowRating = f.rating && Number(f.rating)<=2;
+  const isLowRating = f.rating && ratingLow(f.rating);
   if(!isFlagged && !isLowRating) return;
   const reason = isFlagged ? (f.resultName||'نتيجة متابعة تستدعي الانتباه') : `تقييم منخفض (${f.rating}★)`;
   const msg = `☎️ ${reason}: ${f.telesalesName||f.telesalesUsername||''} - ${f.customerName||''}`;
@@ -1513,7 +1544,7 @@ function dataNeededForView(view){
     case 'inventory': return ['inventory','bonusOffers'];
     case 'suggestedorders': return ['suggestedOrders','inventory','orderTemplates'];
     case 'portalorders': return ['portalOrders','inventory','bonusOffers','users'];
-    case 'definitions': return ['companyCfg'];
+    case 'definitions': return ['companyCfg'].concat(definitionsTab==='ticker' ? ['inventory','bonusOffers'] : []);
     case 'users': return ['users'];
     default: return [];
   }
@@ -1524,6 +1555,8 @@ function ensureDataForView(view){
   if(isAdminLike()){ needed.push('followups'); needed.push('suggestedOrders'); }
   needed.push('portalCfg');
   needed.push('companyCfg');   // اسم الشركة ولوجو الشريط العلوي
+  needed.push('ratingCfg');    // مقياس التقييم (عدد النجوم)
+  needed.push('tickerCfg');    // شريط الأصناف اللي عليها بونص
   if(isAdminLike() || isPortalNotifyUser()) needed.push('portalOrders');
   needed.forEach(n=>{
     if(attachedData.has(n) || !DATA_ATTACHERS[n]) return;
@@ -1609,6 +1642,20 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
       renderNav();
       if(currentView==='portalorders') renderView();
     }, err=>console.error('portalCfg listener', err)));
+  };
+  DATA_ATTACHERS['ratingCfg'] = ()=>{
+    unsubs.push(db.collection('appConfig').doc('ratingScale').onSnapshot(snap=>{
+      const m = snap.exists ? Math.round(Number(snap.data().max)) : 5;
+      const next = (m>=3 && m<=10) ? m : 5;
+      if(next!==RATING_MAX){ RATING_MAX = next; if(!document.activeElement || !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) renderView(); }
+    }, err=>console.error('ratingCfg listener', err)));
+  };
+  DATA_ATTACHERS['tickerCfg'] = ()=>{
+    unsubs.push(db.collection('appConfig').doc('bonusTicker').onSnapshot(snap=>{
+      TICKER = snap.exists ? snap.data() : {};
+      renderTicker();
+      if(currentView==='definitions' && definitionsTab==='ticker' && !document.activeElement?.closest?.('#tickerForm')) renderView();
+    }, err=>console.error('tickerCfg listener', err)));
   };
   DATA_ATTACHERS['companyCfg'] = ()=>{
     unsubs.push(db.collection('appConfig').doc('company').onSnapshot(snap=>{
@@ -1941,7 +1988,7 @@ function topRepsCardHTML(){
   const myRepId = CURRENT_USER && CURRENT_USER.role==='rep' ? CURRENT_USER.repId : null;
   const showAll = !CURRENT_USER || CURRENT_USER.role!=='rep';
   const all = [
-    {g:'reps',   pub:true,  ic:'⭐', color:'var(--amber)',     lbl:'أعلى مندوب تقييم',            src:rows,     key:'avgRating', fmt:v=>v.toFixed(2)+' / 5', filter:r=>r.visits>=TOP_REPS_MIN_VISITS},
+    {g:'reps',   pub:true,  ic:'⭐', color:'var(--amber)',     lbl:'أعلى مندوب تقييم',            src:rows,     key:'avgRating', fmt:v=>v.toFixed(2)+' / '+RATING_MAX, filter:r=>r.visits>=TOP_REPS_MIN_VISITS},
     {g:'reps',   pub:false, ic:'🚶', color:'var(--teal)',      lbl:'أعلى مندوب في الزيارات',      src:rows,     key:'visits',    fmt:v=>v+' زيارة',          filter:r=>r.visits>0},
     {g:'reps',   pub:false, ic:'💵', color:'var(--teal-dark)', lbl:'أعلى زيارات تحصيل',            src:rows,     key:'collect',   fmt:v=>v+' زيارة',          filter:r=>r.collect>0},
     {g:'reps',   pub:false, ic:'💰', color:'var(--blue)',      lbl:'أعلى نسبة مبيعات في مدنه',    src:rows,     key:'salesPct',  fmt:v=>v.toFixed(0)+'%'},
@@ -2165,14 +2212,14 @@ function openKpiReport(key){
       (todays.length ? `<div class="qrSub">زيارات اليوم</div>`+todays.map(v=>`<div class="qrLine"><span>${escapeHTML(v.customerName||v.customerCode||'')}</span><small>${escapeHTML(v.visitResult||'')}${isRep?'':' · '+escapeHTML(repName(v.repId))}</small></div>`).join('') : ''),
       'كل الزيارات', "goTo('visits')");
   }else if(key==='rating'){
-    const by = new Map(reps.map(r=>[r.id,{n:r.name,c:0,s:0}])), dist = [0,0,0,0,0,0];
-    list.forEach(v=>{ if(!(v.date||'').startsWith(month)) return; const rt = Number(v.rating)||0; const x = by.get(v.repId); if(x){ x.c++; x.s+=rt; } if(rt>=1&&rt<=5) dist[Math.round(rt)]++; });
+    const by = new Map(reps.map(r=>[r.id,{n:r.name,c:0,s:0}])), dist = Array(RATING_MAX+1).fill(0);
+    list.forEach(v=>{ if(!(v.date||'').startsWith(month)) return; const rt = Number(v.rating)||0; const x = by.get(v.repId); if(x){ x.c++; x.s+=rt; } if(rt>=1&&rt<=RATING_MAX) dist[Math.round(rt)]++; });
     const rows = [...by.values()].filter(x=>x.c>0).map(x=>({...x,avg:x.s/x.c})).sort((a,b)=>b.avg-a.avg);
     const all = rows.reduce((a,x)=>({c:a.c+x.c,s:a.s+x.s}),{c:0,s:0});
     openQuickReport('⭐ ملخص التقييم (هذا الشهر)',
       `<div class="qrStats">${qrStat('متوسط عام', all.c?(all.s/all.c).toFixed(2):'-')}${qrStat('زيارات متقيّمة',all.c)}</div>`+
-      `<div class="qrDist">${[5,4,3,2,1].map(n=>`<span><b>${dist[n]}</b>${'★'.repeat(n)}</span>`).join('')}</div>`+
-      (rows.length ? qrTable(['المندوب','المتوسط','زيارات'], rows.map(x=>[escapeHTML(x.n),`<b style="color:${x.avg>=4?'var(--teal-dark)':x.avg>=3?'var(--amber)':'var(--red)'}">${x.avg.toFixed(2)}</b>`,x.c])) : '<div class="emptyState">مفيش تقييمات</div>'),
+      `<div class="qrDist">${ratingRange().slice().reverse().map(n=>`<span><b>${dist[n]}</b>${'★'.repeat(n)}</span>`).join('')}</div>`+
+      (rows.length ? qrTable(['المندوب','المتوسط','زيارات'], rows.map(x=>[escapeHTML(x.n),`<b style="color:${ratingGood(x.avg)?'var(--teal-dark)':ratingMid(x.avg)?'var(--amber)':'var(--red)'}">${x.avg.toFixed(2)}</b>`,x.c])) : '<div class="emptyState">مفيش تقييمات</div>'),
       isRep?'':'تقرير المناديب الكامل', full('repssummary'));
   }else if(key==='coverage'){
     const custs = visibleCustomers();
@@ -2423,7 +2470,7 @@ function dashboardKpisHTML(d){
     <div class="kbody"><div class="klbl">${lbl}</div><div class="kval">${val}</div>${sub?`<div class="ksub">${sub}</div>`:''}</div></div>`;
   return [
     tile('visits','📅','var(--teal-light)','var(--teal-dark)','زيارات اليوم', d.visitsToday, `الشهر <b>${d.visitsMonth}</b> · آخر 7 أيام <b>${d.visitsWeek}</b>`),
-    tile('rating','⭐','#FBEEDB','var(--amber)','متوسط التقييم', `${d.avgRating}<small> / 5</small>`, ''),
+    tile('rating','⭐','#FBEEDB','var(--amber)','متوسط التقييم', `${d.avgRating}<small> / ${RATING_MAX}</small>`, ''),
     tile('coverage','🎯','#E7F0F8','var(--blue)','تغطية العملاء (الشهر)', `${d.coveragePctAll}%`, `${d.visitedCustCount} من ${d.totalCust} عميل`),
     tile('collect','💵','var(--teal-light)','var(--teal-dark)','زيارات التحصيل (الشهر)', d.collectMonth, `${d.collectSharePct}% من زيارات الشهر`),
     d.citySalesLatestDate ? tile('citysales','💰','#E7F0F8','var(--blue)','صافي مبيعات المدن', `<span style="font-size:16px;">${fmtMoney(d.citySalesNet)}</span>`, `<b>${d.citySalesCustCount}</b> عميل متعامل · حتى ${String(d.citySalesLatestDate).slice(5).replace('-','/')}`) : ''
@@ -2436,13 +2483,19 @@ function fmtDateArabic(iso){
 function resultBadge(text){
   if(!text) return '<span class="badge badge-gray">-</span>';
   const def = VISIT_RESULT_DEFS.find(d=>d.name===text);
-  const cls = def && def.alert ? 'badge-red' : (def && Number(def.rating)>=4 ? 'badge-teal' : 'badge-amber');
+  const cls = def && def.alert ? 'badge-red' : (def && ratingGood(def.rating) ? 'badge-teal' : 'badge-amber');
   return `<span class="badge ${cls}">${escapeHTML(text)}</span>`;
 }
+// مقياس التقييم (عدد النجوم) - بيتحدد من التعريفات ← التقييم (من 3 إلى 10)
+let RATING_MAX = 5;
+function ratingRange(){ return Array.from({length:RATING_MAX},(_,i)=>i+1); }
+function ratingGood(r){ return Number(r) >= RATING_MAX*0.8 - 1e-9; }        // زي >=4 من 5
+function ratingMid(r){ return Number(r) >= RATING_MAX*0.6 - 1e-9; }         // زي >=3 من 5
+function ratingLow(r){ return Number(r) <= Math.floor(RATING_MAX*0.4 + 1e-9); } // زي <=2 من 5
 function starsHTML(n){
   n = Number(n)||0;
   let s='';
-  for(let i=1;i<=5;i++) s += i<=n ? '★' : '☆';
+  for(let i=1;i<=RATING_MAX;i++) s += i<=n ? '★' : '☆';
   return `<span class="ratingStars">${s}</span>`;
 }
 function visitRowHTML(v){
@@ -2524,7 +2577,7 @@ function viewAddVisit(){
     addVisitState.rating = Number(defs[0].rating)||0;
   }
 
-  const stars = [1,2,3,4,5].map(i=>`<span class="star ${i<=addVisitState.rating?'on':''}" onclick="setRating(${i})">★</span>`).join('');
+  const stars = ratingRange().map(i=>`<span class="star ${i<=addVisitState.rating?'on':''}" onclick="setRating(${i})">★</span>`).join('');
 
   const isRepUser = CURRENT_USER.role==='rep';
   const repSelectorField = !isRepUser ? `
@@ -2562,7 +2615,7 @@ function viewAddVisit(){
         <label>التقييم</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="starRow">${stars}</div>
-          <button type="button" class="btn btn-outline btn-sm micBtn" onclick="startVoiceRating(this)" title="قول رقم من 1 لـ 5">🎤</button>
+          <button type="button" class="btn btn-outline btn-sm micBtn" onclick="startVoiceRating(this)" title="قول رقم من 1 لـ ${RATING_MAX}">🎤</button>
         </div>
         <div class="smallMuted" style="margin-top:6px;">⚙ يتحدد تلقائياً حسب نتيجة الزيارة، ويمكنك تعديله يدوياً لو رغبت.</div>
       </div>
@@ -2629,11 +2682,12 @@ function startVoiceResultSelect(btn){
   });
 }
 function parseSpokenRating(text){
-  const m = String(text||'').match(/[1-5]/);
-  if(m) return Number(m[0]);
-  const map = {'واحد':1,'واحدة':1,'اتنين':2,'إتنين':2,'اثنين':2,'تلاتة':3,'ثلاثة':3,'ثلاث':3,'تلات':3,'اربعة':4,'أربعة':4,'اربع':4,'خمسة':5,'خمسه':5,'خمس':5};
+  const m = String(text||'').match(/\d+/);
+  if(m){ const v = Number(m[0]); if(v>=1 && v<=RATING_MAX) return v; }
+  const map = {'عشرة':10,'عشره':10,'تسعة':9,'تسعه':9,'تسع':9,'تمانية':8,'ثمانية':8,'تمانيه':8,'تمن':8,'سبعة':7,'سبعه':7,'سبع':7,'ستة':6,'سته':6,'ست':6,
+    'خمسة':5,'خمسه':5,'خمس':5,'اربعة':4,'أربعة':4,'اربع':4,'تلاتة':3,'ثلاثة':3,'ثلاث':3,'تلات':3,'اتنين':2,'إتنين':2,'اثنين':2,'واحد':1,'واحدة':1};
   const norm = normalizeArabicKey(text);
-  for(const k in map){ if(norm.includes(normalizeArabicKey(k))) return map[k]; }
+  for(const k in map){ if(map[k]<=RATING_MAX && norm.includes(normalizeArabicKey(k))) return map[k]; }
   return null;
 }
 function startVoiceRating(btn){
@@ -2643,7 +2697,7 @@ function startVoiceRating(btn){
   try{ recognition = new SR(); }catch(e){ toast('تعذر تشغيل المايك','err'); return; }
   recognition.lang='ar-EG'; recognition.interimResults=false; recognition.maxAlternatives=1;
   if(btn) btn.classList.add('listening');
-  toast('🎤 قول رقم من 1 لـ 5...','warn');
+  toast('🎤 قول رقم من 1 لـ '+RATING_MAX+'...','warn');
   recognition.onresult=(e)=>{
     const text=(e.results && e.results[0] && e.results[0][0]) ? e.results[0][0].transcript : '';
     const n = parseSpokenRating(text);
@@ -2859,7 +2913,7 @@ function cancelInlineRouteVisit(){
 function routePlanInlineFormHTML(){
   const defs = currentResultDefs();
   const curResultId = addVisitState.resultId;
-  const stars = [1,2,3,4,5].map(i=>`<span class="star ${i<=(addVisitState.rating||0)?'on':''}" onclick="setRating(${i})">★</span>`).join('');
+  const stars = ratingRange().map(i=>`<span class="star ${i<=(addVisitState.rating||0)?'on':''}" onclick="setRating(${i})">★</span>`).join('');
   return `
     <div class="card" style="margin-top:8px;padding:12px;background:#fff;border:1px solid var(--gray-300);box-shadow:none;width:100%;">
       <div class="grid grid-2">
@@ -3660,6 +3714,7 @@ async function handleInventoryExcelImport(file){
       async ()=>{
         toast(`جاري استبدال بيانات المخزون (${rows.length} صنف)...`,'warn');
         await replaceCollectionData('inventory', rows);
+    autoRefreshTicker();
         logAudit('import','inventory', `استيراد ${rows.length} صنف من ملف ${file.name}`);
         toast('تم تحديث المخزون بنجاح ✔','ok');
       });
@@ -3685,6 +3740,7 @@ async function handleBonusExcelImport(file){
       async ()=>{
         toast(`جاري استبدال بيانات البونص (${rows.length} عرض)...`,'warn');
         await replaceCollectionData('bonusOffers', rows);
+    autoRefreshTicker();
         logAudit('import','bonusOffers', `استيراد ${rows.length} عرض بونص من ملف ${file.name}`);
         toast('تم تحديث عروض البونص بنجاح ✔','ok');
       });
@@ -3835,7 +3891,7 @@ function openEditVisitModal(id){
         </select>
       </div>
       <div class="field"><label>التقييم</label>
-        <div class="starRow" id="eVStars">${[1,2,3,4,5].map(i=>`<span class="star ${i<=(v.rating||0)?'on':''}" onclick="setEditVisitRating(${i})">★</span>`).join('')}</div>
+        <div class="starRow" id="eVStars">${ratingRange().map(i=>`<span class="star ${i<=(v.rating||0)?'on':''}" onclick="setEditVisitRating(${i})">★</span>`).join('')}</div>
       </div>
       <div class="modalActions">
         <button class="btn btn-ghost" onclick="this.closest('.modalBg').remove()">إلغاء</button>
@@ -4112,40 +4168,68 @@ async function deleteCustomer(id){
 /* ==========================================================================
    حوافز المناديب (Rep Bonus) - قواعد قابلة للتعديل + حساب شهري تلقائي - أدمن فقط
    ========================================================================== */
-// ---- القواعد الافتراضية (بتتدمج مع أي قواعد قديمة محفوظة، فمفيش حاجة بتتكسر) ----
-function rbDefaults(){
-  return {
-    totalPool:0, salesResultNames:[], holidayOverrides:{}, targetCapPct:100,
-    offDays:[5],   // أيام الإجازة الأسبوعية (0=الأحد ... 5=الجمعة ... 6=السبت)
-    parts:{
-      p1:{enabled:true, weight:25, threshold:15},          // أيام فيها X زيارة فأكتر (أي نتيجة)
-      p2:{enabled:true, weight:25, cap:100},               // نسبة تحقيق هدف الزيارات (بحد أقصى cap%)
-      p3:{enabled:true, weight:25, threshold:5},           // أيام فيها X زيارة بيع فأكتر
-      p4:{enabled:true, weight:25, maxRating:5, minRating:0, unvisitedOn:false, unvisitedValue:-1} // متوسط التقييم ÷ maxRating (ولو أقل من minRating = صفر). unvisited: كل عميل في مدن المندوب ما اتزارش في الشهر بيدخل في المتوسط بقيمة unvisitedValue (-1 أو 0 أو 1)
-    }
-  };
+// ======================= محرك قواعد الحوافز: قواعد ديناميكية (تضيف وتمسح بمزاجك) =======================
+// كل قاعدة: {id, type, label, enabled, weight, ...متغيّرات حسب النوع}
+const RB_TYPES = {
+  days:     {ic:'📅', name:'أيام فيها عدد زيارات',       desc:'مبلغ لكل يوم سجّل فيه المندوب عدد معيّن من الزيارات (أي نتيجة أو نتايج محددة)'},
+  target:   {ic:'🎯', name:'تحقيق هدف الزيارات',          desc:'نسبة زيارات الشهر من هدف المندوب الشهري'},
+  rating:   {ic:'⭐', name:'متوسط التقييم',               desc:'حسب متوسط تقييم زياراته (مع خيار احتساب العملاء اللي ما اتزاروش)'},
+  count:    {ic:'🔢', name:'عدد زيارات بنتيجة معينة',     desc:'مثلاً زيارات التحصيل مقابل رقم مستهدف في الشهر'},
+  coverage: {ic:'🗺️', name:'تغطية عملاء مدنه',            desc:'نسبة عملاء مدنه اللي اتزاروا هذا الشهر'}
+};
+const RB_TYPE_DEFAULTS = {
+  days:{threshold:10, results:[]}, target:{cap:100},
+  rating:{max:0, min:0, unvisitedOn:false, unvisitedValue:-1},   // max = 0 يعني "تلقائي" (مقياس التقييم من التعريفات)
+  count:{goal:20, results:[]}, coverage:{targetPct:60}
+};
+function rbNum(v,f){ return (v===undefined||v===null||v===''||isNaN(Number(v))) ? f : Number(v); }
+function rbNewItem(type, extra){
+  const o = {id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), type, label:RB_TYPES[type].name, enabled:true, weight:10};
+  return Object.assign(o, JSON.parse(JSON.stringify(RB_TYPE_DEFAULTS[type])), extra||{});
+}
+function rbDefaultItems(){
+  return [
+    rbNewItem('days',   {id:'p1', label:'أيام الالتزام بعدد الزيارات', weight:25, threshold:15, results:[]}),
+    rbNewItem('target', {id:'p2', label:'تحقيق هدف الزيارات',          weight:25, cap:100}),
+    rbNewItem('days',   {id:'p3', label:'أيام زيارات البيع',            weight:25, threshold:5,  results:[]}),
+    rbNewItem('rating', {id:'p4', label:'متوسط التقييم',               weight:25})
+  ];
+}
+function rbNormItem(x){
+  const base = rbNewItem(x.type), t = x.type;
+  const o = {id:String(x.id||base.id), type:t, label:String(x.label||base.label).slice(0,60), enabled: x.enabled===undefined ? true : !!x.enabled, weight:Math.max(0, rbNum(x.weight, base.weight))};
+  if(t==='days'){ o.threshold = Math.max(1, rbNum(x.threshold, base.threshold)); o.results = Array.isArray(x.results) ? x.results.map(String) : []; }
+  else if(t==='target'){ o.cap = Math.max(0, rbNum(x.cap, base.cap)); }
+  else if(t==='rating'){
+    o.max = Math.max(0, rbNum(x.max, 0)); o.min = Math.max(0, rbNum(x.min, 0));
+    o.unvisitedOn = !!x.unvisitedOn; o.unvisitedValue = [-1,0,1].includes(Number(x.unvisitedValue)) ? Number(x.unvisitedValue) : -1;
+  }
+  else if(t==='count'){ o.goal = Math.max(1, rbNum(x.goal, base.goal)); o.results = Array.isArray(x.results) ? x.results.map(String) : []; }
+  else if(t==='coverage'){ o.targetPct = Math.min(100, Math.max(1, rbNum(x.targetPct, base.targetPct))); }
+  return o;
+}
+// تحويل القواعد القديمة (4 معايير ثابتة) للشكل الجديد من غير ما أي حاجة تتكسر
+function rbLegacyItems(d){
+  const dp = d.parts || {}, items = rbDefaultItems();
+  const get = k => dp[k] || {};
+  const ex = (i, o) => { if(o.enabled!==undefined) i.enabled = !!o.enabled; if(o.weight!==undefined) i.weight = Math.max(0, rbNum(o.weight, i.weight)); };
+  ex(items[0], get('p1')); items[0].threshold = Math.max(1, rbNum(get('p1').threshold, 15));
+  ex(items[1], get('p2')); items[1].cap = Math.max(0, rbNum(get('p2').cap, d.targetCapPct!=null ? Number(d.targetCapPct) : 100));
+  ex(items[2], get('p3')); items[2].threshold = Math.max(1, rbNum(get('p3').threshold, 5)); items[2].results = Array.isArray(d.salesResultNames) ? d.salesResultNames.map(String) : [];
+  const p4 = get('p4'); ex(items[3], p4);
+  const mx = rbNum(p4.maxRating, 0); items[3].max = (mx===5 ? 0 : Math.max(0,mx));   // 5 = المقياس القديم الثابت => تلقائي
+  items[3].min = Math.max(0, rbNum(p4.minRating, 0)); items[3].unvisitedOn = !!p4.unvisitedOn;
+  items[3].unvisitedValue = [-1,0,1].includes(Number(p4.unvisitedValue)) ? Number(p4.unvisitedValue) : -1;
+  return items;
 }
 function rbNormalize(d){
-  const def = rbDefaults(); d = d || {};
-  const dp = d.parts || {};
-  const num = (v,f)=> (v===undefined||v===null||v==='' || isNaN(Number(v))) ? f : Number(v);
-  const part = (k, extra)=>{ const o = dp[k]||{}; const r = {enabled: o.enabled===undefined ? true : !!o.enabled, weight: Math.max(0, num(o.weight, def.parts[k].weight))}; Object.keys(extra).forEach(x=>{ r[x] = num(o[x], extra[x]); }); return r; };
-  const cap = num((dp.p2||{}).cap, d.targetCapPct!=null ? Number(d.targetCapPct) : 100);
+  d = d || {};
+  const items = Array.isArray(d.items) ? d.items.filter(x=>x && RB_TYPES[x.type]).map(rbNormItem) : rbLegacyItems(d);
   return {
-    totalPool: num(d.totalPool,0),
-    salesResultNames: Array.isArray(d.salesResultNames) ? d.salesResultNames : [],
+    totalPool: rbNum(d.totalPool, 0),
     holidayOverrides: (d.holidayOverrides && typeof d.holidayOverrides==='object') ? d.holidayOverrides : {},
-    targetCapPct: cap,
-    offDays: Array.isArray(d.offDays) ? d.offDays.map(Number).filter(x=>x>=0&&x<=6) : [5],
-    parts:{
-      p1: part('p1',{threshold:15}),
-      p2: Object.assign(part('p2',{}), {cap}),
-      p3: part('p3',{threshold:5}),
-      p4: Object.assign(part('p4',{maxRating:5, minRating:0}), {
-        unvisitedOn: !!(dp.p4 && dp.p4.unvisitedOn),
-        unvisitedValue: [-1,0,1].includes(Number(dp.p4 && dp.p4.unvisitedValue)) ? Number(dp.p4.unvisitedValue) : -1
-      })
-    }
+    offDays: Array.isArray(d.offDays) ? d.offDays.map(Number).filter(x=>x>=0&&x<=6) : [5],   // الإجازة الأسبوعية (0=الأحد ... 5=الجمعة ... 6=السبت)
+    items
   };
 }
 let REP_BONUS_RULES = rbNormalize({});
@@ -4179,28 +4263,30 @@ async function loadRepBonusRules(){
     }
   }catch(e){ console.error('loadRepBonusRules failed', e); repBonusRulesLoadedAt = 0; }
 }
-// ---- مسودة التعديل: كل خانة بتتسجّل هنا فور تغييرها وبتفضل لحد الحفظ أو الإلغاء ----
-let rbDraft = null;
+// ---- مسودة التعديل: كل تغيير بيتسجّل هنا فوراً وبيفضل لحد الحفظ أو التراجع ----
+let rbDraft = null, rbAddOpen = false;
 function rbCurrent(){ return rbDraft || REP_BONUS_RULES; }
 function rbEdit(){ if(!rbDraft) rbDraft = JSON.parse(JSON.stringify(REP_BONUS_RULES)); return rbDraft; }
-function rbSet(path, value){
-  const d = rbEdit(), keys = path.split('.'); let o = d;
-  for(let i=0;i<keys.length-1;i++){ if(o[keys[i]]==null || typeof o[keys[i]]!=='object') o[keys[i]] = {}; o = o[keys[i]]; }
-  o[keys[keys.length-1]] = value;
-  renderView();
+function rbItem(id){ return rbEdit().items.find(x=>x.id===id); }
+function rbSetTop(key, raw, min, max){ let v = Number(raw); if(isNaN(v)) v = 0; if(min!=null) v = Math.max(min,v); if(max!=null) v = Math.min(max,v); rbEdit()[key] = v; renderView(); }
+function rbSetField(id, key, raw, min, max){
+  const it = rbItem(id); if(!it) return;
+  let v = Number(raw); if(raw==='' || isNaN(v)) v = 0;
+  if(min!=null) v = Math.max(min,v); if(max!=null) v = Math.min(max,v);
+  it[key] = v; renderView();
 }
-function rbSetNum(path, raw, min, max){
-  let v = Number(raw); if(isNaN(v)) v = 0;
-  if(min!=null) v = Math.max(min, v); if(max!=null) v = Math.min(max, v);
-  rbSet(path, v);
+function rbSetLabel(id, val){ const it = rbItem(id); if(it){ it.label = String(val).trim().slice(0,60) || RB_TYPES[it.type].name; renderView(); } }
+function rbSetEnabled(id, on){ const it = rbItem(id); if(it){ it.enabled = !!on; renderView(); } }
+function rbToggleResult(id, name, on){
+  const it = rbItem(id); if(!it) return;
+  const cur = Array.isArray(it.results) ? [...it.results] : [], has = cur.includes(name);
+  if(on && !has) cur.push(name); else if(!on && has) cur.splice(cur.indexOf(name),1);
+  it.results = cur; renderView();
 }
-function rbToggleList(path, item, on){
-  const d = rbEdit(), keys = path.split('.'); let o = d;
-  for(let i=0;i<keys.length-1;i++) o = o[keys[i]];
-  const k = keys[keys.length-1]; const cur = Array.isArray(o[k]) ? [...o[k]] : [];
-  const has = cur.includes(item);
-  if(on && !has) cur.push(item); else if(!on && has) cur.splice(cur.indexOf(item),1);
-  o[k] = cur; renderView();
+function rbToggleDay(day, on){
+  const d = rbEdit(), cur = [...(d.offDays||[])], has = cur.includes(day);
+  if(on && !has) cur.push(day); else if(!on && has) cur.splice(cur.indexOf(day),1);
+  d.offDays = cur; renderView();
 }
 function rbSetExtraHolidays(raw){
   const d = rbEdit(); d.holidayOverrides = {...(d.holidayOverrides||{})};
@@ -4208,92 +4294,110 @@ function rbSetExtraHolidays(raw){
   if(v>0) d.holidayOverrides[repBonusMonth] = v; else delete d.holidayOverrides[repBonusMonth];
   renderView();
 }
-function rbSetUnvisited(mode){   // 'off' | -1 | 0 | 1
-  const d = rbEdit(); const p4 = d.parts.p4;
-  p4.unvisitedOn = (mode!=='off');
-  if(mode!=='off') p4.unvisitedValue = Number(mode);
+function rbSetUnvisited(id, mode){   // 'off' | -1 | 0 | 1
+  const it = rbItem(id); if(!it) return;
+  it.unvisitedOn = (mode!=='off'); if(mode!=='off') it.unvisitedValue = Number(mode);
   renderView();
 }
-function rbCancelDraft(){ rbDraft = null; renderView(); toast('اترجعت القواعد المحفوظة','warn'); }
+function rbToggleAdd(){ rbAddOpen = !rbAddOpen; renderView(); }
+function rbAddRule(type){
+  const d = rbEdit(); d.items = [...d.items, rbNewItem(type)]; rbAddOpen = false; renderView();
+  toast('اتضافت قاعدة جديدة - اضبط وزنها واحفظ','ok');
+}
+function rbDeleteRule(id){
+  const it = rbItem(id); if(!it) return;
+  if(!confirm(`مسح القاعدة "${it.label}"؟\nالمبلغ هيتوزع على باقي القواعد (التغيير مش هيتحفظ غير لما تضغط حفظ).`)) return;
+  const d = rbEdit(); d.items = d.items.filter(x=>x.id!==id); renderView();
+}
+function rbResetDefaults(){
+  if(!confirm('استعادة القواعد الأربعة الافتراضية؟ (بتمسح القواعد الحالية في المسودة، ومش بتتحفظ غير لما تضغط حفظ)')) return;
+  rbEdit().items = rbDefaultItems(); rbAddOpen = false; renderView();
+}
+function rbCancelDraft(){ rbDraft = null; rbAddOpen = false; renderView(); toast('اترجعت القواعد المحفوظة','warn'); }
 async function saveRepBonusRules(){
   const d = rbNormalize(rbCurrent());
-  const en = Object.values(d.parts).filter(x=>x.enabled);
-  if(!en.length){ toast('لازم تفعّل معيار واحد على الأقل','err'); return; }
+  const en = d.items.filter(x=>x.enabled);
+  if(!en.length){ toast('لازم تفعّل قاعدة واحدة على الأقل','err'); return; }
   if(en.reduce((a,x)=>a+x.weight,0) <= 0){ toast('مجموع الأوزان لازم يكون أكبر من صفر','err'); return; }
   if(d.offDays.length>=7){ toast('مينفعش كل أيام الأسبوع إجازة','err'); return; }
+  const empty = en.find(x=>x.type==='count' && !x.results.length);
+  if(empty){ toast(`القاعدة "${empty.label}" محتاجة تختار نتيجة زيارة واحدة على الأقل`,'err'); return; }
   try{
     await db.collection('appConfig').doc('repBonusRules').set({
-      totalPool:d.totalPool, salesResultNames:d.salesResultNames, holidayOverrides:d.holidayOverrides,
-      targetCapPct:d.parts.p2.cap, offDays:d.offDays, parts:d.parts,
+      totalPool:d.totalPool, holidayOverrides:d.holidayOverrides, offDays:d.offDays, items:d.items,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.username
     });
     REP_BONUS_RULES = d;
     repBonusRulesLoadedAt = Date.now();
-    rbDraft = null;
-    logAudit('edit','appConfig', `قواعد حوافز المناديب: إجمالي ${d.totalPool} ج، أوزان ${['p1','p2','p3','p4'].map(k=>d.parts[k].enabled?d.parts[k].weight:'-').join('/')}، نتائج البيع: ${d.salesResultNames.join('، ')||'-'}`);
+    rbDraft = null; rbAddOpen = false;
+    logAudit('edit','appConfig', `قواعد حوافز المناديب: إجمالي ${d.totalPool} ج، ${d.items.length} قاعدة (${d.items.map(x=>x.enabled?x.label+' '+x.weight+'%':'('+x.label+' موقوفة)').join('، ')})`);
     toast('تم حفظ قواعد الحوافز بنجاح ✔','ok');
     renderView();
   }catch(e){ console.error(e); toast('فشل الحفظ: ' + (e.code==='permission-denied' ? 'الصلاحيات (راجع قواعد Firestore)' : (e.message||'خطأ')),'err'); }
 }
-// مبلغ كل معيار = الإجمالي × وزنه ÷ مجموع أوزان المعايير المفعّلة (فالإجمالي بيتوزع كامل مهما كان مجموع الأوزان)
+// مبلغ كل قاعدة = الإجمالي × وزنها ÷ مجموع أوزان القواعد المفعّلة (فالإجمالي بيتوزع كامل مهما كان مجموع الأوزان)
 function rbShares(rules){
-  const P = rules.parts, en = ['p1','p2','p3','p4'].filter(k=>P[k].enabled);
-  const sumW = en.reduce((a,k)=>a+P[k].weight,0);
-  const out = {p1:0,p2:0,p3:0,p4:0};
-  if(sumW>0) en.forEach(k=>{ out[k] = rules.totalPool * P[k].weight / sumW; });
+  const en = rules.items.filter(x=>x.enabled), sumW = en.reduce((a,x)=>a+x.weight,0), out = {};
+  rules.items.forEach(x=>{ out[x.id] = (x.enabled && sumW>0) ? rules.totalPool * x.weight / sumW : 0; });
   return out;
 }
+function rbRatingMax(it){ return it.max>0 ? it.max : RATING_MAX; }
 function repBonusRowsForMonth(month, rulesArg){
-  const rules = rulesArg || REP_BONUS_RULES, P = rules.parts;
-  const shares = rbShares(rules);
-  const salesNames = new Set(rules.salesResultNames);
-  const workDays = workDaysInMonth(month, rules);
-  // العملاء اللي اتزاروا في الشهر (من أي مندوب) - لحساب "عملاء ما اتزاروش" لكل مندوب
+  const rules = rulesArg || REP_BONUS_RULES, items = rules.items;
+  const shares = rbShares(rules), workDays = workDaysInMonth(month, rules);
+  const monthAll = VISITS.filter(v=>(v.date||'').startsWith(month));
+  // عملاء اتزاروا في الشهر (من أي مندوب): للعملاء اللي ما اتزاروش في قاعدة التقييم
   const visitedCodes = new Set();
-  if(P.p4.unvisitedOn) VISITS.forEach(v=>{ if((v.date||'').startsWith(month) && v.customerCode) visitedCodes.add(v.customerCode); });
+  if(items.some(x=>x.enabled && x.type==='rating' && x.unvisitedOn)) monthAll.forEach(v=>{ if(v.customerCode) visitedCodes.add(v.customerCode); });
+  const needCust = items.some(x=>x.enabled && ((x.type==='rating' && x.unvisitedOn) || x.type==='coverage'));
   return REPS.filter(r=>r.active!==false).map(r=>{
-    const monthVisits = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(month));
+    const monthVisits = monthAll.filter(v=>v.repId===r.id);
     const visitCount = monthVisits.length;
-
-    // بالتاريخ: كل تاريخ وعدد زياراته، وعدد زياراته "البيعية" (من نتائج البيع المحددة في القواعد)
-    const byDate = {};
-    monthVisits.forEach(v=>{
-      const d = v.date;
-      if(!byDate[d]) byDate[d] = {total:0, sales:0};
-      byDate[d].total++;
-      if(salesNames.has(v.visitResult)) byDate[d].sales++;
-    });
-    const fullDaysCount = Object.values(byDate).filter(d=>d.total>=P.p1.threshold).length;
-    const salesDaysCount = Object.values(byDate).filter(d=>d.sales>=P.p3.threshold).length;
-
+    const myCusts = needCust ? ((r.cities && r.cities.length) ? CUSTOMERS.filter(c=>r.cities.includes(c.city)) : CUSTOMERS) : [];
+    const myCodes = new Set(monthVisits.map(v=>v.customerCode));
+    const ratingSum = monthVisits.reduce((a,v)=>a+(Number(v.rating)||0),0);
+    const rawAvgRating = visitCount ? ratingSum/visitCount : 0;
     const visitTarget = Number(r.monthlyVisitTarget)||0;
-    const rawRatio = visitTarget>0 ? (visitCount/visitTarget) : 0;
-    const visitRatio = Math.min(rawRatio, (P.p2.cap||0)/100);
-
-    const ratingSum = monthVisits.reduce((s,v)=>s+(Number(v.rating)||0),0);
-    const rawAvgRating = visitCount ? (ratingSum/visitCount) : 0;
-    // كل عميل في مدن المندوب (أو كل العملاء لو مفيش مدن محددة) ما اتزارش في الشهر بيدخل في المتوسط بالقيمة المحددة في القواعد
-    let unvisitedCount = 0;
-    if(P.p4.unvisitedOn){
-      const cs = (r.cities && r.cities.length) ? CUSTOMERS.filter(c=>r.cities.includes(c.city)) : CUSTOMERS;
-      unvisitedCount = cs.filter(c=>!visitedCodes.has(c.code)).length;
-    }
-    const denom = visitCount + unvisitedCount;
-    const avgRating = denom ? (ratingSum + unvisitedCount*P.p4.unvisitedValue)/denom : 0;
-    const ratingFactor = (avgRating >= P.p4.minRating && P.p4.maxRating>0) ? Math.max(0, Math.min(1, avgRating/P.p4.maxRating)) : 0;
-
-    const part1 = (shares.p1/workDays) * fullDaysCount;
-    const part2 = shares.p2 * visitRatio;
-    const part3 = (shares.p3/workDays) * salesDaysCount;
-    const part4 = shares.p4 * ratingFactor;
-    const bonus = part1+part2+part3+part4;
-
-    return {repId:r.id, name:r.name, visitCount, avgRating, rawAvgRating, unvisitedCount, visitTarget, visitRatio, fullDaysCount, salesDaysCount, part1, part2, part3, part4, bonus};
+    let avgRating = rawAvgRating, unvisitedCount = 0;
+    const parts = items.map(it=>{
+      const share = shares[it.id] || 0;
+      let amount = 0, info = '';
+      if(!it.enabled){ return {id:it.id, label:it.label, type:it.type, enabled:false, amount:0, info:''}; }
+      if(it.type==='days'){
+        const set = it.results.length ? new Set(it.results) : null, by = {};
+        monthVisits.forEach(v=>{ if(!set || set.has(v.visitResult)) by[v.date] = (by[v.date]||0)+1; });
+        const days = Object.values(by).filter(n=>n>=it.threshold).length;
+        amount = (share/workDays)*days; info = `${days} يوم`;
+      }else if(it.type==='target'){
+        const ratio = Math.min(visitTarget>0 ? visitCount/visitTarget : 0, it.cap/100);
+        amount = share*ratio; info = visitTarget ? (ratio*100).toFixed(0)+'%' : 'لا هدف';
+      }else if(it.type==='rating'){
+        let adj = 0;
+        if(it.unvisitedOn){ const cs = myCusts.filter(c=>!visitedCodes.has(c.code)); adj = cs.length; }
+        const denom = visitCount + adj;
+        const avg = denom ? (ratingSum + adj*it.unvisitedValue)/denom : 0;
+        const mx = rbRatingMax(it);
+        const factor = (avg >= it.min && mx>0) ? Math.max(0, Math.min(1, avg/mx)) : 0;
+        amount = share*factor; info = avg.toFixed(1); avgRating = avg; unvisitedCount = adj;
+      }else if(it.type==='count'){
+        const set = new Set(it.results);
+        const n = monthVisits.filter(v=>set.has(v.visitResult)).length;
+        amount = share*Math.min(1, n/it.goal); info = `${n}/${it.goal}`;
+      }else if(it.type==='coverage'){
+        const codes = new Set(myCusts.map(c=>c.code));
+        let covered = 0; myCodes.forEach(cd=>{ if(codes.has(cd)) covered++; });
+        const cov = codes.size ? covered/codes.size : 0;
+        amount = share*Math.min(1, cov/(it.targetPct/100)); info = (cov*100).toFixed(0)+'%';
+      }
+      return {id:it.id, label:it.label, type:it.type, enabled:true, amount, info};
+    });
+    const bonus = parts.reduce((a,x)=>a+x.amount,0);
+    return {repId:r.id, name:r.name, visitCount, avgRating, rawAvgRating, unvisitedCount, visitTarget, parts, bonus};
   }).sort((a,b)=>b.bonus-a.bonus);
 }
 function viewRepBonus(){
   const month = repBonusMonth;
-  const rules = rbNormalize(rbCurrent()), P = rules.parts;
+  const rules = rbNormalize(rbCurrent());
   const dirty = !!rbDraft && JSON.stringify(rbNormalize(rbDraft)) !== JSON.stringify(REP_BONUS_RULES);
   const rows = repBonusRowsForMonth(month, rules);
   const totalBonus = rows.reduce((s,r)=>s+r.bonus,0);
@@ -4301,88 +4405,95 @@ function viewRepBonus(){
   const resultNames = currentResultDefs().map(d=>d.name);
   const workDays = workDaysInMonth(month, rules);
   const extraHolidays = Number((rules.holidayOverrides||{})[month])||0;
-  const sumW = ['p1','p2','p3','p4'].filter(k=>P[k].enabled).reduce((a,k)=>a+P[k].weight,0);
+  const sumW = rules.items.filter(x=>x.enabled).reduce((a,x)=>a+x.weight,0);
   const money = n => Math.round(n).toLocaleString('en-US');
   const DAYS = [['6','سبت'],['0','أحد'],['1','اثنين'],['2','ثلاثاء'],['3','أربعاء'],['4','خميس'],['5','جمعة']];
-  const numIn = (path, val, min, max, w) => `<input type="number" class="rbIn" min="${min}" ${max!=null?`max="${max}"`:''} step="1" value="${val}" style="width:${w||74}px;" onchange="rbSetNum('${path}', this.value, ${min}, ${max==null?'null':max})">`;
+  const q = v => escapeHTML(JSON.stringify(v));
+  const numIn = (fn, val, w, ph) => `<input type="number" class="rbIn" step="1" value="${val===0 && ph ? '' : val}" ${ph?`placeholder="${ph}"`:''} style="width:${w||74}px;" onchange="${fn}">`;
+  const chipList = (it, hint) => resultNames.length ? `<div class="rbSales"><span>${hint}</span><div class="rbChips">${resultNames.map(n=>`
+      <label class="rbChip ${it.results.includes(n)?'on':''}"><input type="checkbox" ${it.results.includes(n)?'checked':''} onchange="rbToggleResult(${q(it.id)}, ${q(n)}, this.checked)">${escapeHTML(n)}</label>`).join('')}</div></div>` : '<span class="smallMuted">لا توجد نتائج زيارة معرّفة بعد</span>';
+  const resLabel = it => it.results.length ? `من نتايج: <b>${it.results.map(escapeHTML).join('، ')}</b>` : 'من أي نتيجة';
 
-  const partCard = (k, ic, title, desc, controls) => `
-    <div class="rbPart ${P[k].enabled?'':'off'}">
+  const ruleCard = it => {
+    const T = RB_TYPES[it.type], id = q(it.id);
+    let desc = '', ctrls = '';
+    if(it.type==='days'){
+      desc = `المبلغ ÷ أيام العمل × عدد الأيام اللي سجّل فيها <b>${it.threshold}</b> زيارة فأكتر (${resLabel(it)}).`;
+      ctrls = `<label>الحد الأدنى للزيارات في اليوم ${numIn(`rbSetField(${id},'threshold',this.value,1,null)`, it.threshold, 64)}</label>` + chipList(it,'نتايج محسوبة (سيبها فاضية = أي نتيجة):');
+    }else if(it.type==='target'){
+      desc = `المبلغ × (زيارات الشهر ÷ هدف المندوب) بحد أقصى <b>${it.cap}%</b>. الهدف بيتحدد من التعريفات ← أهداف المناديب.`;
+      ctrls = `<label>الحد الأقصى للنسبة % ${numIn(`rbSetField(${id},'cap',this.value,0,1000)`, it.cap, 70)}</label>`;
+    }else if(it.type==='rating'){
+      const mx = rbRatingMax(it);
+      desc = `المبلغ × (متوسط التقييم ÷ <b>${mx}</b>)${it.min>0?` — ولو المتوسط أقل من <b>${it.min}</b> يبقى صفر`:''}.${it.unvisitedOn?` كل عميل في مدنه ما اتزارش في الشهر بيدخل في المتوسط كأنه تقييم <b>${it.unvisitedValue}</b>.`:''}`;
+      ctrls = `<label>أعلى تقييم ${numIn(`rbSetField(${id},'max',this.value,0,100)`, it.max, 64, 'تلقائي '+RATING_MAX)}</label>
+        <label>أقل متوسط للاستحقاق ${numIn(`rbSetField(${id},'min',this.value,0,100)`, it.min, 60)}</label>
+        <div class="rbSales"><span>العميل اللي ما اتزارش في الشهر:</span><div class="rbChips">
+          <button type="button" class="rbChip ${!it.unvisitedOn?'on':''}" onclick="rbSetUnvisited(${id},'off')">لا يُحتسب</button>
+          ${[[-1,'<span dir="ltr">−1</span>'],[0,'صفر'],[1,'<span dir="ltr">+1</span>']].map(([v,l])=>`<button type="button" class="rbChip ${it.unvisitedOn&&it.unvisitedValue===v?'on':''}" onclick="rbSetUnvisited(${id},${v})">${l}</button>`).join('')}
+        </div></div>`;
+    }else if(it.type==='count'){
+      desc = `المبلغ × (عدد زيارات ${resLabel(it)} ÷ <b>${it.goal}</b>) بحد أقصى 100%.`;
+      ctrls = `<label>المستهدف (زيارة في الشهر) ${numIn(`rbSetField(${id},'goal',this.value,1,null)`, it.goal, 70)}</label>` + chipList(it,'النتايج المحسوبة:');
+    }else if(it.type==='coverage'){
+      desc = `المبلغ × (نسبة عملاء مدنه اللي اتزاروا ÷ <b>${it.targetPct}%</b>) بحد أقصى 100%.`;
+      ctrls = `<label>نسبة التغطية المستهدفة % ${numIn(`rbSetField(${id},'targetPct',this.value,1,100)`, it.targetPct, 64)}</label>`;
+    }
+    return `
+    <div class="rbPart ${it.enabled?'':'off'}">
       <div class="rbPartHead">
-        <label class="rbSwitch"><input type="checkbox" ${P[k].enabled?'checked':''} onchange="rbSet('parts.${k}.enabled', this.checked)"><span></span></label>
-        <div class="rbPartTitle">${ic} ${title}</div>
-        <div class="rbPartAmt">${P[k].enabled ? money(shares[k])+' ج' : 'موقوف'}</div>
+        <label class="rbSwitch"><input type="checkbox" ${it.enabled?'checked':''} onchange="rbSetEnabled(${id}, this.checked)"><span></span></label>
+        <span class="rbIc">${T.ic}</span>
+        <input class="rbLabel" value="${escapeHTML(it.label)}" onchange="rbSetLabel(${id}, this.value)" title="اسم القاعدة (تقدر تغيّره)">
+        <div class="rbPartAmt">${it.enabled ? money(shares[it.id])+' ج' : 'موقوفة'}</div>
+        <button type="button" class="rbDel" onclick="rbDeleteRule(${id})" title="مسح القاعدة">🗑</button>
       </div>
       <div class="rbDesc">${desc}</div>
       <div class="rbCtrls">
-        <label>الوزن % ${numIn('parts.'+k+'.weight', P[k].weight, 0, 100)}</label>
-        ${controls}
+        <label>الوزن % ${numIn(`rbSetField(${id},'weight',this.value,0,1000)`, it.weight, 64)}</label>
+        ${ctrls}
       </div>
     </div>`;
+  };
 
-  const salesChips = resultNames.length ? resultNames.map(n=>`
-    <label class="rbChip ${rules.salesResultNames.includes(n)?'on':''}">
-      <input type="checkbox" ${rules.salesResultNames.includes(n)?'checked':''} onchange="rbToggleList('salesResultNames', ${escapeHTML(JSON.stringify(n))}, this.checked)">${escapeHTML(n)}
-    </label>`).join('') : `<span class="smallMuted">لا توجد نتائج زيارة معرّفة بعد</span>`;
+  const addPanel = rbAddOpen ? `<div class="rbAddPanel">${Object.entries(RB_TYPES).map(([k,t])=>`
+      <button type="button" class="rbAddOpt" onclick="rbAddRule('${k}')"><span class="ic">${t.ic}</span><div><b>${t.name}</b><small>${t.desc}</small></div></button>`).join('')}</div>` : '';
 
-  const dayChips = DAYS.map(([v,l])=>`<label class="rbChip ${rules.offDays.includes(Number(v))?'on':''}"><input type="checkbox" ${rules.offDays.includes(Number(v))?'checked':''} onchange="rbToggleList('offDays', ${v}, this.checked)">${l}</label>`).join('');
+  const dayChips = DAYS.map(([v,l])=>`<label class="rbChip ${rules.offDays.includes(Number(v))?'on':''}"><input type="checkbox" ${rules.offDays.includes(Number(v))?'checked':''} onchange="rbToggleDay(${v}, this.checked)">${l}</label>`).join('');
 
-  // بطاقات المناديب (مدمجة، في شبكة)
+  const SP = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫'];
   const repCards = rows.length ? rows.map(r=>`
     <div class="rbRep">
       <div class="rbRepTop"><span class="nm">${escapeHTML(r.name)}</span><span class="amt">${money(r.bonus)} ج.م</span></div>
-      <div class="rbRepChips">
-        <span title="زيارات الشهر">📋 ${r.visitCount}</span>
-        ${P.p1.enabled?`<span title="أيام فيها ${P.p1.threshold} زيارة فأكتر">📅 ${r.fullDaysCount} يوم</span>`:''}
-        ${P.p2.enabled?`<span title="تحقيق هدف الزيارات">🎯 ${r.visitTarget ? (r.visitRatio*100).toFixed(0)+'%' : 'لا هدف'}</span>`:''}
-        ${P.p3.enabled?`<span title="أيام فيها ${P.p3.threshold} زيارة بيع فأكتر">💰 ${r.salesDaysCount} يوم</span>`:''}
-        ${P.p4.enabled?`<span title="متوسط التقييم${P.p4.unvisitedOn?` بعد احتساب العملاء اللي ما اتزاروش (الفعلي ${r.rawAvgRating.toFixed(1)})`:''}">⭐ ${r.avgRating.toFixed(1)}</span>`:''}
-        ${P.p4.enabled && P.p4.unvisitedOn?`<span title="عملاء في مدنه ما اتزاروش هذا الشهر">⛔ ${r.unvisitedCount} لم يُزر</span>`:''}
-      </div>
-      <div class="rbSplit">
-        ${[['p1',r.part1],['p2',r.part2],['p3',r.part3],['p4',r.part4]].map(([k,v],i)=>P[k].enabled?`<span class="sp sp${i+1}">${['①','②','③','④'][i]} ${money(v)}</span>`:'').join('')}
-      </div>
+      <div class="rbRepChips"><span title="زيارات الشهر">📋 ${r.visitCount}</span>
+        ${r.parts.map(pt=>pt.enabled?`<span title="${escapeHTML(pt.label)}">${RB_TYPES[pt.type].ic} ${pt.info}</span>`:'').join('')}
+        ${r.unvisitedCount>0?`<span title="عملاء في مدنه ما اتزاروش هذا الشهر">⛔ ${r.unvisitedCount} لم يُزر</span>`:''}</div>
+      <div class="rbSplit">${r.parts.map((pt,i)=>pt.enabled?`<span class="sp sp${(i%4)+1}" title="${escapeHTML(pt.label)}">${SP[i]||'•'} ${money(pt.amount)}</span>`:'').join('')}</div>
     </div>`).join('') : `<div class="chatEmpty">لا يوجد مناديب نشطين</div>`;
 
   return `
-    <div class="pageHead"><div><h2>حوافز المناديب</h2><div class="desc">كل القواعد قابلة للتعديل، والنتائج تحت بتتحدّث فوراً (معاينة) قبل ما تحفظ</div></div></div>
+    <div class="pageHead"><div><h2>حوافز المناديب</h2><div class="desc">القواعد بإيدك: عدّل أو أضف أو امسح أي قاعدة، والنتائج تحت بتتحدّث فوراً (معاينة) قبل ما تحفظ</div></div></div>
 
     <details class="card rbCard" open>
       <summary>⚙️ قواعد الحساب ${dirty?'<span class="rbDirty">● تعديلات غير محفوظة</span>':''}</summary>
 
       <div class="rbGeneral">
-        <label>إجمالي البونص الشهري (جنيه) ${numIn('totalPool', rules.totalPool, 0, null, 110).replace("rbSetNum('totalPool'","rbSetNum('totalPool'")}</label>
-        <label>عطلات رسمية إضافية في ${month} ${numIn('extra', extraHolidays, 0, 31, 60).replace(/rbSetNum\('extra', this\.value, 0, 31\)/, 'rbSetExtraHolidays(this.value)')}</label>
+        <label>إجمالي البونص الشهري (جنيه) ${numIn(`rbSetTop('totalPool',this.value,0,null)`, rules.totalPool, 110)}</label>
+        <label>عطلات رسمية إضافية في ${month} ${numIn(`rbSetExtraHolidays(this.value)`, extraHolidays, 60)}</label>
         <div class="rbDaysBox"><span>الإجازة الأسبوعية:</span><div class="rbChips">${dayChips}</div></div>
       </div>
-      <div class="smallMuted" style="margin:2px 0 8px;">أيام العمل في ${month} = <b>${workDays} يوم</b> (أيام الشهر − الإجازة الأسبوعية − العطلات الإضافية). مجموع أوزان المعايير المفعّلة: <b style="color:${sumW===100?'var(--teal-dark)':'var(--amber)'};">${sumW}%</b> ${sumW===100?'✓':'(الإجمالي هيتوزع بالنسبة بينهم)'}</div>
+      <div class="smallMuted" style="margin:2px 0 8px;">أيام العمل في ${month} = <b>${workDays} يوم</b>. عدد القواعد المفعّلة: <b>${rules.items.filter(x=>x.enabled).length}</b> · مجموع أوزانها: <b style="color:${sumW===100?'var(--teal-dark)':'var(--amber)'};">${sumW}%</b> ${sumW===100?'✓':'(الإجمالي هيتوزع بالنسبة بينهم)'}</div>
 
-      <div class="rbParts">
-        ${partCard('p1','📅','أيام الالتزام بعدد الزيارات',
-           `المبلغ ÷ أيام العمل × عدد الأيام اللي سجّل فيها <b>${P.p1.threshold}</b> زيارة فأكتر (أي نتيجة).`,
-           `<label>الحد الأدنى للزيارات في اليوم ${numIn('parts.p1.threshold', P.p1.threshold, 1, null, 64)}</label>`)}
-        ${partCard('p2','🎯','تحقيق هدف الزيارات',
-           `المبلغ × (زيارات الشهر ÷ هدف المندوب) بحد أقصى <b>${P.p2.cap}%</b>. الهدف بيتحدد من التعريفات ← أهداف المناديب.`,
-           `<label>الحد الأقصى للنسبة % ${numIn('parts.p2.cap', P.p2.cap, 0, 1000, 70)}</label>`)}
-        ${partCard('p3','💰','أيام زيارات البيع',
-           `المبلغ ÷ أيام العمل × عدد الأيام اللي سجّل فيها <b>${P.p3.threshold}</b> زيارة بيع فأكتر.`,
-           `<label>الحد الأدنى لزيارات البيع في اليوم ${numIn('parts.p3.threshold', P.p3.threshold, 1, null, 64)}</label>
-            <div class="rbSales"><span>نتايج تُعتبر "بيع":</span><div class="rbChips">${salesChips}</div></div>`)}
-        ${partCard('p4','⭐','متوسط التقييم',
-           `المبلغ × (متوسط التقييم ÷ <b>${P.p4.maxRating}</b>)${P.p4.minRating>0?` — ولو المتوسط أقل من <b>${P.p4.minRating}</b> يبقى صفر`:''}.${P.p4.unvisitedOn?` كل عميل في مدنه ما اتزارش في الشهر بيدخل في المتوسط كأنه تقييم <b>${P.p4.unvisitedValue}</b>.`:''}`,
-           `<label>أعلى تقييم ${numIn('parts.p4.maxRating', P.p4.maxRating, 1, 100, 60)}</label>
-            <label>أقل متوسط للاستحقاق ${numIn('parts.p4.minRating', P.p4.minRating, 0, 100, 60)}</label>
-            <div class="rbSales"><span>العميل اللي ما اتزارش في الشهر:</span><div class="rbChips">
-              <button type="button" class="rbChip ${!P.p4.unvisitedOn?'on':''}" onclick="rbSetUnvisited('off')">لا يُحتسب</button>
-              ${[[-1,'<span dir="ltr">−1</span>'],[0,'صفر'],[1,'<span dir="ltr">+1</span>']].map(([v,l])=>`<button type="button" class="rbChip ${P.p4.unvisitedOn&&P.p4.unvisitedValue===v?'on':''}" onclick="rbSetUnvisited(${v})">${l}</button>`).join('')}
-            </div></div>`)}
-      </div>
+      <div class="rbParts">${rules.items.length ? rules.items.map(ruleCard).join('') : '<div class="emptyState" style="grid-column:1/-1;">مفيش قواعد. اضغط ➕ إضافة قاعدة أو استعد القواعد الافتراضية.</div>'}</div>
 
       <div class="rbActions">
+        <button class="btn btn-ghost btn-sm" onclick="rbToggleAdd()">➕ إضافة قاعدة</button>
         <button class="btn btn-primary btn-sm" onclick="saveRepBonusRules()">💾 حفظ القواعد</button>
         ${dirty?`<button class="btn btn-ghost btn-sm" onclick="rbCancelDraft()">↩ تراجع عن التعديلات</button>`:''}
-        <span class="smallMuted">العطلات الإضافية بتتسجل لشهر ${month} بس (غيّر الشهر من تحت لشهر تاني).</span>
+        <button class="btn btn-ghost btn-sm" onclick="rbResetDefaults()" title="يرجّع القواعد الأربعة الأصلية في المسودة">↺ القواعد الافتراضية</button>
       </div>
+      ${addPanel}
+      <div class="smallMuted" style="margin-top:6px;">العطلات الإضافية بتتسجل لشهر ${month} بس (غيّر الشهر من تحت لشهر تاني).</div>
     </details>
 
     <div class="card">
@@ -4710,9 +4821,128 @@ async function restoreBackupFile(file){
    ========================================================================== */
 let definitionsTab = 'results';
 
+/* ==========================================================================
+   ⭐ مقياس التقييم (تعريفات ← التقييم) + 📢 شريط الأصناف اللي عليها بونص ومخزونها كبير
+   ========================================================================== */
+let ratingDraft = null;
+function setRatingDraft(n){ ratingDraft = n; renderView(); }
+async function saveRatingScale(){
+  if(CURRENT_USER.role!=='admin'){ toast('الحفظ للأدمن فقط','err'); return; }
+  const n = ratingDraft==null ? RATING_MAX : ratingDraft;
+  try{
+    await db.collection('appConfig').doc('ratingScale').set({max:n, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.username||''});
+    RATING_MAX = n; ratingDraft = null;
+    logAudit('edit','appConfig',`مقياس التقييم بقى ${n} نجوم`);
+    toast(`مقياس التقييم بقى ${n} نجوم ✔`,'ok'); renderView();
+  }catch(e){ console.error(e); toast('فشل الحفظ: ' + (e.code==='permission-denied'?'الصلاحيات (راجع قواعد Firestore)':(e.message||'خطأ')),'err'); }
+}
+function ratingCardHTML(){
+  const canEdit = CURRENT_USER.role==='admin';
+  const cur = ratingDraft==null ? RATING_MAX : ratingDraft;
+  const overs = (typeof VISIT_RESULT_DEFS!=='undefined' ? VISIT_RESULT_DEFS : []).filter(d=>Number(d.rating)>cur).length
+              + (typeof FOLLOWUP_RESULTS!=='undefined' ? FOLLOWUP_RESULTS : []).filter(d=>Number(d.rating)>cur).length;
+  return `<div class="card" id="ratingForm">
+    <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">مقياس التقييم (عدد النجوم)</h2></div>
+    <div class="smallMuted" style="margin-bottom:8px;">اختار عدد النجوم اللي بيتقيّم بيها المندوب الزيارة. بيتطبّق على تسجيل الزيارة والتعديل والمتابعة والتقارير وحوافز المناديب.</div>
+    <div class="segRow" style="margin:0 0 10px;">${[3,4,5,6,7,8,9,10].map(n=>`<button class="seg ${cur===n?'on':''}" ${canEdit?`onclick="setRatingDraft(${n})"`:'disabled'}>${n} ${n===RATING_MAX?'(الحالي)':''}</button>`).join('')}</div>
+    <div class="ratingPreview">${'★'.repeat(cur)}</div>
+    ${overs>0 ? `<div class="rbWarn">⚠️ ${overs} نتيجة (زيارة/متابعة) تقييمها التلقائي أكبر من ${cur}. راجعها من تبويب النتائج بعد الحفظ.</div>` : ''}
+    <div class="smallMuted" style="margin:8px 0;">التقييمات القديمة المحفوظة بتفضل بقيمتها زي ما هي (بدون تحويل)، فلو غيّرت المقياس في نص الشهر، المتوسطات هتخلط بين مقياسين. الأفضل تغيّره في أول الشهر.</div>
+    ${canEdit ? `<div class="rbActions"><button class="btn btn-primary btn-sm" ${cur===RATING_MAX?'disabled':''} onclick="saveRatingScale()">💾 حفظ المقياس (${cur} نجوم)</button>${ratingDraft!=null?`<button class="btn btn-ghost btn-sm" onclick="setRatingDraft(null)">↩ تراجع</button>`:''}</div>` : '<div class="smallMuted">التعديل للأدمن فقط</div>'}
+  </div>`;
+}
+
+let TICKER = {}, tkDraft = null;
+const TK_DEFAULTS = {enabled:true, showTo:'reps', minStock:200, maxItems:20, speed:'mid', auto:true};
+function tkCfgNow(){ return Object.assign({}, TK_DEFAULTS, (TICKER && TICKER.cfg) || {}, tkDraft || {}); }
+function tkSet(key, val){ tkDraft = Object.assign(tkDraft||{}, {[key]:val}); renderView(); }
+function tickerItemsFrom(cfg){
+  return INVENTORY.filter(i=>i.itemName && Number(i.quantity)>=Number(cfg.minStock||0))
+    .map(i=>({i, tiers:(typeof bonusTiersFor==='function') ? bonusTiersFor(i.itemName, i.company) : []}))
+    .filter(x=>x.tiers.length)
+    .sort((a,b)=>(Number(b.i.quantity)||0)-(Number(a.i.quantity)||0))
+    .slice(0, Math.max(1, Math.min(60, Number(cfg.maxItems)||20)))
+    .map(x=>({n:String(x.i.itemName), c:String(x.i.company||''), q:Number(x.i.quantity)||0, b:x.tiers.map(t=>`${t.qty}+${t.bonusQty}`).join(' · ')}));
+}
+function tickerEnsureData(){
+  let started = false;
+  ['inventory','bonusOffers'].forEach(n=>{ if(!attachedData.has(n) && DATA_ATTACHERS[n]){ attachedData.add(n); DATA_ATTACHERS[n](); started = true; } });
+  return started;
+}
+async function publishTicker(silent){
+  if(!CURRENT_USER || CURRENT_USER.role!=='admin') return;
+  if(tickerEnsureData()) await new Promise(r=>setTimeout(r,2200));
+  if(!INVENTORY.length){ if(!silent) toast('المخزون لسه بيتحمّل أو فاضي - جرّب بعد ثانية','warn'); return; }
+  const cfg = tkCfgNow();
+  cfg.minStock = Math.max(0, Number(cfg.minStock)||0); cfg.maxItems = Math.max(1, Math.min(60, Number(cfg.maxItems)||20));
+  const items = tickerItemsFrom(cfg);
+  try{
+    await db.collection('appConfig').doc('bonusTicker').set({cfg, items, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.username||''});
+    tkDraft = null;
+    if(!silent) toast(`تم نشر الشريط (${items.length} صنف) ✔`,'ok');
+  }catch(e){ console.error(e); if(!silent) toast('فشل النشر: ' + (e.code==='permission-denied'?'الصلاحيات (راجع قواعد Firestore)':(e.message||'خطأ')),'err'); }
+}
+// بعد استيراد المخزون أو البونص: نحدّث الشريط تلقائياً (لو مفعّل)
+function autoRefreshTicker(){
+  const c = tkCfgNow();
+  if(CURRENT_USER && CURRENT_USER.role==='admin' && TICKER && TICKER.cfg && c.enabled && c.auto!==false) setTimeout(()=>publishTicker(true), 3500);
+}
+function tickerCardHTML(){
+  const canEdit = CURRENT_USER.role==='admin', c = tkCfgNow();
+  const items = INVENTORY.length ? tickerItemsFrom(c) : [];
+  const sw = (on, fn) => `<label class="rbSwitch"><input type="checkbox" ${on?'checked':''} ${canEdit?`onchange="${fn}"`:'disabled'}><span></span></label>`;
+  const speeds = [['slow','بطيء'],['mid','متوسط'],['fast','سريع']];
+  return `<div class="card" id="tickerForm">
+    <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">📢 شريط الأصناف اللي عليها بونص</h2></div>
+    <div class="smallMuted" style="margin-bottom:10px;">شريط متحرك بيظهر تحت الشريط العلوي (زي الإعلانات) فيه الأصناف اللي عليها بونص ومخزونها كبير. الضغط على أي صنف بيفتح بياناته.</div>
+    <div class="tkGrid">
+      <label class="tkRow"><span>تفعيل الشريط</span>${sw(c.enabled, "tkSet('enabled', this.checked)")}</label>
+      <label class="tkRow"><span>يظهر لـ</span><select ${canEdit?'':'disabled'} onchange="tkSet('showTo', this.value)"><option value="reps" ${c.showTo==='reps'?'selected':''}>المناديب فقط</option><option value="all" ${c.showTo==='all'?'selected':''}>كل المستخدمين</option></select></label>
+      <label class="tkRow"><span>مخزون كبير = من (وحدة)</span><input type="number" class="rbIn" min="0" value="${c.minStock}" ${canEdit?'':'disabled'} onchange="tkSet('minStock', Math.max(0,Number(this.value)||0))" style="width:90px;"></label>
+      <label class="tkRow"><span>أقصى عدد أصناف</span><input type="number" class="rbIn" min="1" max="60" value="${c.maxItems}" ${canEdit?'':'disabled'} onchange="tkSet('maxItems', Math.max(1,Math.min(60,Number(this.value)||20)))" style="width:90px;"></label>
+      <div class="tkRow"><span>سرعة الحركة</span><div class="rbChips">${speeds.map(([k,l])=>`<button type="button" class="rbChip ${c.speed===k?'on':''}" ${canEdit?`onclick="tkSet('speed','${k}')"`:'disabled'}>${l}</button>`).join('')}</div></div>
+      <label class="tkRow"><span>تحديث تلقائي بعد استيراد المخزون/البونص</span>${sw(c.auto!==false, "tkSet('auto', this.checked)")}</label>
+    </div>
+    <div class="qrSub">معاينة: ${INVENTORY.length ? `<b>${items.length}</b> صنف مطابق` : 'جاري تحميل المخزون…'}</div>
+    ${items.slice(0,6).map(i=>`<div class="qrLine"><span>🎁 ${escapeHTML(i.n)} <small>${escapeHTML(i.c)}</small></span><small>بونص ${escapeHTML(i.b)} · متاح ${i.q}</small></div>`).join('')}
+    ${items.length>6?`<div class="smallMuted">… و ${items.length-6} صنف تاني</div>`:''}
+    <div class="smallMuted" style="margin-top:8px;">آخر نشر: ${portalFmtTs(TICKER && TICKER.updatedAt)}${TICKER && TICKER.items ? ` (${TICKER.items.length} صنف)` : ''}</div>
+    ${canEdit ? `<div class="rbActions"><button class="btn btn-primary btn-sm" onclick="publishTicker(false)">💾 حفظ ونشر الشريط الآن</button>${tkDraft?`<button class="btn btn-ghost btn-sm" onclick="tkDraft=null;renderView();">↩ تراجع</button>`:''}</div>` : '<div class="smallMuted">التعديل للأدمن فقط</div>'}
+  </div>`;
+}
+function renderTicker(){
+  const el = document.getElementById('tickerBar'); if(!el) return;
+  const t = TICKER || {}, cfg = Object.assign({}, TK_DEFAULTS, t.cfg||{}), items = Array.isArray(t.items) ? t.items : [];
+  const role = CURRENT_USER && CURRENT_USER.role;
+  const show = !!role && t.cfg && cfg.enabled && items.length && (cfg.showTo==='all' || role==='rep');
+  if(!show){ el.classList.add('hidden'); el.innerHTML = ''; el.dataset.sig = ''; return; }
+  const sig = JSON.stringify([items, cfg.speed]);
+  if(el.dataset.sig===sig && !el.classList.contains('hidden')) return;   // نفس المحتوى: متعيدش بناء الشريط (عشان الحركة متقطعش)
+  el.dataset.sig = sig;
+  const one = items.map(i=>`<span class="tkItem" onclick="openAssistant(${escapeHTML(JSON.stringify(i.n))})">🎁 <b>${escapeHTML(i.n)}</b>${i.c?` <small>${escapeHTML(i.c)}</small>`:''} <em>بونص ${escapeHTML(i.b)}</em> <i>متاح ${i.q}</i></span><span class="tkSep">◆</span>`).join('');
+  const reps = Math.max(1, Math.ceil(8/items.length));
+  const group = one.repeat(reps);
+  const perItem = {slow:5, mid:3.4, fast:2.2}[cfg.speed] || 3.4;
+  const dur = Math.max(18, items.length*reps*perItem);
+  el.innerHTML = `<div class="tkLabel">🔥 بونص ومخزون كبير</div><div class="tkView"><div class="tkTrack" style="animation-duration:${dur}s">${group}${group}</div></div>`;
+  el.classList.remove('hidden');
+}
+
 function viewDefinitions(){
   const canEdit = CURRENT_USER.role==='admin';
   const tabs = tabs2HTML(DEF_GROUPS, definitionsTab, 'setDefTab');
+
+  if(definitionsTab==='rating') return `
+    <div class="pageHead"><div><h2>التعريفات</h2><div class="desc">عدد نجوم تقييم الزيارات</div></div></div>
+    ${tabs}
+    ${ratingCardHTML()}
+  `;
+
+  if(definitionsTab==='ticker') return `
+    <div class="pageHead"><div><h2>التعريفات</h2><div class="desc">شريط الأصناف المتحرك للمناديب</div></div></div>
+    ${tabs}
+    ${tickerCardHTML()}
+  `;
 
   if(definitionsTab==='company') return `
     <div class="pageHead">
@@ -4759,7 +4989,7 @@ function viewDefinitions(){
     </div>
     ${tabs}
     <div class="card">
-      <div class="smallMuted" style="margin-bottom:12px;">هذه القائمة هي اللي بيختار منها المندوب "نتيجة الزيارة" عند التسجيل، وكل نتيجة مربوطة بتقييم تلقائي (⭐ من 1 إلى 5) بيتحدد به تقييم الزيارة تلقائياً.</div>
+      <div class="smallMuted" style="margin-bottom:12px;">هذه القائمة هي اللي بيختار منها المندوب "نتيجة الزيارة" عند التسجيل، وكل نتيجة مربوطة بتقييم تلقائي (⭐ من 1 إلى ${RATING_MAX}) بيتحدد به تقييم الزيارة تلقائياً.</div>
       <div class="tableWrap"><table><thead><tr>
         <th>الاسم</th><th>التقييم التلقائي</th><th>الترتيب</th><th>الحالة</th><th>تنبيه الأدمن</th><th></th>
       </tr></thead><tbody>${rows}</tbody></table></div>
@@ -4800,7 +5030,7 @@ function openFollowupResultDefModal(id){
       <div class="field"><label>اسم النتيجة</label><input id="mFResName" value="${escapeHTML(d?.name||'')}" placeholder="مثال: تم التواصل بنجاح"></div>
       <div class="field"><label>التقييم التلقائي المرتبط بها</label>
         <select id="mFResRating">
-          ${[5,4,3,2,1].map(n=>`<option value="${n}" ${Number(d?.rating)===n || (!d && n===3)?'selected':''}>${'★'.repeat(n)}${'☆'.repeat(5-n)} (${n})</option>`).join('')}
+          ${ratingRange().slice().reverse().map(n=>`<option value="${n}" ${Number(d?.rating)===n || (!d && n===Math.ceil(RATING_MAX/2))?'selected':''}>${'★'.repeat(n)}${'☆'.repeat(RATING_MAX-n)} (${n})</option>`).join('')}
         </select>
       </div>
       <div class="field"><label>الترتيب في القائمة</label><input id="mFResOrder" type="number" value="${d?.order ?? FOLLOWUP_RESULTS.length}"></div>
@@ -4858,7 +5088,7 @@ function openResultDefModal(id){
       <div class="field"><label>اسم النتيجة</label><input id="mResName" value="${escapeHTML(d?.name||'')}" placeholder="مثال: تم البيع"></div>
       <div class="field"><label>التقييم التلقائي المرتبط بها</label>
         <select id="mResRating">
-          ${[5,4,3,2,1].map(n=>`<option value="${n}" ${Number(d?.rating)===n || (!d && n===3)?'selected':''}>${'★'.repeat(n)}${'☆'.repeat(5-n)} (${n})</option>`).join('')}
+          ${ratingRange().slice().reverse().map(n=>`<option value="${n}" ${Number(d?.rating)===n || (!d && n===Math.ceil(RATING_MAX/2))?'selected':''}>${'★'.repeat(n)}${'☆'.repeat(RATING_MAX-n)} (${n})</option>`).join('')}
         </select>
       </div>
       <div class="field"><label>الترتيب في القائمة</label><input id="mResOrder" type="number" value="${d?.order ?? currentResultDefs().length}"></div>
@@ -6801,7 +7031,7 @@ function drawLeaderboardChart(){
   const data = REPS.map(r=>{
     const repVisits = VISITS.filter(v=>v.repId===r.id);
     if(!repVisits.length) return 0;
-    const successCount = repVisits.filter(v=>Number(v.rating)>=4).length;
+    const successCount = repVisits.filter(v=>ratingGood(v.rating)).length;
     return Math.round(successCount/repVisits.length*100);
   });
   mkChart('chConversion','bar',{labels,datasets:[{label:'معدل الإنجاز %',data,backgroundColor:'#12A594',borderRadius:6}]},{plugins:{legend:{display:false}},scales:{y:{max:100}}});
@@ -7013,7 +7243,7 @@ function viewFollowup(){
 function resultBadgeGeneric(text, defsList){
   if(!text) return '<span class="badge badge-gray">-</span>';
   const def = defsList.find(d=>d.name===text);
-  const cls = def && def.alert ? 'badge-red' : (def && Number(def.rating)>=4 ? 'badge-teal' : 'badge-amber');
+  const cls = def && def.alert ? 'badge-red' : (def && ratingGood(def.rating) ? 'badge-teal' : 'badge-amber');
   return `<span class="badge ${cls}">${escapeHTML(text)}</span>`;
 }
 
@@ -7140,7 +7370,7 @@ function openEditFollowupModal(id){
         <div class="smallMuted" id="eFRatingHint" style="margin-top:4px;"></div>
       </div>
       <div class="field"><label>التقييم</label>
-        <div class="starRow" id="eFStars">${[1,2,3,4,5].map(i=>`<span class="star ${i<=(f.rating||0)?'on':''}" onclick="setEditFollowupRating(${i})">★</span>`).join('')}</div>
+        <div class="starRow" id="eFStars">${ratingRange().map(i=>`<span class="star ${i<=(f.rating||0)?'on':''}" onclick="setEditFollowupRating(${i})">★</span>`).join('')}</div>
       </div>
       <div class="modalActions">
         <button class="btn btn-ghost" onclick="this.closest('.modalBg').remove()">إلغاء</button>
@@ -7359,7 +7589,7 @@ function leaderboardRows(){
     const monthVisits = repVisits.filter(v=>(v.date||'').startsWith(monthPrefix));
     const ratings = repVisits.filter(v=>v.rating).map(v=>v.rating);
     const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length) : 0;
-    const successCount = repVisits.filter(v=>Number(v.rating)>=4).length;
+    const successCount = repVisits.filter(v=>ratingGood(v.rating)).length;
     const conversionRate = repVisits.length ? (successCount/repVisits.length*100) : 0;
     const visitTarget = r.monthlyVisitTarget||0;
     const visitPct = visitTarget>0 ? (monthVisits.length/visitTarget*100) : 0;
