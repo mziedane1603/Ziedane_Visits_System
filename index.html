@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.59)</title>
+<title>نظام زيارات المندوبين - APC (v2.60)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -631,6 +631,28 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .tkRow select{padding:6px 8px;border:1.5px solid #D5E3E1;border-radius:9px;font-family:inherit;}
 .ratingPreview{font-size:26px;color:var(--amber);letter-spacing:3px;line-height:1.4;word-break:break-all;}
 .rbWarn{background:#FFF6E5;border:1px solid #F2D49B;color:#7a5200;border-radius:10px;padding:8px 10px;font-size:12px;margin-top:6px;}
+
+/* ================= بيانات العملاء ================= */
+.cdBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+.cdSearch{flex:1;min-width:200px;padding:10px 14px;border:1.5px solid #D5E3E1;border-radius:12px;font-size:14px;font-family:inherit;background:#F6FAF9;}
+.cdSearch:focus{outline:none;border-color:var(--teal);background:#fff;}
+.cdRow{border:1px solid #E7EEED;border-radius:13px;margin-bottom:7px;background:#fff;overflow:hidden;}
+.cdRow.open{border-color:var(--teal);box-shadow:0 2px 10px rgba(15,122,107,.12);}
+.cdMain{display:flex;align-items:center;gap:10px;padding:9px 11px;cursor:pointer;}
+.cdSt{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;background:#F2F7F6;color:#9fb3b0;}
+.cdSt.done{background:var(--teal-light);} .cdSt.part{background:#FFF1D6;color:var(--amber);}
+.cdTx{flex:1;min-width:0;} .cdTx b{display:block;font-size:13.5px;} .cdTx small{color:var(--gray-500);font-size:11.5px;}
+.cdChips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;} .cdChips span{font-size:11px;background:#F2F7F6;color:var(--gray-500);border-radius:99px;padding:1px 9px;} .cdChips span.ok{background:var(--teal-light);color:var(--teal-dark);font-weight:700;}
+.cdGo{color:#9fb3b0;font-size:16px;}
+.cdEditor{border-top:1px dashed #D5E3E1;padding:10px 12px 12px;background:#F8FCFB;}
+.cdFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;}
+.cdField span{display:block;font-size:11.5px;font-weight:800;color:var(--gray-500);margin-bottom:3px;}
+.cdField input{width:100%;padding:10px 12px;border:1.5px solid #D5E3E1;border-radius:11px;font-size:15px;font-family:inherit;background:#fff;}
+.cdField input:focus{outline:none;border-color:var(--teal);}
+.cdActs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
+.cdExport{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
+.cdContrib{display:flex;flex-wrap:wrap;gap:5px;} .cdContrib span{background:#F2F7F6;border-radius:99px;padding:3px 10px;font-size:12px;} .cdContrib b{color:var(--teal-dark);}
+.cdFieldRow{display:flex;gap:8px;align-items:center;margin-bottom:7px;}
 </style>
 </head>
 <body>
@@ -799,7 +821,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.59';
+const APP_VERSION = '2.60';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -951,6 +973,7 @@ const ALL_PAGES = [
   {id:'addvisit',  label:'زيارة جديدة', ic:'📝'},
   {id:'visits',    label:'الزيارات', ic:'📋'},
   {id:'customers', label:'العملاء', ic:'🏥'},
+  {id:'custdata',  label:'بيانات العملاء', ic:'🪪'},
   {id:'inventory', label:'المخزون', ic:'📦'},
   {id:'suggestedorders', label:'الطلبيات المقترحة', ic:'🧾'},
   {id:'portalorders', label:'طلبيات البوابة', ic:'🛒'},
@@ -975,7 +998,7 @@ function defaultPermissionsForRole(role){
   if(role==='admin'){ ALL_PAGES.forEach(x=>p[x.id]=true); return p; }
   if(role==='manager'){ ALL_PAGES.forEach(x=>p[x.id]=true); p.users=false; p.repbonus=false; return p; }
   if(role==='rep'){
-    ['dashboard','teamchat','routeplan','addvisit','visits','inventory','suggestedorders','claims','customerstatement','citysales'].forEach(id=>p[id]=true);
+    ['dashboard','teamchat','routeplan','addvisit','visits','custdata','inventory','suggestedorders','claims','customerstatement','citysales'].forEach(id=>p[id]=true);
     return p;
   }
   if(role==='telesales'){
@@ -1113,7 +1136,7 @@ function groupTabsHTML(){
 // أقسام القايمة: كل صفحة تابعة لقسم، والقايمة بتتعرض مقسّمة بعناوين
 const PAGE_SECTION = {
   dashboard:'main',
-  routeplan:'daily', addvisit:'daily', visits:'daily', customers:'daily', followup:'daily',
+  routeplan:'daily', addvisit:'daily', visits:'daily', customers:'daily', custdata:'daily', followup:'daily',
   inventory:'sales', suggestedorders:'sales', portalorders:'sales', customersales:'sales', citysales:'sales', customerstatement:'sales', claims:'sales',
   teamchat:'comm', announcements:'comm',
   reps:'admin', repbonus:'admin', definitions:'admin', users:'admin', auditlog:'admin',
@@ -1544,6 +1567,7 @@ function dataNeededForView(view){
     case 'inventory': return ['inventory','bonusOffers'];
     case 'suggestedorders': return ['suggestedOrders','inventory','orderTemplates'];
     case 'portalorders': return ['portalOrders','inventory','bonusOffers','users'];
+    case 'custdata': return ['customerData'];
     case 'definitions': return ['companyCfg'].concat(definitionsTab==='ticker' ? ['inventory','bonusOffers'] : []);
     case 'users': return ['users'];
     default: return [];
@@ -1556,6 +1580,7 @@ function ensureDataForView(view){
   needed.push('portalCfg');
   needed.push('companyCfg');   // اسم الشركة ولوجو الشريط العلوي
   needed.push('ratingCfg');    // مقياس التقييم (عدد النجوم)
+  needed.push('cdFields');     // الحقول المطلوبة من المناديب (بيانات العملاء)
   needed.push('tickerCfg');    // شريط الأصناف اللي عليها بونص
   if(isAdminLike() || isPortalNotifyUser()) needed.push('portalOrders');
   needed.forEach(n=>{
@@ -1574,6 +1599,17 @@ function lazyListen(name, query, onData){
     unsubs.push(query().onSnapshot(snap=>{ onData(snap); }, err=>console.error(name+' listener', err)));
   };
 }
+lazyListen('customerData', ()=>db.collection('customerData'), snap=>{
+  CUST_DATA = snap.docs.map(d=>({id:d.id, ...d.data()})); CUST_DATA_MAP = new Map(CUST_DATA.map(e=>[e.id,e]));
+  if(currentView==='custdata' && !document.activeElement?.closest?.('.cdEditor')) renderIfNeeds('customerData');
+});
+DATA_ATTACHERS['cdFields'] = ()=>{
+  unsubs.push(db.collection('appConfig').doc('customerDataFields').onSnapshot(snap=>{
+    CD_CFG = snap.exists ? Object.assign({active:true, fields:[]}, snap.data()) : {active:true, fields:CD_DEFAULT_FIELDS};
+    if(currentView==='custdata' && !document.activeElement?.closest?.('.cdEditor,#cdFieldsPanel')) renderView();
+    if(currentView==='dashboard' && !document.activeElement?.closest?.('input,textarea,select')) renderView();
+  }, err=>console.error('cdFields listener', err)));
+};
 lazyListen('claims', ()=>db.collection('claims'), snap=>{ CLAIMS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('claims'); });
 lazyListen('customerSales', ()=>db.collection('customerSales'), snap=>{ CUSTOMER_SALES = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('customerSales'); });
 lazyListen('citySales', ()=>db.collection('citySales'), snap=>{ CITY_SALES = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('citySales'); });
@@ -1867,6 +1903,7 @@ function renderView(){
     else if(currentView==='repbonus') main.innerHTML = viewRepBonus();
     else if(currentView==='suggestedorders') main.innerHTML = viewSuggestedOrders();
     else if(currentView==='portalorders') main.innerHTML = viewPortalOrders();
+    else if(currentView==='custdata') main.innerHTML = viewCustData();
     else if(currentView==='athkar'){ if(!document.getElementById('athkarFrame')) main.innerHTML = viewAthkar(); }   // مبنعيدش رسمها عشان العدّاد جواها ميتصفرش مع تحديثات الخلفية
     else if(currentView==='inventory') main.innerHTML = viewInventory();
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
@@ -2154,7 +2191,10 @@ function dashboardAttentionHTML(list){
       if(todayIds.size>0 && idle>0) chips.push(`<span class="alertChip">🚶 ${idle} مندوب لسه ما سجّلش زيارات اليوم</span>`);
     }
   }
-  const chipRow = !isRep ? `<div class="alerts">${chips.length ? chips.join('') : '<span class="alertChip ok">✅ مفيش حاجة معلّقة دلوقتي</span>'}</div>` : '';
+  if(isRep && CD_CFG.active!==false && cdFields().length){
+    chips.push(`<button class="alertChip" onclick="goTo('custdata')">🪪 مطلوب منك تسجّل للعملاء: ${cdFields().map(f=>escapeHTML(f.label)).join('، ')}</button>`);
+  }
+  const chipRow = (!isRep || chips.length) ? `<div class="alerts">${chips.length ? chips.join('') : '<span class="alertChip ok">✅ مفيش حاجة معلّقة دلوقتي</span>'}</div>` : '';
   return goal + chipRow;
 }
 /* ==========================================================================
@@ -3406,6 +3446,174 @@ function companyCardHTML(){
         ${fld('coYear','سنة العمل','year')}
       </div>
       ${isAdmin ? `<button class="btn btn-primary" style="margin-top:12px;" onclick="saveCompany()">💾 حفظ بيانات الشركة</button>` : '<div class="smallMuted">التعديل للأدمن فقط</div>'}
+    </div>`;
+}
+
+/* ==========================================================================
+   🪪 بيانات العملاء: الأدمن يطلب حقول (زي رقم الرخصة والكود المكاني)، والمندوب يبحث عن العميل ويسجّلها،
+   والأدمن يصدّرها Excel (كود العميل - اسم العميل - الحقول المطلوبة)
+   ========================================================================== */
+let CUST_DATA = [], CUST_DATA_MAP = new Map();
+const CD_DEFAULT_FIELDS = [{key:'license', label:'رقم الرخصة'}, {key:'spatial', label:'الكود المكاني'}];
+let CD_CFG = {active:true, fields:CD_DEFAULT_FIELDS};
+let cdPanelOpen = false, cdQuery = '', cdFilter = 'all', cdShown = 30, cdOpen = '', cdDraft = {}, cdFieldsDraft = null, cdExtraCols = false, cdSaving = false;
+function cdFields(){ return Array.isArray(CD_CFG.fields) ? CD_CFG.fields : []; }
+function cdDocId(code){ return String(code).trim().replace(/[\/\s]+/g,'_'); }
+function cdEntry(code){ return CUST_DATA_MAP.get(cdDocId(code)); }
+function cdVal(e, key){ return String((e && e.values && e.values[key]) || '').trim(); }
+function cdRows(){
+  const fields = cdFields(), qn = asNorm(cdQuery), terms = qn ? qn.split(' ') : [];
+  let list = visibleCustomers().map(c=>{
+    const e = cdEntry(c.code), vals = fields.map(f=>cdVal(e, f.key));
+    return {c, e, vals, filled: vals.filter(Boolean).length};
+  });
+  if(cdFilter==='missing') list = list.filter(x=>fields.length && x.filled<fields.length);
+  else if(cdFilter==='done') list = list.filter(x=>fields.length && x.filled===fields.length);
+  if(terms.length) list = list.filter(x=>{ const t = asNorm((x.c.name||'')+' '+(x.c.code||'')+' '+(x.c.city||'')+' '+x.vals.join(' ')); return terms.every(w=>t.includes(w)); });
+  return list;
+}
+function cdEditorHTML(x){
+  const fields = cdFields(), code = String(x.c.code), q = v=>escapeHTML(JSON.stringify(v));
+  const d = cdDraft[code] || {};
+  return `<div class="cdEditor">
+    <div class="cdFields">${fields.map(f=>`<label class="cdField"><span>${escapeHTML(f.label)}</span>
+      <input type="text" inputmode="text" autocomplete="off" maxlength="80" value="${escapeHTML(d[f.key]!==undefined ? d[f.key] : cdVal(x.e, f.key))}" placeholder="${escapeHTML(f.label)}"
+        oninput="cdType(${q(code)}, ${q(f.key)}, this.value)"></label>`).join('')}</div>
+    <div class="cdActs">
+      <button class="btn btn-primary btn-sm" ${cdSaving?'disabled':''} onclick="cdSave(${q(code)})">💾 حفظ</button>
+      <button class="btn btn-ghost btn-sm" onclick="cdToggle('')">إغلاق</button>
+      ${x.e && x.e.updatedAt ? `<span class="smallMuted">آخر تحديث: ${escapeHTML(x.e.updatedByName||x.e.updatedBy||'')} · ${portalFmtTs(x.e.updatedAt)}</span>` : ''}
+    </div></div>`;
+}
+function cdListHTML(){
+  const fields = cdFields();
+  if(!fields.length) return '<div class="emptyState">مفيش حقول مطلوبة حالياً.</div>';
+  const rows = cdRows();
+  if(!rows.length) return '<div class="emptyState">مفيش عملاء مطابقين</div>';
+  const q = v=>escapeHTML(JSON.stringify(v));
+  const html = rows.slice(0, cdShown).map(x=>{
+    const code = String(x.c.code), open = cdOpen===code;
+    const st = x.filled===fields.length ? ['✅','done'] : x.filled>0 ? ['◐','part'] : ['○','none'];
+    return `<div class="cdRow ${open?'open':''}">
+      <div class="cdMain" onclick="cdToggle(${q(code)})">
+        <span class="cdSt ${st[1]}">${st[0]}</span>
+        <div class="cdTx"><b>${escapeHTML(x.c.name||code)}</b><small>${escapeHTML(code)}${x.c.city?' · '+escapeHTML(x.c.city):''}</small>
+          <div class="cdChips">${fields.map((f,i)=>`<span class="${x.vals[i]?'ok':''}">${escapeHTML(f.label)}: ${x.vals[i]?escapeHTML(x.vals[i]):'—'}</span>`).join('')}</div></div>
+        <span class="cdGo">${open?'▾':'‹'}</span>
+      </div>${open ? cdEditorHTML(x) : ''}</div>`;
+  }).join('');
+  return html + (rows.length>cdShown ? `<button class="btn btn-ghost" style="margin:8px auto;display:block;" onclick="cdShown+=30;cdRefreshList()">عرض المزيد (${rows.length-cdShown})</button>` : '');
+}
+function cdRefreshList(){ const el = document.getElementById('cdList'); if(el) el.innerHTML = cdListHTML(); }
+let _cdT; function cdOnSearch(v){ cdQuery = v; cdShown = 30; clearTimeout(_cdT); _cdT = setTimeout(cdRefreshList, 140); }
+function cdSetFilter(f){ cdFilter = f; cdShown = 30; renderView(); }
+function cdToggle(code){ cdOpen = (cdOpen===code) ? '' : code; cdRefreshList(); if(cdOpen) setTimeout(()=>document.querySelector('.cdRow.open .cdField input')?.focus(), 60); }
+function cdType(code, key, val){ cdDraft[code] = Object.assign(cdDraft[code]||{}, {[key]:val}); }
+async function cdSave(code){
+  const c = CUSTOMERS.find(x=>String(x.code)===String(code)); if(!c) return;
+  const fields = cdFields(), e = cdEntry(code), base = (e && e.values) || {}, d = cdDraft[code] || {};
+  const merged = Object.assign({}, base);
+  fields.forEach(f=>{ merged[f.key] = String(d[f.key]!==undefined ? d[f.key] : (base[f.key]||'')).trim().slice(0,80); });
+  cdSaving = true; cdRefreshList();
+  try{
+    await db.collection('customerData').doc(cdDocId(code)).set({
+      code:String(code), name:c.name||'', city:c.city||'', values:merged,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.username||'', updatedByName: CURRENT_USER.name||CURRENT_USER.username||'', repId: CURRENT_USER.repId||null
+    }, {merge:true});
+    delete cdDraft[code]; cdOpen = '';
+    toast(`تم حفظ بيانات ${c.name||code} ✔`,'ok');
+  }catch(err){ console.error(err); toast('فشل الحفظ: ' + (err.code==='permission-denied'?'الصلاحيات (راجع قواعد Firestore)':(err.message||'خطأ')),'err'); }
+  cdSaving = false; renderView();
+}
+// ---- إعداد الحقول المطلوبة (أدمن) ----
+function cdFieldsEdit(){ if(!cdFieldsDraft) cdFieldsDraft = {active: CD_CFG.active!==false, fields: cdFields().map(f=>({...f}))}; return cdFieldsDraft; }
+function cdAddField(){
+  const inp = document.getElementById('cdNewField'); const label = (inp && inp.value || '').trim().slice(0,40); if(!label){ toast('اكتب اسم الحقل','warn'); return; }
+  const d = cdFieldsEdit(); if(d.fields.some(f=>f.label===label)){ toast('الحقل ده موجود','warn'); return; }
+  d.fields.push({key:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,4), label}); renderView();
+}
+function cdRenameField(key, val){ const f = cdFieldsEdit().fields.find(x=>x.key===key); if(f && String(val).trim()) f.label = String(val).trim().slice(0,40); renderView(); }
+function cdDelField(key){
+  const f = cdFieldsEdit().fields.find(x=>x.key===key); if(!f) return;
+  if(!confirm(`مسح الحقل "${f.label}"؟\nالبيانات اللي اتسجلت فيه بتفضل محفوظة بس مش هتظهر ولا تتصدّر.`)) return;
+  cdFieldsDraft.fields = cdFieldsDraft.fields.filter(x=>x.key!==key); renderView();
+}
+function cdSetActive(on){ cdFieldsEdit().active = !!on; renderView(); }
+async function cdSaveFields(){
+  if(CURRENT_USER.role!=='admin'){ toast('التعديل للأدمن فقط','err'); return; }
+  const d = cdFieldsEdit();
+  try{
+    await db.collection('appConfig').doc('customerDataFields').set({active:d.active, fields:d.fields, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: CURRENT_USER.username||''});
+    CD_CFG = {active:d.active, fields:d.fields}; cdFieldsDraft = null;
+    logAudit('edit','appConfig',`الحقول المطلوبة من المناديب: ${d.fields.map(f=>f.label).join('، ')||'(فاضي)'}`);
+    toast('تم حفظ الحقول المطلوبة ✔','ok'); renderView();
+  }catch(err){ console.error(err); toast('فشل الحفظ: ' + (err.code==='permission-denied'?'الصلاحيات (راجع قواعد Firestore)':(err.message||'خطأ')),'err'); }
+}
+// ---- تصدير Excel: كود العميل - اسم العميل - الحقول المطلوبة ----
+function cdExport(mode){
+  if(typeof XLSX==='undefined'){ toast('مكتبة Excel لسه بتتحمّل، جرّب بعد ثانية','warn'); return; }
+  const fields = cdFields();
+  const head = ['كود العميل','اسم العميل', ...fields.map(f=>f.label)];
+  if(cdExtraCols) head.push('المدينة','سجّل البيانات','آخر تحديث');
+  const rows = [];
+  CUSTOMERS.forEach(c=>{
+    const e = cdEntry(c.code), vals = fields.map(f=>cdVal(e, f.key));
+    if(mode==='filled' && !vals.some(Boolean)) return;
+    const row = [String(c.code), c.name||'', ...vals];
+    if(cdExtraCols) row.push(c.city||'', (e && (e.updatedByName||e.updatedBy))||'', e && e.updatedAt ? portalFmtTs(e.updatedAt) : '');
+    rows.push(row);
+  });
+  if(!rows.length){ toast('مفيش بيانات مسجّلة للتصدير','warn'); return; }
+  const ws = XLSX.utils.aoa_to_sheet([head, ...rows]);
+  ws['!cols'] = head.map((h,i)=>({wch: i===1 ? 30 : Math.max(14, String(h).length+4)}));
+  ws['!views'] = [{RTL:true}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'بيانات العملاء');
+  XLSX.writeFile(wb, `بيانات_العملاء_${todayISO()}.xlsx`);
+  toast(`تم تصدير ${rows.length} عميل ✔`,'ok');
+}
+function viewCustData(){
+  const isAdmin = CURRENT_USER.role==='admin', canExport = isAdminLike();
+  const fields = cdFields(), custs = visibleCustomers();
+  let done = 0, started = 0;
+  custs.forEach(c=>{ const e = cdEntry(c.code); const n = fields.filter(f=>cdVal(e,f.key)).length; if(fields.length && n===fields.length) done++; if(n>0) started++; });
+  const pct = custs.length ? Math.round(done/custs.length*100) : 0;
+  const fd = cdFieldsDraft || {active: CD_CFG.active!==false, fields};
+  const chip = (id,l)=>`<button class="seg ${cdFilter===id?'on':''}" onclick="cdSetFilter('${id}')">${l}</button>`;
+  // مساهمة كل مندوب (للإدارة)
+  let contrib = '';
+  if(canExport){
+    const by = new Map(); CUST_DATA.forEach(e=>{ if(fields.some(f=>cdVal(e,f.key))){ const k = e.updatedByName||e.updatedBy||'-'; by.set(k,(by.get(k)||0)+1); } });
+    const arr = [...by.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8);
+    if(arr.length) contrib = `<div class="qrSub">مين سجّل كام عميل</div><div class="cdContrib">${arr.map(([n,c])=>`<span>${escapeHTML(n)} <b>${c}</b></span>`).join('')}</div>`;
+  }
+  const adminPanel = isAdmin ? `
+    <details class="card" id="cdFieldsPanel" style="margin-bottom:10px;" ${cdPanelOpen?'open':''} ontoggle="cdPanelOpen=this.open">
+      <summary style="cursor:pointer;font-weight:800;">⚙️ الحقول المطلوبة من المناديب (${fd.fields.length})</summary>
+      <div style="margin-top:10px;">
+        ${fd.fields.map(f=>`<div class="cdFieldRow"><input class="rbLabel" style="border-color:#D5E3E1;background:#fff;" value="${escapeHTML(f.label)}" onchange="cdRenameField(${escapeHTML(JSON.stringify(f.key))}, this.value)"><button type="button" class="rbDel" onclick="cdDelField(${escapeHTML(JSON.stringify(f.key))})" title="مسح الحقل">🗑</button></div>`).join('') || '<div class="smallMuted">مفيش حقول. أضف حقل.</div>'}
+        <div class="cdFieldRow"><input id="cdNewField" class="rbIn" style="flex:1;text-align:right;" placeholder="اسم حقل جديد (مثلاً: رقم السجل التجاري)" onkeydown="if(event.key==='Enter')cdAddField()"><button class="btn btn-ghost btn-sm" onclick="cdAddField()">➕ إضافة</button></div>
+        <label class="tkRow"><span>الطلب نشط (يظهر تنبيه للمناديب في الرئيسية)</span><label class="rbSwitch"><input type="checkbox" ${fd.active?'checked':''} onchange="cdSetActive(this.checked)"><span></span></label></label>
+        <div class="rbActions"><button class="btn btn-primary btn-sm" onclick="cdSaveFields()">💾 حفظ الحقول</button>${cdFieldsDraft?`<button class="btn btn-ghost btn-sm" onclick="cdFieldsDraft=null;renderView();">↩ تراجع</button>`:''}</div>
+      </div>
+    </details>` : '';
+  const exportBar = canExport ? `<div class="cdExport">
+      <button class="btn btn-primary btn-sm" onclick="cdExport('filled')">📥 تصدير Excel (المسجّل فقط)</button>
+      <button class="btn btn-ghost btn-sm" onclick="cdExport('all')">📥 تصدير كل العملاء</button>
+      <label class="rbChip ${cdExtraCols?'on':''}"><input type="checkbox" ${cdExtraCols?'checked':''} onchange="cdExtraCols=this.checked;renderView();">+ المدينة ومين سجّل</label>
+    </div>` : '';
+  return `
+    <div class="pageHead"><div><h2>🪪 بيانات العملاء</h2><div class="desc">${fields.length ? 'ابحث عن العميل وسجّل: <b>'+fields.map(f=>escapeHTML(f.label)).join('، ')+'</b>' : 'مفيش حقول مطلوبة حالياً'}</div></div></div>
+    ${adminPanel}
+    <div class="goal">
+      <div class="goalTop"><span>📊 اكتمال البيانات</span><span><b>${pct}%</b> · ${done} من ${custs.length} عميل</span></div>
+      <div class="goalBar"><div class="goalFill" style="width:${pct}%"></div></div>
+      <div class="goalSub">${started} عميل اتسجّلت له بيانات (كلها أو جزء منها)</div>
+      ${contrib}${exportBar}
+    </div>
+    <div class="card">
+      <div class="cdBar"><input type="search" class="cdSearch" placeholder="🔍 ابحث بالاسم أو الكود أو المدينة أو رقم الرخصة..." value="${escapeHTML(cdQuery)}" oninput="cdOnSearch(this.value)" autocomplete="off">
+        <div class="segRow" style="margin:0;">${chip('all','الكل')}${chip('missing','ناقص')}${chip('done','مكتمل')}</div></div>
+      <div id="cdList">${cdListHTML()}</div>
     </div>`;
 }
 
