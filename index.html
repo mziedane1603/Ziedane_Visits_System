@@ -4,16 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0F7A6B">
-<meta name="application-name" content="زيارات APC">
+<meta name="application-name" content="Ziedane CRM">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="زيارات APC">
+<meta name="apple-mobile-web-app-title" content="Ziedane CRM">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>نظام زيارات المندوبين - APC (v2.60)</title>
+<title>Ziedane CRM (v2.62)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -653,6 +653,10 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .cdExport{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
 .cdContrib{display:flex;flex-wrap:wrap;gap:5px;} .cdContrib span{background:#F2F7F6;border-radius:99px;padding:3px 10px;font-size:12px;} .cdContrib b{color:var(--teal-dark);}
 .cdFieldRow{display:flex;gap:8px;align-items:center;margin-bottom:7px;}
+
+.brandCo{font-size:11px;font-weight:700;color:var(--gray-500);border-right:1.5px solid #D5E3E1;padding-right:9px;margin-right:2px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brandCo:empty{display:none;}
+@media(max-width:700px){.brandCo{display:none;}}
 </style>
 </head>
 <body>
@@ -660,7 +664,7 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 <div id="loadOverlay">
   <img class="splashLogo" src="icon-192.png" alt="" onerror="this.remove()">
   <div class="spin"></div>
-  <div style="font-size:14px;font-weight:600;">جاري تحميل نظام الزيارات...</div>
+  <div style="font-size:14px;font-weight:600;">جاري تحميل Ziedane CRM...</div>
 </div>
 
 <div id="toastBox"></div>
@@ -670,7 +674,8 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 <div id="loginScreen" class="hidden">
   <div class="loginCard">
     <div class="logo"><span class="logoZ">Z</span>⚡</div>
-    <h1>نظام زيارات المندوبين</h1>
+    <h1><bdi dir="ltr">Ziedane CRM</bdi></h1>
+    <p class="sub" style="margin-bottom:2px;">نظام إدارة المناديب والعملاء</p>
     <p class="sub">شركة الصيادلة العرب - Arab Pharmacists Company</p>
     <div class="smallMuted" id="verTagLogin" style="margin:-8px 0 14px;"></div>
     <div class="field">
@@ -701,7 +706,7 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
   <div id="netBanner" class="netBanner">📡 غير متصل بالإنترنت - أي بيانات تحفظها الآن هتترفع تلقائياً لما الاتصال يرجع</div>
 
   <div class="topbar">
-    <div class="brand"><div class="mark"><span class="logoZ">Z</span>⚡</div><span id="brandTitle">نظام الزيارات</span><span class="smallMuted" id="verTagTop" style="margin-right:6px;"></span></div>
+    <div class="brand"><div class="mark"><span class="logoZ">Z</span>⚡</div><span id="brandTitle"><bdi dir="ltr">Ziedane CRM</bdi></span><span class="brandCo" id="brandCo"></span><span class="smallMuted" id="verTagTop" style="margin-right:6px;"></span></div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div id="pendingWrap" title="عناصر في انتظار الرفع">
         <button class="iconBtn" onclick="toast(PENDING_WRITES+' عنصر في انتظار رفعه للسيرفر بمجرد توفر الاتصال','warn')">📤<span id="pendingBadge"></span></button>
@@ -821,7 +826,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.60';
+const APP_VERSION = '2.62';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1149,7 +1154,7 @@ function navSectionsFor(user){
 }
 function renderBrand(){
   const nm = (COMPANY && (COMPANY.nameAr || COMPANY.name)) || '';
-  const t = document.getElementById('brandTitle'); if(t && nm) t.textContent = nm;
+  const co = document.getElementById('brandCo'); if(co) co.textContent = nm;   // اسم البرنامج ثابت، واسم الشركة صغير جنبه
   const mark = document.querySelector('.topbar .brand .mark');
   if(mark){
     if(COMPANY && COMPANY.logoSmall){ mark.classList.add('hasLogo'); if(!mark.querySelector('img') || mark.querySelector('img').src!==COMPANY.logoSmall) mark.innerHTML = `<img src="${COMPANY.logoSmall}" alt="">`; }
@@ -1456,7 +1461,7 @@ function checkVisitForAlert(v){
   toast(msg,'warn');
   renderAlertBadge();
   if(window.Notification && Notification.permission==='granted'){
-    try{ new Notification('تنبيه - نظام الزيارات', {body:msg}); }catch(e){}
+    try{ new Notification('تنبيه - '+APP_NAME, {body:msg}); }catch(e){}
   }
 }
 function checkFollowupForAlert(f){
@@ -1471,7 +1476,7 @@ function checkFollowupForAlert(f){
   toast(msg,'warn');
   renderAlertBadge();
   if(window.Notification && Notification.permission==='granted'){
-    try{ new Notification('تنبيه - نظام الزيارات', {body:msg}); }catch(e){}
+    try{ new Notification('تنبيه - '+APP_NAME, {body:msg}); }catch(e){}
   }
 }
 function checkSuggestedOrderForAlert(o){
@@ -1482,7 +1487,7 @@ function checkSuggestedOrderForAlert(o){
   toast(msg,'warn');
   renderAlertBadge();
   if(window.Notification && Notification.permission==='granted'){
-    try{ new Notification('طلبية مقترحة جديدة - نظام الزيارات', {body:msg}); }catch(e){}
+    try{ new Notification('طلبية مقترحة جديدة - '+APP_NAME, {body:msg}); }catch(e){}
   }
 }
 function renderAlertBadge(){
@@ -1568,6 +1573,7 @@ function dataNeededForView(view){
     case 'suggestedorders': return ['suggestedOrders','inventory','orderTemplates'];
     case 'portalorders': return ['portalOrders','inventory','bonusOffers','users'];
     case 'custdata': return ['customerData'];
+    case 'repbonus': return ['citySales'];
     case 'definitions': return ['companyCfg'].concat(definitionsTab==='ticker' ? ['inventory','bonusOffers'] : []);
     case 'users': return ['users'];
     default: return [];
@@ -2527,6 +2533,8 @@ function resultBadge(text){
   return `<span class="badge ${cls}">${escapeHTML(text)}</span>`;
 }
 // مقياس التقييم (عدد النجوم) - بيتحدد من التعريفات ← التقييم (من 3 إلى 10)
+// اسم البرنامج (بيظهر في العنوان والشريط العلوي والإشعارات والتقارير المطبوعة)
+const APP_NAME = 'Ziedane CRM';
 let RATING_MAX = 5;
 function ratingRange(){ return Array.from({length:RATING_MAX},(_,i)=>i+1); }
 function ratingGood(r){ return Number(r) >= RATING_MAX*0.8 - 1e-9; }        // زي >=4 من 5
@@ -4383,12 +4391,15 @@ const RB_TYPES = {
   target:   {ic:'🎯', name:'تحقيق هدف الزيارات',          desc:'نسبة زيارات الشهر من هدف المندوب الشهري'},
   rating:   {ic:'⭐', name:'متوسط التقييم',               desc:'حسب متوسط تقييم زياراته (مع خيار احتساب العملاء اللي ما اتزاروش)'},
   count:    {ic:'🔢', name:'عدد زيارات بنتيجة معينة',     desc:'مثلاً زيارات التحصيل مقابل رقم مستهدف في الشهر'},
-  coverage: {ic:'🗺️', name:'تغطية عملاء مدنه',            desc:'نسبة عملاء مدنه اللي اتزاروا هذا الشهر'}
+  coverage: {ic:'🗺️', name:'تغطية عملاء مدنه',            desc:'نسبة عملاء مدنه اللي اتزاروا هذا الشهر'},
+  citySales:{ic:'💰', name:'نسبة مبيعات مدن المندوب',     desc:'نسبة مبيعات مدنه من هدفها (من تقرير المدن)'},
+  cityCust: {ic:'👥', name:'نسبة العملاء المتعاملين في مدنه', desc:'نسبة العملاء المتعاملين فعلياً في مدنه من هدف العملاء (من تقرير المدن)'}
 };
 const RB_TYPE_DEFAULTS = {
   days:{threshold:10, results:[]}, target:{cap:100},
   rating:{max:0, min:0, unvisitedOn:false, unvisitedValue:-1},   // max = 0 يعني "تلقائي" (مقياس التقييم من التعريفات)
-  count:{goal:20, results:[]}, coverage:{targetPct:60}
+  count:{goal:20, results:[]}, coverage:{targetPct:60},
+  citySales:{targetPct:100, cap:100}, cityCust:{targetPct:100, cap:100}
 };
 function rbNum(v,f){ return (v===undefined||v===null||v===''||isNaN(Number(v))) ? f : Number(v); }
 function rbNewItem(type, extra){
@@ -4414,6 +4425,7 @@ function rbNormItem(x){
   }
   else if(t==='count'){ o.goal = Math.max(1, rbNum(x.goal, base.goal)); o.results = Array.isArray(x.results) ? x.results.map(String) : []; }
   else if(t==='coverage'){ o.targetPct = Math.min(100, Math.max(1, rbNum(x.targetPct, base.targetPct))); }
+  else if(t==='citySales' || t==='cityCust'){ o.targetPct = Math.min(1000, Math.max(1, rbNum(x.targetPct, 100))); o.cap = Math.min(500, Math.max(0, rbNum(x.cap, 100))); }
   return o;
 }
 // تحويل القواعد القديمة (4 معايير ثابتة) للشكل الجديد من غير ما أي حاجة تتكسر
@@ -4558,6 +4570,10 @@ function repBonusRowsForMonth(month, rulesArg){
   const visitedCodes = new Set();
   if(items.some(x=>x.enabled && x.type==='rating' && x.unvisitedOn)) monthAll.forEach(v=>{ if(v.customerCode) visitedCodes.add(v.customerCode); });
   const needCust = items.some(x=>x.enabled && ((x.type==='rating' && x.unvisitedOn) || x.type==='coverage'));
+  // تقرير المدن: آخر تاريخ مستورد في الشهر المختار (لقاعدتي نسبة المبيعات ونسبة العملاء المتعاملين)
+  const cityMonthRows = CITY_SALES.filter(c=>(c.date||'').startsWith(month));
+  const cityLast = cityMonthRows.reduce((m,c)=>c.date>m?c.date:m,'');
+  const cityRows = cityLast ? cityMonthRows.filter(c=>c.date===cityLast) : [];
   return REPS.filter(r=>r.active!==false).map(r=>{
     const monthVisits = monthAll.filter(v=>v.repId===r.id);
     const visitCount = monthVisits.length;
@@ -4591,6 +4607,13 @@ function repBonusRowsForMonth(month, rulesArg){
         const set = new Set(it.results);
         const n = monthVisits.filter(v=>set.has(v.visitResult)).length;
         amount = share*Math.min(1, n/it.goal); info = `${n}/${it.goal}`;
+      }else if(it.type==='citySales' || it.type==='cityCust'){
+        const cr = (r.cities && r.cities.length) ? cityRows.filter(c=>r.cities.includes(c.city)) : cityRows;
+        const sum = k => cr.reduce((a,c)=>a+(Number(c[k])||0),0);
+        const tgt = it.type==='citySales' ? sum('salesTarget') : sum('customerTarget');
+        const act = it.type==='citySales' ? sum('netSales') : sum('customersActive');
+        const pct = tgt>0 ? act/tgt : 0;
+        amount = share*Math.min(pct/(it.targetPct/100), it.cap/100); info = tgt>0 ? (pct*100).toFixed(0)+'%' : 'لا بيانات';
       }else if(it.type==='coverage'){
         const codes = new Set(myCusts.map(c=>c.code));
         let covered = 0; myCodes.forEach(cd=>{ if(codes.has(cd)) covered++; });
@@ -4646,6 +4669,11 @@ function viewRepBonus(){
     }else if(it.type==='coverage'){
       desc = `المبلغ × (نسبة عملاء مدنه اللي اتزاروا ÷ <b>${it.targetPct}%</b>) بحد أقصى 100%.`;
       ctrls = `<label>نسبة التغطية المستهدفة % ${numIn(`rbSetField(${id},'targetPct',this.value,1,100)`, it.targetPct, 64)}</label>`;
+    }else if(it.type==='citySales' || it.type==='cityCust'){
+      const what = it.type==='citySales' ? 'نسبة مبيعات مدنه من هدفها' : 'نسبة العملاء المتعاملين في مدنه من هدف العملاء';
+      desc = `المبلغ × (${what} ÷ <b>${it.targetPct}%</b>) بحد أقصى <b>${it.cap}%</b>. الأرقام من تقرير مبيعات المدن (آخر تاريخ مستورد في الشهر).`;
+      ctrls = `<label>النسبة المطلوبة للحصول على كامل المبلغ % ${numIn(`rbSetField(${id},'targetPct',this.value,1,1000)`, it.targetPct, 70)}</label>
+        <label>أقصى صرف % ${numIn(`rbSetField(${id},'cap',this.value,0,500)`, it.cap, 64)}</label>`;
     }
     return `
     <div class="rbPart ${it.enabled?'':'off'}">
@@ -4690,6 +4718,7 @@ function viewRepBonus(){
         <label>عطلات رسمية إضافية في ${month} ${numIn(`rbSetExtraHolidays(this.value)`, extraHolidays, 60)}</label>
         <div class="rbDaysBox"><span>الإجازة الأسبوعية:</span><div class="rbChips">${dayChips}</div></div>
       </div>
+      ${rules.items.some(x=>x.enabled && (x.type==='citySales'||x.type==='cityCust')) ? (()=>{ const ds = CITY_SALES.map(c=>c.date||'').filter(d=>d.startsWith(month)); const ld = ds.reduce((m,d)=>d>m?d:m,''); return ld ? `<div class="smallMuted" style="margin:2px 0;">🏙️ بيانات تقرير المدن المستخدمة: حتى ${ld.slice(5).replace('-','/')}</div>` : `<div class="rbWarn">⚠️ مفيش بيانات مبيعات مدن مستوردة لشهر ${month}، قواعد المدن هتطلع صفر.</div>`; })() : ''}
       <div class="smallMuted" style="margin:2px 0 8px;">أيام العمل في ${month} = <b>${workDays} يوم</b>. عدد القواعد المفعّلة: <b>${rules.items.filter(x=>x.enabled).length}</b> · مجموع أوزانها: <b style="color:${sumW===100?'var(--teal-dark)':'var(--amber)'};">${sumW}%</b> ${sumW===100?'✓':'(الإجمالي هيتوزع بالنسبة بينهم)'}</div>
 
       <div class="rbParts">${rules.items.length ? rules.items.map(ruleCard).join('') : '<div class="emptyState" style="grid-column:1/-1;">مفيش قواعد. اضغط ➕ إضافة قاعدة أو استعد القواعد الافتراضية.</div>'}</div>
@@ -5649,11 +5678,11 @@ function printLowClaimsReport(){
       <div class="printLogo"><span class="logoZ">Z</span>⚡</div>
       <div>
         <h1>تقرير عملاء بمطالبات أقل من ${fmtMoney(claimsLowReportAmount)}</h1>
-        <div class="printMeta">شركة الصيادلة العرب - APC · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
+        <div class="printMeta">${escapeHTML((COMPANY && (COMPANY.nameAr||COMPANY.name)) || 'شركة الصيادلة العرب - APC')} · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
       </div>
     </div>
     <table class="printTable"><thead><tr><th>المنطقة</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>المطالبة</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="printFooter">تم إنشاء هذا التقرير من نظام زيارات المندوبين - APC</div>
+    <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
   `;
   setTimeout(()=>window.print(), 80);
 }
@@ -5815,7 +5844,7 @@ function printClaims(){
       <div class="printLogo"><span class="logoZ">Z</span>⚡</div>
       <div>
         <h1>تقرير المطالبات</h1>
-        <div class="printMeta">شركة الصيادلة العرب - APC · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
+        <div class="printMeta">${escapeHTML((COMPANY && (COMPANY.nameAr||COMPANY.name)) || 'شركة الصيادلة العرب - APC')} · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
         <div class="printMeta">${escapeHTML(filterLine)}</div>
       </div>
     </div>
@@ -5827,7 +5856,7 @@ function printClaims(){
     <table class="printTable"><thead><tr><th>حالة الدفع</th><th>عدد العملاء</th><th>الإجمالي</th></tr></thead><tbody>${summaryRows}</tbody></table>
     <h3>تفاصيل المطالبات</h3>
     <table class="printTable"><thead><tr><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>حالة الدفع</th><th>صافي المبيعات</th></tr></thead><tbody>${detailRows}</tbody></table>
-    <div class="printFooter">تم إنشاء هذا التقرير من نظام زيارات المندوبين - APC</div>
+    <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
   `;
   setTimeout(()=>window.print(), 80);
 }
@@ -6353,7 +6382,7 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 
 async function boot(){
   updateNetBanner();
-  document.title = `نظام زيارات المندوبين - APC (v${APP_VERSION})`;
+  document.title = `${APP_NAME} (v${APP_VERSION})`;
   ['verTagLogin','verTagTop'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.textContent = `إصدار v${APP_VERSION}`;
@@ -6475,21 +6504,108 @@ function viewCustomerSales(){
 }
 
 function currentMonthKey(){ return MONTH_KEYS[new Date().getMonth()]; }
+let inactiveFilters = {q:'', city:'', area:'', payment:'', sort:'area', dir:'asc'};
+const INACTIVE_SORTS = [['area','المنطقة'],['city','المدينة'],['name','اسم العميل'],['code','الكود'],['payment','حالة الدفع'],['last','آخر شهر تعامل'],['total','إجمالي مبيعات السنة']];
+function inactiveBase(){
+  const year = new Date().getFullYear(), mKey = currentMonthKey();
+  return visibleCustomerSales().filter(c=>c.year===year && !(Number(c[mKey])>0));
+}
+// آخر شهر (قبل الشهر الحالي) اتعامل فيه العميل: -1 = لم يتعامل خلال السنة
+function inactiveLastIdx(c){ for(let i=new Date().getMonth()-1;i>=0;i--){ if(Number(c[MONTH_KEYS[i]])>0) return i; } return -1; }
 function inactiveCustomersThisMonth(){
-  const year = new Date().getFullYear();
-  const mKey = currentMonthKey();
-  return visibleCustomerSales().filter(c=>c.year===year && !(Number(c[mKey])>0))
-    .sort((a,b)=>(a.area||'').localeCompare(b.area||'','ar'));
+  // نفس الدالة القديمة (ترتيب أبجدي بالمنطقة) - بتتستخدم كأساس بدون فلاتر
+  return inactiveBase().sort((a,b)=>(a.area||'').localeCompare(b.area||'','ar'));
+}
+function inactiveFilteredList(){
+  const f = inactiveFilters, qn = asNorm(f.q), terms = qn ? qn.split(' ') : [];
+  let list = inactiveBase().filter(c=>
+    (!f.city || c.city===f.city) && (!f.area || c.area===f.area) && (!f.payment || c.paymentStatus===f.payment) &&
+    (!terms.length || (()=>{ const t = asNorm((c.name||'')+' '+(c.code||'')+' '+(c.city||'')+' '+(c.area||'')); return terms.every(w=>t.includes(w)); })()));
+  const dir = f.dir==='desc' ? -1 : 1, ar = (x,y)=>String(x||'').localeCompare(String(y||''),'ar',{numeric:true});
+  const key = {
+    area:c=>c.area||'', city:c=>c.city||'', name:c=>c.name||'', code:c=>String(c.code||''), payment:c=>c.paymentStatus||'',
+    last:c=>inactiveLastIdx(c), total:c=>Number(c.total)||0
+  }[f.sort] || (c=>c.area||'');
+  const numeric = (f.sort==='last' || f.sort==='total');
+  list.sort((x,y)=>{
+    const r = numeric ? (key(x)-key(y)) : ar(key(x), key(y));
+    return (r*dir) || ar(x.name, y.name);
+  });
+  return list;
+}
+function inactiveFilterSummary(){
+  const f = inactiveFilters, parts = [];
+  if(f.city) parts.push('المدينة: '+f.city); if(f.area) parts.push('المنطقة: '+f.area); if(f.payment) parts.push('حالة الدفع: '+f.payment); if(f.q) parts.push('بحث: '+f.q);
+  const sortLbl = (INACTIVE_SORTS.find(x=>x[0]===f.sort)||[])[1] || '';
+  return (parts.length ? parts.join(' · ') : 'كل العملاء غير المتعاملين') + ' · الترتيب: ' + sortLbl + (f.dir==='desc' ? ' (تنازلي)' : ' (تصاعدي)');
+}
+function inactiveRowCells(c){
+  const li = inactiveLastIdx(c);
+  return [c.area||'', c.code||'', c.name||'', c.city||'', c.paymentStatus||'', li>=0 ? MONTH_LABELS[li] : 'لم يتعامل هذه السنة', fmtMoney(c.total)];
+}
+function inactiveTableHTML(list){
+  const rows = list.slice(0,500).map(c=>`<tr>${inactiveRowCells(c).map((v,i)=>`<td ${i===2?'style="white-space:normal;min-width:150px;"':''}>${escapeHTML(String(v))}</td>`).join('')}</tr>`).join('')
+    || `<tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:20px;">${inactiveBase().length ? 'مفيش عملاء مطابقين للفلتر' : 'كل العملاء عندهم مبيعات مسجلة الشهر ده 🎉'}</td></tr>`;
+  return `<table><thead><tr><th>المنطقة</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>حالة الدفع</th><th>آخر تعامل</th><th>إجمالي السنة</th></tr></thead><tbody>${rows}</tbody></table>
+    ${list.length>500?`<div class="smallMuted" style="text-align:center;margin-top:8px;">تم عرض أول 500 عميل - الطباعة والتصدير بيشملوا الكل (${list.length})</div>`:''}`;
+}
+function updateInactiveList(){
+  const list = inactiveFilteredList();
+  const d = document.getElementById('inactiveDesc'); if(d) d.textContent = `${list.length} عميل - ${inactiveFilterSummary()}`;
+  const t = document.getElementById('inactiveTable'); if(t) t.innerHTML = inactiveTableHTML(list);
+}
+let _inT; function inactiveSearch(v){ inactiveFilters.q = v; clearTimeout(_inT); _inT = setTimeout(updateInactiveList, 140); }
+function inactiveSet(key, v){ inactiveFilters[key] = v; updateInactiveList(); }
+function inactiveToggleDir(){ inactiveFilters.dir = inactiveFilters.dir==='asc' ? 'desc' : 'asc'; renderView(); }
+function printInactiveCustomers(){
+  const list = inactiveFilteredList();
+  if(!list.length){ toast('لا توجد بيانات لطباعتها','warn'); return; }
+  const monthLabel = MONTH_LABELS[new Date().getMonth()];
+  const rows = list.map((c,i)=>`<tr><td>${i+1}</td>${inactiveRowCells(c).map(v=>`<td>${escapeHTML(String(v))}</td>`).join('')}</tr>`).join('');
+  document.getElementById('printArea').innerHTML = `
+    <div class="printHeader">
+      <div class="printLogo"><span class="logoZ">Z</span>⚡</div>
+      <div>
+        <h1>عملاء غير متعاملين خلال ${monthLabel} ${new Date().getFullYear()}</h1>
+        <div class="printMeta">${escapeHTML((COMPANY && (COMPANY.nameAr||COMPANY.name)) || 'شركة الصيادلة العرب - APC')} · تاريخ الطباعة: ${fmtDateArabic(todayISO())}</div>
+        <div class="printMeta">${escapeHTML(inactiveFilterSummary())} · العدد: ${list.length}</div>
+      </div>
+    </div>
+    <table class="printTable"><thead><tr><th>#</th><th>المنطقة</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>حالة الدفع</th><th>آخر تعامل</th><th>إجمالي السنة</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
+  `;
+  setTimeout(()=>window.print(), 80);
+}
+function exportInactiveExcel(){
+  if(typeof XLSX==='undefined'){ toast('مكتبة Excel لسه بتتحمّل، جرّب بعد ثانية','warn'); return; }
+  const list = inactiveFilteredList();
+  if(!list.length){ toast('لا توجد بيانات للتصدير','warn'); return; }
+  const head = ['#','المنطقة','الكود','اسم العميل','المدينة','حالة الدفع','آخر تعامل','إجمالي السنة'];
+  const aoa = [head, ...list.map((c,i)=>[i+1, ...inactiveRowCells(c).map((v,j)=>j===1 ? String(v) : (j===6 ? Number(c.total)||0 : v))])];
+  const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = [{wch:5},{wch:16},{wch:12},{wch:30},{wch:14},{wch:14},{wch:16},{wch:14}]; ws['!views'] = [{RTL:true}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'غير متعاملين');
+  XLSX.writeFile(wb, `عملاء_غير_متعاملين_${todayISO()}.xlsx`);
+  toast(`تم تصدير ${list.length} عميل ✔`,'ok');
 }
 function inactiveCustomersReportCard(){
-  const list = inactiveCustomersThisMonth();
+  const base = inactiveBase(), f = inactiveFilters;
   const monthLabel = MONTH_LABELS[new Date().getMonth()];
-  const rows = list.map(c=>`<tr><td>${escapeHTML(c.area||'')}</td><td>${escapeHTML(c.code)}</td><td>${escapeHTML(c.name)}</td><td>${escapeHTML(c.city)}</td></tr>`).join('')
-    || `<tr><td colspan="4" style="text-align:center;color:var(--gray-500);padding:20px;">كل العملاء عندهم مبيعات مسجلة الشهر ده 🎉</td></tr>`;
+  const uniq = k => [...new Set(base.map(c=>c[k]).filter(Boolean))].sort((x,y)=>String(x).localeCompare(String(y),'ar'));
+  const opts = (arr, cur, all) => `<option value="">${all}</option>` + arr.map(v=>`<option value="${escapeHTML(v)}" ${cur===v?'selected':''}>${escapeHTML(v)}</option>`).join('');
+  const list = inactiveFilteredList();
   return `
     <div class="card">
-      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">📋 عملاء غير متعاملين خلال ${monthLabel} ${new Date().getFullYear()}</h2><div class="desc">${list.length} عميل - مرتبين أبجدياً حسب المنطقة</div></div>
-      <div class="tableWrap"><table><thead><tr><th>المنطقة</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="pageHead" style="margin-bottom:8px;"><div><h2 style="font-size:15px;">📋 عملاء غير متعاملين خلال ${monthLabel} ${new Date().getFullYear()}</h2><div class="desc" id="inactiveDesc">${list.length} عميل - ${escapeHTML(inactiveFilterSummary())}</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="printInactiveCustomers()">🖨 طباعة</button><button class="btn btn-ghost btn-sm" onclick="exportInactiveExcel()">📥 Excel</button></div></div>
+      <div class="filterBar">
+        <div class="searchBox" style="flex:1;min-width:170px;"><span class="sIcon">🔍</span><input type="text" placeholder="بحث بالاسم أو الكود..." value="${escapeHTML(f.q)}" oninput="inactiveSearch(this.value)"></div>
+        <select onchange="inactiveSet('city',this.value)">${opts(uniq('city'), f.city, 'كل المدن')}</select>
+        <select onchange="inactiveSet('area',this.value)">${opts(uniq('area'), f.area, 'كل المناطق')}</select>
+        <select onchange="inactiveSet('payment',this.value)">${opts(uniq('paymentStatus'), f.payment, 'كل حالات الدفع')}</select>
+        <select onchange="inactiveSet('sort',this.value); renderView();" title="ترتيب حسب">${INACTIVE_SORTS.map(([k,l])=>`<option value="${k}" ${f.sort===k?'selected':''}>ترتيب: ${l}</option>`).join('')}</select>
+        <button class="btn btn-ghost btn-sm" onclick="inactiveToggleDir()" title="اتجاه الترتيب">${f.dir==='asc'?'⬆ تصاعدي':'⬇ تنازلي'}</button>
+      </div>
+      <div class="tableWrap" id="inactiveTable">${inactiveTableHTML(list)}</div>
     </div>
   `;
 }
@@ -7028,7 +7144,7 @@ function shareCitySalesWhatsApp(){
     const flag = (pct < CITY_THRESHOLDS.salesMinPct || custPct < CITY_THRESHOLDS.customerMinPct) ? '⚠️' : '✅';
     text += `${flag} *${c.city}*\n   💰 ${fmtMoney(c.netSales)} (${pct.toFixed(0)}%) · 👥 ${c.customersActive||0}/${c.customerTarget||0} عميل (${custPct.toFixed(0)}%)\n`;
   });
-  text += `\n_تم إنشاؤه من نظام زيارات المندوبين_`;
+  text += `\n_تم إنشاؤه من ${APP_NAME}_`;
 
   if(navigator.share){
     navigator.share({title:'تقرير مبيعات المدن', text}).catch(()=>{
@@ -7782,7 +7898,7 @@ function printGenericReport(title, subtitle, sectionsHTML){
       </div>
     </div>
     ${sectionsHTML}
-    <div class="printFooter">تم إنشاء هذا التقرير من نظام زيارات المندوبين - Z</div>
+    <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
   `;
   setTimeout(()=>window.print(), 80);
 }
@@ -7815,7 +7931,7 @@ function shareLeaderboardWhatsApp(){
     const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
     text += `${medal} *${r.rep.name}*\n   📝 زيارات: ${r.month}${r.visitTarget?`/${r.visitTarget} (${r.visitPct.toFixed(0)}%)`:''}\n   🏥 عملاء: ${r.distinctCustomers}${r.custTarget?`/${r.custTarget} (${r.custPct.toFixed(0)}%)`:''}\n`;
   });
-  text += `\n_نظام زيارات المندوبين - Z_`;
+  text += `\n_${APP_NAME}_`;
   shareTextWhatsApp(text);
 }
 function printLeaderboard(){
@@ -7845,7 +7961,7 @@ function shareRepsSummaryWhatsApp(){
   rows.forEach(r=>{
     text += `👤 *${r.rep.name}*: ${r.total} زيارة\n`;
   });
-  text += `\n_نظام زيارات المندوبين - Z_`;
+  text += `\n_${APP_NAME}_`;
   shareTextWhatsApp(text);
 }
 function printRepsSummary(){
@@ -7877,7 +7993,7 @@ function shareClaimsReportWhatsApp(){
   keys.forEach(k=>{
     text += `▪️ ${k}: ${fmtMoney(groups[k].sum)} (${groups[k].count} عميل)\n`;
   });
-  text += `\n_نظام زيارات المندوبين - Z_`;
+  text += `\n_${APP_NAME}_`;
   shareTextWhatsApp(text);
 }
 
@@ -7896,7 +8012,7 @@ function shareSalesReportWhatsApp(){
   text += `عدد العملاء: ${yearData.length}\n\n`;
   text += `*أعلى 5 عملاء:*\n`;
   top5.forEach((c,i)=>{ text += `${i+1}. ${c.name}: ${fmtMoney(c.total)}\n`; });
-  text += `\n_نظام زيارات المندوبين - Z_`;
+  text += `\n_${APP_NAME}_`;
   shareTextWhatsApp(text);
 }
 function printSalesReport(){
@@ -7922,7 +8038,7 @@ function shareTelesalesReportWhatsApp(){
     const cnt = FOLLOWUPS.filter(f=>f.telesalesUsername===o.username && (f.date||'').startsWith(month)).length;
     text += `👤 ${o.name}: ${cnt} متابعة\n`;
   });
-  text += `\n_نظام زيارات المندوبين - Z_`;
+  text += `\n_${APP_NAME}_`;
   shareTextWhatsApp(text);
 }
 
@@ -7957,7 +8073,7 @@ function shareDailyDigestWhatsApp(){
     text += `\n💰 *مبيعات المدن (آخر تحديث ${fmtDate(citySalesDate)}):*\n`;
     text += `${fmtMoney(citySalesNet)} من ${fmtMoney(citySalesTarget)} (${citySalesPct.toFixed(0)}%)\n`;
   }
-  text += `\n_نظام زيارات المندوبين - Z_`;
+  text += `\n_${APP_NAME}_`;
   shareTextWhatsApp(text);
 }
 

@@ -1,7 +1,7 @@
 {
-  "name": "نظام زيارات المندوبين - APC",
-  "short_name": "زيارات APC",
-  "description": "تسجيل زيارات المندوبين ومتابعة العملاء والمبيعات",
+  "name": "Ziedane CRM",
+  "short_name": "Ziedane CRM",
+  "description": "نظام إدارة المناديب والعملاء: زيارات، متابعة، حوافز، طلبيات",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "./index.html?source=pwa",
@@ -11,13 +11,55 @@
   "background_color": "#0F7A6B",
   "theme_color": "#0F7A6B",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    {"name": "تسجيل زيارة", "url": "./index.html?view=addvisit&source=shortcut", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
-    {"name": "خطة الزيارات", "url": "./index.html?view=routeplan&source=shortcut", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
-    {"name": "المتابعة", "url": "./index.html?view=followup&source=shortcut", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]}
+    {
+      "name": "تسجيل زيارة",
+      "url": "./index.html?view=addvisit&source=shortcut",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "خطة الزيارات",
+      "url": "./index.html?view=routeplan&source=shortcut",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "المتابعة",
+      "url": "./index.html?view=followup&source=shortcut",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
