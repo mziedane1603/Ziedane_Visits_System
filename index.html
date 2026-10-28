@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.62)</title>
+<title>Ziedane CRM (v2.63)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -356,9 +356,14 @@ tbody tr:hover{background:var(--teal-lighter);}
 /* ---------- Print / PDF ---------- */
 #printArea{display:none;}
 @media print{
-  body *{visibility:hidden;}
-  #printArea, #printArea *{visibility:visible;}
-  #printArea{display:block !important;position:absolute;top:0;right:0;left:0;width:100%;padding:20px;}
+  /* الصفحة كلها بتتشال من التخطيط (display:none) مش بس بتتخفي، عشان المعاينة متتعلّقش ومتطلعش صفحات فاضية */
+  @page{margin:10mm;}
+  html,body{height:auto !important;min-height:0 !important;overflow:visible !important;background:#fff !important;}
+  body > *:not(#printArea){display:none !important;}
+  *{animation:none !important;transition:none !important;}
+  #printArea{display:block !important;position:static !important;width:100%;padding:6px 10px;direction:rtl;}
+  table.printTable thead{display:table-header-group;}
+  table.printTable tr{page-break-inside:avoid;}
   .printHeader{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0F7A6B;padding-bottom:14px;margin-bottom:18px;}
   .printLogo{width:52px;height:52px;border-radius:12px;background:#0F7A6B;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;flex:none;}
   .printHeader h1{margin:0;font-size:19px;color:#0B5C51;}
@@ -826,7 +831,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.62';
+const APP_VERSION = '2.63';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1725,6 +1730,51 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
   };
 })();
 
+// ---- الزيارات: بنحمّل من تاريخ معيّن (مش آخر 1000 بس) عشان الإجماليات متقفش عند 1000 ----
+// الافتراضي: الشهر الحالي + آخر شهرين. ولو اخترت شهر أقدم في أي تقرير، النافذة بتتوسّع تلقائياً.
+let visitsFromISO = null, visitsUnsub = null;
+// الزيارات بتتحمّل من تاريخ معيّن، فلو مفيش زيارة للعميل يبقى معناها "مفيش منذ بداية الفترة المحمّلة"
+function noVisitLabel(){ return 'لا زيارة منذ ' + String(visitsFromISO||visitsDefaultFrom()).slice(0,7).replace('-','/'); }
+function visitsDefaultFrom(){
+  const n = new Date(), d = new Date(n.getFullYear(), n.getMonth()-2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+}
+function attachVisitsListener(){
+  if(!visitsFromISO) visitsFromISO = visitsDefaultFrom();
+  if(visitsUnsub){ try{ visitsUnsub(); }catch(e){} }
+  visitsFirstLoad = true;
+  visitsUnsub = db.collection('visits').where('date','>=',visitsFromISO).orderBy('date','desc').onSnapshot(snap=>{
+    if(!visitsFirstLoad && isAdminLike()){
+      snap.docChanges().forEach(ch=>{
+        if(ch.type==='added'){
+          const v = {id:ch.doc.id, ...ch.doc.data()};
+          checkVisitForAlert(v);
+        }
+      });
+    }
+    VISITS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    visitsFirstLoad = false;
+    renderNav(); renderView();
+  }, err=>console.error('visits listener', err));
+  unsubs.push(visitsUnsub);
+}
+function ensureVisitsFrom(isoDate){
+  const first = String(isoDate).slice(0,7) + '-01';
+  if(!visitsFromISO || first >= visitsFromISO) return;
+  visitsFromISO = first;
+  toast('جاري تحميل زيارات أقدم…','warn');
+  attachVisitsListener();
+}
+// بيتنادى مع كل رسم: لو في تقرير اخترت له شهر أقدم من اللي محمّل، نوسّع التحميل
+function visitsGuard(){
+  try{
+    const need = [topRepsMonth, repBonusMonth, repsSummaryMonth, routeAdherenceMonth].filter(m=>/^\d{4}-\d{2}$/.test(m||'')).map(m=>m+'-01');
+    if(visitFilters && /^\d{4}-\d{2}-\d{2}$/.test(visitFilters.from||'')) need.push(visitFilters.from);
+    if(!need.length) return;
+    const oldest = need.reduce((x,y)=>y<x?y:x);
+    ensureVisitsFrom(oldest);
+  }catch(e){}
+}
 function attachListeners(){
   unsubs.forEach(u=>{ try{u();}catch(e){} });
   unsubs=[];
@@ -1771,20 +1821,7 @@ function attachListeners(){
     renderView();
   }, err=>console.error('customers listener', err)));
 
-  visitsFirstLoad = true;
-  unsubs.push(db.collection('visits').orderBy('date','desc').limit(1000).onSnapshot(snap=>{
-    if(!visitsFirstLoad && isAdminLike()){
-      snap.docChanges().forEach(ch=>{
-        if(ch.type==='added'){
-          const v = {id:ch.doc.id, ...ch.doc.data()};
-          checkVisitForAlert(v);
-        }
-      });
-    }
-    VISITS = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    visitsFirstLoad = false;
-    renderNav(); renderView();
-  }, err=>console.error('visits listener', err)));
+  attachVisitsListener();
 
   renderNav();
   renderView(); // renderView بتحمّل تلقائياً أي بيانات إضافية الصفحة الحالية محتاجاها
@@ -1879,6 +1916,7 @@ function logAudit(action, collName, label){
    ROUTER
    ========================================================================== */
 function renderView(){
+  if(typeof visitsGuard==='function' && CURRENT_USER) visitsGuard();
   if(!CURRENT_USER) return;
   const main = document.getElementById('mainView');
   ensureDataForView(currentView);
@@ -1956,7 +1994,7 @@ function repStaleCustomersWidgetHTML(){
     <div class="planItem">
       <div class="planInfo">
         <div class="nm">${escapeHTML(c.name)}</div>
-        <div class="meta">${c.lastVisit ? 'آخر زيارة: '+fmtDate(c.lastVisit) : 'لم يُزار أبداً'} · ${escapeHTML(c.city)}</div>
+        <div class="meta">${c.lastVisit ? 'آخر زيارة: '+fmtDate(c.lastVisit) : noVisitLabel()} · ${escapeHTML(c.city)}</div>
       </div>
       <div class="planActions">
         <span class="badge ${!c.lastVisit || c.gap>60?'badge-red':'badge-amber'}">${c.lastVisit ? c.gap+' يوم' : 'جديد'}</span>
@@ -2383,7 +2421,7 @@ function asCustomerCard(c){
   const rows = [
     ['الكود', escapeHTML(c.code)], ['المدينة', escapeHTML(c.city||'-')], c.area?['المنطقة', escapeHTML(c.area)]:null,
     c.payment?['حالة الدفع', escapeHTML(c.payment)]:null,
-    ['آخر زيارة', lv ? `${escapeHTML(String(lv.date||''))} · ${escapeHTML(lv.visitResult||'')}${lv.rating?` · ⭐${lv.rating}`:''}` : 'لم يُزر'],
+    ['آخر زيارة', lv ? `${escapeHTML(String(lv.date||''))} · ${escapeHTML(lv.visitResult||'')}${lv.rating?` · ⭐${lv.rating}`:''}` : noVisitLabel()],
     ['زيارات هذا الشهر', mv],
     yr ? [`مبيعات ${yr}`, fmtMoney(yrTotal)] : null
   ].filter(Boolean);
@@ -5582,6 +5620,10 @@ async function deleteChatMessage(id){
    ========================================================================== */
 let claimsFilters = {q:'', city:'', payment:''};
 
+// عميل بيتحسب في "عدد العملاء" لو مطالباته 1 جنيه أو أكتر (الصفر والسالب مش بيتعدّوا، والمبلغ الإجمالي زي ما هو)
+const CLAIM_COUNT_MIN = 1;
+function printSoon(){ requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>{ try{ window.print(); }catch(e){ console.error(e); toast('تعذّر فتح الطباعة','err'); } }, 60))); }
+function claimCounts(c){ return (Number(c.netSales)||0) >= CLAIM_COUNT_MIN; }
 function filteredClaims(){
   let list = visibleClaims();
   if(claimsFilters.city) list = list.filter(c=>c.city===claimsFilters.city);
@@ -5684,7 +5726,7 @@ function printLowClaimsReport(){
     <table class="printTable"><thead><tr><th>المنطقة</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>المطالبة</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
   `;
-  setTimeout(()=>window.print(), 80);
+  printSoon();
 }
 
 function claimsHeaderText(list){
@@ -5825,7 +5867,7 @@ function printClaims(){
   list.forEach(c=>{
     const k = c.paymentStatus || 'غير محدد';
     if(!groups[k]) groups[k] = {count:0, sum:0};
-    groups[k].count++;
+    if(claimCounts(c)) groups[k].count++;
     groups[k].sum += Number(c.netSales)||0;
   });
   const groupKeys = Object.keys(groups).sort((a,b)=>groups[b].sum-groups[a].sum);
@@ -5849,7 +5891,7 @@ function printClaims(){
       </div>
     </div>
     <div class="printSummaryGrid">
-      <div class="printSummaryCard"><div class="l">عدد العملاء</div><div class="v">${list.length}</div></div>
+      <div class="printSummaryCard"><div class="l">عدد العملاء (مطالباتهم 1 فأكتر)</div><div class="v">${list.filter(claimCounts).length}</div></div>
       <div class="printSummaryCard"><div class="l">إجمالي المطالبات</div><div class="v">${fmtMoney(totalSum)}</div></div>
     </div>
     <h3>حسب حالة الدفع</h3>
@@ -5858,7 +5900,7 @@ function printClaims(){
     <table class="printTable"><thead><tr><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>حالة الدفع</th><th>صافي المبيعات</th></tr></thead><tbody>${detailRows}</tbody></table>
     <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
   `;
-  setTimeout(()=>window.print(), 80);
+  printSoon();
 }
 
 /* ==========================================================================
@@ -5976,7 +6018,7 @@ function viewClaimsReport(){
   CLAIMS.forEach(c=>{
     const k = c.paymentStatus || 'غير محدد';
     if(!groups[k]) groups[k] = {count:0, sum:0};
-    groups[k].count++;
+    if(claimCounts(c)) groups[k].count++;
     groups[k].sum += Number(c.netSales)||0;
   });
   const keys = Object.keys(groups).sort((a,b)=>groups[b].sum-groups[a].sum);
@@ -6574,7 +6616,7 @@ function printInactiveCustomers(){
     <table class="printTable"><thead><tr><th>#</th><th>المنطقة</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>حالة الدفع</th><th>آخر تعامل</th><th>إجمالي السنة</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
   `;
-  setTimeout(()=>window.print(), 80);
+  printSoon();
 }
 function exportInactiveExcel(){
   if(typeof XLSX==='undefined'){ toast('مكتبة Excel لسه بتتحمّل، جرّب بعد ثانية','warn'); return; }
@@ -7900,7 +7942,7 @@ function printGenericReport(title, subtitle, sectionsHTML){
     ${sectionsHTML}
     <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>
   `;
-  setTimeout(()=>window.print(), 80);
+  printSoon();
 }
 
 /* ==========================================================================
@@ -7983,7 +8025,7 @@ function shareClaimsReportWhatsApp(){
   CLAIMS.forEach(c=>{
     const k = c.paymentStatus || 'غير محدد';
     if(!groups[k]) groups[k] = {count:0, sum:0};
-    groups[k].count++;
+    if(claimCounts(c)) groups[k].count++;
     groups[k].sum += Number(c.netSales)||0;
   });
   const keys = Object.keys(groups).sort((a,b)=>groups[b].sum-groups[a].sum);
@@ -8176,7 +8218,7 @@ function viewStaleCustomersReport(){
       <td>${escapeHTML(c.code)}</td>
       <td>${escapeHTML(c.city)}</td>
       <td>${escapeHTML(c.area||'')}</td>
-      <td>${c.lastVisit ? fmtDate(c.lastVisit) : '<span class="badge badge-red">لم يُزار أبداً</span>'}</td>
+      <td>${c.lastVisit ? fmtDate(c.lastVisit) : '<span class="badge badge-red">${noVisitLabel()}</span>'}</td>
       <td>${c.lastVisit ? `<span class="badge ${c.gap>60?'badge-red':'badge-amber'}">${c.gap} يوم</span>` : '-'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(c.code))})">📝 زيارة</button></td>
     </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:24px;">كل العملاء اتزاروا خلال آخر ${staleThresholdDays} يوم 🎉</td></tr>`;
