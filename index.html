@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.63)</title>
+<title>Ziedane CRM (v2.64)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -831,7 +831,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.63';
+const APP_VERSION = '2.64';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -4022,6 +4022,90 @@ function filteredVisits(){
   return list;
 }
 
+/* ==========================================================================
+   🗑 حذف زيارات مندوب في فترة محددة (أدمن فقط): معاينة ← نسخة احتياطية تلقائية ← تأكيد بكلمة "حذف" ← حذف
+   ========================================================================== */
+let dv = {repId:'', from:'', to:'', found:null, busy:false, progress:''};
+function closeDeleteVisits(){ if(dv.busy) return; document.getElementById('dvOverlay')?.remove(); }
+function openDeleteVisits(){
+  if(CURRENT_USER.role!=='admin'){ toast('الحذف للأدمن فقط','err'); return; }
+  const t = todayISO();
+  dv = {repId: visitFilters.rep||'', from: visitFilters.from || (t.slice(0,7)+'-01'), to: visitFilters.to || t, found:null, busy:false, progress:''};
+  document.getElementById('dvOverlay')?.remove();
+  const bg = document.createElement('div'); bg.id = 'dvOverlay'; bg.className = 'qrBg';
+  bg.onclick = e=>{ if(e.target===bg) closeDeleteVisits(); };
+  bg.innerHTML = '<div class="qrSheet"><div class="qrHead"><h3>🗑 حذف زيارات مندوب</h3><button class="iconBtn" onclick="closeDeleteVisits()" title="إغلاق">✕</button></div><div class="qrBody" id="dvBody"></div></div>';
+  document.body.appendChild(bg);
+  dvRender();
+}
+function dvSet(key, val){ if(dv.busy) return; dv[key] = val; dv.found = null; dvRender(); }
+function dvRender(){
+  const el = document.getElementById('dvBody'); if(!el) return;
+  const rep = REPS.find(r=>r.id===dv.repId), f = dv.found;
+  const q = v=>escapeHTML(JSON.stringify(v));
+  let preview = '';
+  if(f){
+    const byResult = new Map(); f.items.forEach(v=>{ const k = v.visitResult||'-'; byResult.set(k,(byResult.get(k)||0)+1); });
+    const days = new Set(f.items.map(v=>v.date)).size;
+    preview = f.items.length ? `
+      <div class="rbWarn" style="background:#FDECEA;border-color:#F1B8B1;color:#8A2A1F;">⚠️ هيتم حذف <b>${f.items.length}</b> زيارة للمندوب <b>${escapeHTML(rep?rep.name:'')}</b> من <b>${escapeHTML(dv.from)}</b> إلى <b>${escapeHTML(dv.to)}</b> (على ${days} يوم). الحذف نهائي.</div>
+      <div class="qrSub">توزيع النتايج</div><div class="cdContrib">${[...byResult.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<span>${escapeHTML(k)} <b>${n}</b></span>`).join('')}</div>
+      <div class="qrSub">عيّنة من الزيارات</div>
+      ${f.items.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,6).map(v=>`<div class="qrLine"><span>${escapeHTML(v.customerName||v.customerCode||'')}</span><small>${escapeHTML(String(v.date||''))} · ${escapeHTML(v.visitResult||'')}</small></div>`).join('')}
+      <div class="field" style="margin-top:12px;"><label>للتأكيد اكتب كلمة: <b>حذف</b></label><input id="dvConfirm" type="text" autocomplete="off" placeholder="حذف" oninput="document.getElementById('dvGo').disabled = this.value.trim()!=='حذف' || ${dv.busy}"></div>
+      <div class="smallMuted" style="margin:4px 0 8px;">هتتنزّل نسخة احتياطية (JSON) بالزيارات دي على جهازك قبل الحذف.</div>
+      <button class="btn btn-primary" id="dvGo" style="background:var(--red);" disabled onclick="dvDelete()">🗑 حذف ${f.items.length} زيارة نهائياً</button>
+      ${dv.progress ? `<div class="smallMuted" style="margin-top:8px;">${escapeHTML(dv.progress)}</div>` : ''}`
+      : `<div class="emptyState">مفيش زيارات للمندوب ده في الفترة دي.</div>`;
+  }
+  el.innerHTML = `
+    <div class="smallMuted" style="margin-bottom:8px;">اختار المندوب والفترة، وبعدها اضغط معاينة عشان تشوف إيه اللي هيتحذف قبل أي حذف فعلي.</div>
+    <div class="field"><label>المندوب</label><select ${dv.busy?'disabled':''} onchange="dvSet('repId', this.value)"><option value="">— اختار مندوب —</option>${REPS.map(r=>`<option value="${escapeHTML(r.id)}" ${dv.repId===r.id?'selected':''}>${escapeHTML(r.name)}</option>`).join('')}</select></div>
+    <div style="display:flex;gap:8px;">
+      <div class="field" style="flex:1;"><label>من تاريخ</label><input type="date" value="${escapeHTML(dv.from)}" ${dv.busy?'disabled':''} onchange="dvSet('from', this.value)"></div>
+      <div class="field" style="flex:1;"><label>إلى تاريخ</label><input type="date" value="${escapeHTML(dv.to)}" ${dv.busy?'disabled':''} onchange="dvSet('to', this.value)"></div>
+    </div>
+    <button class="btn btn-ghost" ${dv.busy?'disabled':''} onclick="dvPreview()">🔍 معاينة اللي هيتحذف</button>
+    <div style="margin-top:12px;">${preview}</div>`;
+}
+async function dvPreview(){
+  if(dv.busy) return;
+  if(!dv.repId){ toast('اختار المندوب الأول','warn'); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dv.from) || !/^\d{4}-\d{2}-\d{2}$/.test(dv.to)){ toast('حدد تاريخ البداية والنهاية','warn'); return; }
+  if(dv.from > dv.to){ toast('تاريخ البداية بعد تاريخ النهاية','warn'); return; }
+  dv.busy = true; dv.progress = 'جاري البحث...'; dvRender();
+  try{
+    // بنستعلم بالتاريخ بس (بدون فهرس مركّب) وبنفلتر المندوب هنا
+    const snap = await db.collection('visits').where('date','>=',dv.from).where('date','<=',dv.to).get();
+    const docs = snap.docs.filter(d=>d.data().repId===dv.repId);
+    dv.found = {docs, items: docs.map(d=>({id:d.id, ...d.data()}))};
+  }catch(e){ console.error(e); toast('تعذّر البحث: ' + (e.message||e.code||'خطأ'),'err'); dv.found = null; }
+  dv.busy = false; dv.progress = ''; dvRender();
+}
+async function dvDelete(){
+  if(CURRENT_USER.role!=='admin'){ toast('الحذف للأدمن فقط','err'); return; }
+  if(dv.busy || !dv.found || !dv.found.docs.length) return;
+  if((document.getElementById('dvConfirm')?.value||'').trim()!=='حذف'){ toast('اكتب كلمة حذف للتأكيد','warn'); return; }
+  const rep = REPS.find(r=>r.id===dv.repId), docs = dv.found.docs, items = dv.found.items, total = docs.length;
+  dv.busy = true; dv.progress = 'جاري تنزيل النسخة الاحتياطية...'; dvRender();
+  try{
+    downloadJSONBackup(`visits_${(rep?rep.name:dv.repId).replace(/\s+/g,'_')}_${dv.from}_${dv.to}`, items);
+    let done = 0;
+    for(let i=0;i<docs.length;i+=400){
+      const b = db.batch(); docs.slice(i,i+400).forEach(d=>b.delete(d.ref));
+      await b.commit(); done += Math.min(400, docs.length-i);
+      dv.progress = `اتحذف ${done} من ${total}...`; dvRender();
+    }
+    logAudit('delete','visits', `حذف ${total} زيارة للمندوب ${rep?rep.name:dv.repId} من ${dv.from} إلى ${dv.to}`);
+    toast(`تم حذف ${total} زيارة ✔ (النسخة الاحتياطية اتنزّلت على جهازك)`,'ok');
+    dv.busy = false; dv.found = null; dv.progress = ''; closeDeleteVisits();
+  }catch(e){
+    console.error(e); dv.busy = false;
+    dv.progress = 'فشل الحذف: ' + (e.code==='permission-denied' ? 'الصلاحيات (راجع قواعد Firestore)' : (e.message||'خطأ')) + ' - ممكن يكون اتحذف جزء، اعمل معاينة تاني.';
+    dvRender(); toast('فشل الحذف','err');
+  }
+}
+
 function viewVisits(){
   const repOptions = CURRENT_USER.role==='rep' ? '' : `
     <select onchange="visitFilters.rep=this.value; updateVisitsResults();">
@@ -4032,7 +4116,10 @@ function viewVisits(){
   return `
     <div class="pageHead">
       <div><h2>سجل الزيارات</h2><div class="desc" id="visitsCountDesc">${filteredVisits().length} زيارة</div></div>
-      <button class="btn btn-outline btn-sm" onclick="exportVisitsCSV()">⬇ تصدير Excel</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${CURRENT_USER.role==='admin' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:#F1B8B1;" onclick="openDeleteVisits()" title="حذف زيارات مندوب في فترة محددة">🗑 حذف زيارات مندوب</button>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="exportVisitsCSV()">⬇ تصدير Excel</button>
+      </div>
     </div>
     <div class="card">
       <div class="filterBar">
