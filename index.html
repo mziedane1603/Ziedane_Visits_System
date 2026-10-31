@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.64)</title>
+<title>Ziedane CRM (v2.65)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -831,7 +831,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.64';
+const APP_VERSION = '2.65';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -2276,24 +2276,28 @@ function qrTable(headers, rows, totalRow){
   </tbody></table></div>`;
 }
 function qrStat(label, val){ return `<div class="qrStat"><b>${val}</b><span>${label}</span></div>`; }
+// تاريخ (YYYY-MM-DD) قبل/بعد تاريخ معيّن بعدد أيام - على نفس أساس todayISO()
+function qrShiftISO(iso, days){ const d = new Date(iso+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+days); return d.toISOString().slice(0,10); }
 function qrDayISO(offset){ const d = new Date(); d.setDate(d.getDate()-offset); return d.toISOString().slice(0,10); }
 function openKpiReport(key){
   const isRep = CURRENT_USER.role==='rep';
-  const list = visibleVisits(), today = todayISO(), month = today.slice(0,7), weekStart = qrDayISO(6);
+  const list = visibleVisits(), today = todayISO(), yesterday = qrShiftISO(today,-1), month = today.slice(0,7), weekStart = qrShiftISO(today,-6);
   const reps = REPS.filter(r=>r.active!==false);
   const repName = id => (REPS.find(r=>r.id===id)||{}).name || '-';
   const full = tab => isRep ? '' : `openReportTab('${tab}')`;
   if(key==='visits'){
-    const by = new Map(reps.map(r=>[r.id,{n:r.name,t:0,w:0,m:0}]));
+    const by = new Map(reps.map(r=>[r.id,{n:r.name,t:0,y:0,w:0,m:0}]));
     list.forEach(v=>{ const x = by.get(v.repId); if(!x) return; const d = v.date||'';
-      if(d===today) x.t++; if(d>=weekStart && d<=today) x.w++; if(d.startsWith(month)) x.m++; });
-    const rows = [...by.values()].filter(x=>x.m>0||x.t>0||x.w>0).sort((a,b)=>b.t-a.t||b.m-a.m);
-    const tot = rows.reduce((a,x)=>({t:a.t+x.t,w:a.w+x.w,m:a.m+x.m}),{t:0,w:0,m:0});
-    const todays = list.filter(v=>v.date===today).slice(0,8);
+      if(d===today) x.t++; if(d===yesterday) x.y++; if(d>=weekStart && d<=today) x.w++; if(d.startsWith(month)) x.m++; });
+    const rows = [...by.values()].filter(x=>x.m>0||x.t>0||x.y>0||x.w>0).sort((a,b)=>b.t-a.t||b.y-a.y||b.m-a.m);
+    const tot = rows.reduce((a,x)=>({t:a.t+x.t,y:a.y+x.y,w:a.w+x.w,m:a.m+x.m}),{t:0,y:0,w:0,m:0});
+    const todays = list.filter(v=>v.date===today).slice(0,8), yests = list.filter(v=>v.date===yesterday).slice(0,8);
+    const lineHTML = v=>`<div class="qrLine"><span>${escapeHTML(v.customerName||v.customerCode||'')}</span><small>${escapeHTML(v.visitResult||'')}${isRep?'':' · '+escapeHTML(repName(v.repId))}</small></div>`;
     openQuickReport('📅 ملخص الزيارات',
-      `<div class="qrStats">${qrStat('اليوم',tot.t)}${qrStat('آخر 7 أيام',tot.w)}${qrStat('الشهر',tot.m)}</div>`+
-      (rows.length ? qrTable(['المندوب','اليوم','7 أيام','الشهر'], rows.map(x=>[escapeHTML(x.n),x.t,x.w,x.m]), ['الإجمالي',tot.t,tot.w,tot.m]) : '<div class="emptyState">مفيش زيارات مسجلة</div>')+
-      (todays.length ? `<div class="qrSub">زيارات اليوم</div>`+todays.map(v=>`<div class="qrLine"><span>${escapeHTML(v.customerName||v.customerCode||'')}</span><small>${escapeHTML(v.visitResult||'')}${isRep?'':' · '+escapeHTML(repName(v.repId))}</small></div>`).join('') : ''),
+      `<div class="qrStats">${qrStat('اليوم',tot.t)}${qrStat('أمس',tot.y)}${qrStat('آخر 7 أيام',tot.w)}${qrStat('الشهر',tot.m)}</div>`+
+      (rows.length ? qrTable(['المندوب','اليوم','أمس','7 أيام','الشهر'], rows.map(x=>[escapeHTML(x.n),x.t,x.y,x.w,x.m]), ['الإجمالي',tot.t,tot.y,tot.w,tot.m]) : '<div class="emptyState">مفيش زيارات مسجلة</div>')+
+      (todays.length ? `<div class="qrSub">زيارات اليوم</div>`+todays.map(lineHTML).join('') : '')+
+      (yests.length ? `<div class="qrSub">زيارات أمس</div>`+yests.map(lineHTML).join('') : ''),
       'كل الزيارات', "goTo('visits')");
   }else if(key==='rating'){
     const by = new Map(reps.map(r=>[r.id,{n:r.name,c:0,s:0}])), dist = Array(RATING_MAX+1).fill(0);

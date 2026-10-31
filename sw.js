@@ -1,6 +1,6 @@
 /* Service Worker - نظام زيارات المندوبين APC
    غيّر رقم VERSION مع كل إصدار جديد من index.html عشان يظهر للمستخدمين شريط "تحديث جديد". */
-const VERSION = '2.64';
+const VERSION = '2.65';
 const SHELL_CACHE = 'apc-shell-' + VERSION;
 const CDN_CACHE = 'apc-cdn-v1';
 const SHELL = ['./', './index.html', './portal.html', './athkar.html', './manifest.webmanifest', './portal.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
