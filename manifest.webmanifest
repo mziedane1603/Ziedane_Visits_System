@@ -7,7 +7,6 @@
   "start_url": "./index.html?source=pwa",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0F7A6B",
   "theme_color": "#0F7A6B",
   "icons": [
@@ -61,5 +60,6 @@
         }
       ]
     }
-  ]
+  ],
+  "id": "./index.html"
 }

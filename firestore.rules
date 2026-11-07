@@ -4,18 +4,23 @@ service cloud.firestore {
 
     // ===== تعريفات الأدوار =====
     function isSignedIn() { return request.auth != null; }
-    // موظف = مستخدم عنده مستند في users (حسابات العملاء مالهاش مستند هناك)
-    function isStaff() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
-    function myProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function profileDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    // موظف = مستخدم عنده مستند في users وحسابه مش موقوف (حسابات العملاء مالهاش مستند هناك)
+    function isStaff() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && profileDoc().data.get('active', true) != false;
+    }
+    function myProfile() { return profileDoc().data; }
     function myRole() { return isStaff() ? myProfile().role : null; }
     function isAdmin() { return myRole() == 'admin'; }
     function isManager() { return myRole() == 'manager'; }
     function isAdminOrManager() { return isAdmin() || isManager(); }
+    function myUsername() { return myProfile().username; }
+    function myRepId() { return myProfile().get('repId', null); }
     // عميل بوابة = مسجّل دخول وعنده مستند في customerPortal وملوش مستند موظف
-    function isCustomer() { return isSignedIn() && !isStaff() && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
+    function isCustomer() { return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
     function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
-    // مجموعات ليها قواعد خاصة ومينفعش القاعدة العامة تفتحها
-    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders','systemBackups']; }
 
     // ===== المستخدمون =====
     match /users/{uid} {
@@ -23,7 +28,7 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       // المستخدم يحدّث حضوره، ويقدر يقفل علم "لازم يغيّر كلمة المرور" (يتحط false بس) بعد ما يغيّرها
       allow update: if isAdmin() ||
-        (isSignedIn() && request.auth.uid == uid &&
+        (isStaff() && request.auth.uid == uid &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt','currentPage','mustChangePassword']) &&
          (!('mustChangePassword' in request.resource.data.diff(resource.data).affectedKeys()) ||
           request.resource.data.mustChangePassword == false));
@@ -39,19 +44,82 @@ service cloud.firestore {
 
     // ===== محادثة الفريق =====
     match /teamChat/{id} {
-      allow read, create: if isStaff();
-      allow delete: if isAdminOrManager() || resource.data.senderUsername == myProfile().username;
+      allow read: if isStaff();
+      allow create: if isStaff() && request.resource.data.senderUsername == myUsername();
+      allow delete: if isAdminOrManager() || (isStaff() && resource.data.senderUsername == myUsername());
       allow update: if false;
     }
 
     // ===== النسخ الاحتياطي (مجموعة فرعية chunks جواها) =====
-    // القاعدة العامة بتغطي المستندات الرئيسية بس، فالمجموعات الفرعية لازم قاعدة صريحة وإلا بتتمنع
     match /systemBackups/{date} {
-      allow read, write: if isAdminOrManager();
+      allow read: if isAdminOrManager();
+      allow write: if isAdmin();
       match /chunks/{cid} {
-        allow read, write: if isAdminOrManager();
+        allow read: if isAdminOrManager();
+        allow write: if isAdmin();
       }
     }
+
+    // ===== الزيارات: المندوب يسجّل زياراته هو بس، والتعديل والحذف للأدمن =====
+    match /visits/{id} {
+      allow read: if isStaff();
+      allow create: if isAdminOrManager()
+        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== خطة الزيارات =====
+    match /plannedVisits/{id} {
+      allow read: if isStaff();
+      allow create: if isAdminOrManager()
+        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+      allow update: if isAdmin();
+      allow delete: if isAdminOrManager()
+        || (isStaff() && myRole() == 'rep' && myRepId() != null && resource.data.repId == myRepId());
+    }
+
+    // ===== متابعات التلي سيلز =====
+    match /followups/{id} {
+      allow read: if isStaff();
+      allow create: if isAdminOrManager()
+        || (isStaff() && myRole() == 'telesales' && request.resource.data.telesalesUsername == myUsername());
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== الطلبيات المقترحة من المناديب =====
+    match /suggestedOrders/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && request.resource.data.repUsername == myUsername();
+      allow update, delete: if isAdminOrManager();
+    }
+
+    // ===== بيانات العملاء اللي بيسجلها المناديب (رخصة، كود مكاني...) =====
+    match /customerData/{id} {
+      allow read: if isStaff();
+      allow create, update: if isStaff() && request.resource.data.updatedBy == myUsername();
+      allow delete: if isAdmin();
+    }
+
+    // ===== سجل التعديلات: إضافة فقط (مفيش تعديل ولا حذف) والقراءة للإدارة =====
+    match /auditLog/{id} {
+      allow read: if isAdminOrManager();
+      allow create: if isStaff() && request.resource.data.userName is string;
+      allow update, delete: if false;
+    }
+
+    // ===== بيانات مرجعية: قراءة للموظفين، وكتابة للأدمن (الاستيراد والتعريفات) =====
+    match /reps/{id}               { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /customers/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /claims/{id}             { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /visitResults/{id}       { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /followupResults/{id}    { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /announcements/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /customerSales/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /citySales/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /salesAnalytics/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /inventory/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /bonusOffers/{id}        { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /orderTemplates/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
 
     // ===== بوابة العملاء =====
     // كتالوج الأصناف (أسعار وخصومات وبونص بدون كميات): العميل والموظف يقرأوا، الأدمن بس ينشر
@@ -67,7 +135,7 @@ service cloud.firestore {
     // ربط حساب الدخول بكود العميل: بيتعمل مرة واحدة أول دخول، ومربوط بإيميل الحساب نفسه
     match /customerPortal/{uid} {
       allow read: if isStaff() || request.auth.uid == uid;
-      allow create: if isSignedIn() && request.auth.uid == uid && !isStaff()
+      allow create: if isSignedIn() && request.auth.uid == uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && request.resource.data.keys().hasOnly(['code','pwChanged','createdAt'])
         && request.resource.data.pwChanged == false
         && request.auth.token.email == request.resource.data.code + '@portal.apc.local'
@@ -92,12 +160,6 @@ service cloud.firestore {
       allow delete: if isAdminOrManager();
     }
 
-    // ===== باقي المجموعات (للموظفين فقط) =====
-    // تنبيه: القاعدة دي بتتجمّع مع القواعد الخاصة (لو أي واحدة سمحت يتسمح)، عشان كده استثنينا المجموعات المحمية فوق
-    match /{collection}/{id} {
-      allow read: if isStaff();
-      allow create, update: if isStaff() && !protectedColl(collection);
-      allow delete: if isAdminOrManager() && !protectedColl(collection);
-    }
+    // أي مجموعة تانية مش مذكورة فوق: مرفوضة (deny by default)
   }
 }
