@@ -1,6 +1,6 @@
 /* Service Worker - نظام زيارات المندوبين APC
    غيّر رقم VERSION مع كل إصدار جديد من index.html عشان يظهر للمستخدمين شريط "تحديث جديد". */
-const VERSION = '2.67';
+const VERSION = '2.68';
 const SHELL_CACHE = 'apc-shell-' + VERSION;
 const CDN_CACHE = 'apc-cdn-v1';
 const SHELL = ['./', './index.html', './portal.html', './athkar.html', './manifest.webmanifest', './portal.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
@@ -8,7 +8,7 @@ const CDN_HOSTS = ['www.gstatic.com', 'cdn.jsdelivr.net'];
 
 self.addEventListener('install', e => {
   // مفيش skipWaiting تلقائي: التحديث بيتفعّل لما المستخدم يضغط "تحديث" عشان منقطعش عليه زيارة بيسجلها
-  e.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL)));
+  e.waitUntil(caches.open(SHELL_CACHE).then(c => Promise.allSettled(SHELL.map(u => c.add(u)))));
 });
 
 self.addEventListener('activate', e => {

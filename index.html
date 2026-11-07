@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.67)</title>
+<title>Ziedane CRM (v2.68)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -162,6 +162,7 @@ a{color:inherit;}
 .kpi .sub{font-size:11.5px;margin-top:4px;color:var(--gray-500);}
 .kpi .ic{position:absolute;left:14px;top:14px;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;}
 
+.chipBtn{
   padding:9px 14px;border-radius:20px;border:1.5px solid var(--gray-300);background:#fff;font-size:12.5px;font-weight:700;color:var(--gray-700);
   display:flex;align-items:center;gap:6px;
 }
@@ -849,7 +850,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.67';
+const APP_VERSION = '2.68';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -923,7 +924,8 @@ function fmtDate(d){
   const dt = (d.toDate) ? d.toDate() : new Date(d);
   return dt.toLocaleDateString('ar-EG-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'});
 }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+function localISO(d){ d = d || new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function todayISO(){ return localISO(new Date()); }
 function uid(){ return 'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 
 /* ==========================================================================
@@ -1240,21 +1242,6 @@ function toggleMobileMenu(){
 /* ==========================================================================
    AUTH
    ========================================================================== */
-async function ensureDefaultAdmin(){
-  // نحاول ننشئ حساب Auth حقيقي لأول أدمن. لو الحساب موجود بالفعل، هيرجع خطأ email-already-in-use ونتجاهله بأمان
-  const email = usernameToEmail('admin');
-  try{
-    const cred = await auth.createUserWithEmailAndPassword(email, 'admin123');
-    await db.collection('users').doc(cred.user.uid).set({
-      username:'admin', name:'مدير النظام', role:'admin',
-      repId:null, active:true, mustChangePassword:true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    await auth.signOut(); // منسجلش دخول فعلي دلوقتي - ده مجرد إنشاء أول مرة
-  }catch(e){
-    if(e.code !== 'auth/email-already-in-use') throw e;
-  }
-}
-
 async function ensureDefaultVisitResults(){
   const snap = await db.collection('visitResults').limit(1).get();
   if(snap.empty){
@@ -2137,7 +2124,7 @@ function viewDashboard(){
   const visitsToday = list.filter(v=>v.date===today).length;
   const visitsMonth = list.filter(v=>(v.date||'').startsWith(monthPrefix)).length;
   const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-6);
-  const weekAgoISO = weekAgo.toISOString().slice(0,10);
+  const weekAgoISO = localISO(weekAgo);
   const visitsWeek = list.filter(v=>v.date>=weekAgoISO).length;
   const ratings = list.filter(v=>v.rating).map(v=>v.rating);
   const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1) : '-';
@@ -2297,7 +2284,7 @@ function qrTable(headers, rows, totalRow){
 function qrStat(label, val){ return `<div class="qrStat"><b>${val}</b><span>${label}</span></div>`; }
 // تاريخ (YYYY-MM-DD) قبل/بعد تاريخ معيّن بعدد أيام - على نفس أساس todayISO()
 function qrShiftISO(iso, days){ const d = new Date(iso+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+days); return d.toISOString().slice(0,10); }
-function qrDayISO(offset){ const d = new Date(); d.setDate(d.getDate()-offset); return d.toISOString().slice(0,10); }
+function qrDayISO(offset){ const d = new Date(); d.setDate(d.getDate()-offset); return localISO(d); }
 function openKpiReport(key){
   const isRep = CURRENT_USER.role==='rep';
   const list = visibleVisits(), today = todayISO(), yesterday = qrShiftISO(today,-1), month = today.slice(0,7), weekStart = qrShiftISO(today,-6);
@@ -3297,7 +3284,7 @@ function suggestedOrderCardHTML(o, canManage){
       <div style="display:flex;justify-content:space-between;width:100%;">
         <div>
           <div class="nm">${escapeHTML(o.customerName||'')} <span class="smallMuted">#${escapeHTML(o.customerCode||'')}</span></div>
-          <div class="meta">${escapeHTML(o.repName||o.repUsername||'')} · ${o.createdAt && o.createdAt.toDate ? fmtDate(o.createdAt.toDate().toISOString().slice(0,10)) : ''}</div>
+          <div class="meta">${escapeHTML(o.repName||o.repUsername||'')} · ${o.createdAt && o.createdAt.toDate ? fmtDate(localISO(o.createdAt.toDate())) : ''}</div>
         </div>
         <span class="badge ${o.status==='reviewed'?'badge-teal':'badge-amber'}">${o.status==='reviewed'?'تمت المراجعة':'بانتظار المراجعة'}</span>
       </div>
@@ -4292,7 +4279,7 @@ async function saveEditedVisit(id){
 }
 
 function exportVisitsCSV(){
-  let list = visibleVisits();
+  let list = filteredVisits();
   const headers = ['التاريخ','المندوب','كود العميل','اسم العميل','المدينة','المنطقة','حالة الدفع','نتيجة الزيارة','التقييم'];
   const rows = list.map(v=>[v.date, repName(v.repId), v.customerCode, v.customerName, v.city, v.area, v.paymentStatus, v.visitResult, v.rating]);
   let csv = '\uFEFF' + headers.join(',') + '\n' + rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -5172,7 +5159,7 @@ function viewUsers(){
       </div>
       <div class="smallMuted" style="margin-top:10px;">ملحوظة: الاستعادة تضيف/تحدّث البيانات الموجودة في الملف، ولا تحذف أي بيانات حالية غير موجودة فيه.</div>
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-100);">
-        <div class="smallMuted" style="margin-bottom:8px;">📅 نسخ احتياطية تلقائية (آخر 14 يوم):</div>
+        <div class="smallMuted" style="margin-bottom:8px;">📅 نسخ احتياطية تلقائية (آخر 60 يوم):</div>
         <div id="backupsListWrap" class="smallMuted">جاري التحميل...</div>
       </div>
     </div>
@@ -5304,7 +5291,7 @@ async function saveUser(id){
 /* ==========================================================================
    BACKUP & RESTORE
    ========================================================================== */
-const BACKUP_COLLECTIONS = ['reps','customers','visits','claims','visitResults','users','announcements','customerSales','citySales','followups','followupResults','appConfig','salesAnalytics','teamChat','plannedVisits','inventory','bonusOffers','suggestedOrders','orderTemplates'];
+const BACKUP_COLLECTIONS = ['reps','customers','visits','claims','visitResults','users','announcements','customerData','portalOrders','customerSales','citySales','followups','followupResults','appConfig','salesAnalytics','teamChat','plannedVisits','inventory','bonusOffers','suggestedOrders','orderTemplates'];
 
 function serializeDoc(d){
   const out = {};
@@ -6541,7 +6528,7 @@ function lastNDays(n){
   const arr=[];
   for(let i=n-1;i>=0;i--){
     const d=new Date(); d.setDate(d.getDate()-i);
-    arr.push(d.toISOString().slice(0,10));
+    arr.push(localISO(d));
   }
   return arr;
 }
@@ -6708,12 +6695,6 @@ async function boot(){
     const el = document.getElementById(id);
     if(el) el.textContent = `إصدار v${APP_VERSION}`;
   });
-  try{
-    await ensureDefaultAdmin();
-  }catch(e){
-    console.error('Firebase init error', e);
-  }
-
   const versionOk = await checkAppVersion();
   if(!versionOk){ document.getElementById('loadOverlay').style.display='none'; return; }
 
@@ -6738,12 +6719,11 @@ async function boot(){
   });
 }
 
-document.getElementById('lgPass')?.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-window.addEventListener('DOMContentLoaded', boot);
 document.addEventListener('keydown', e=>{
   if(e.key==='Enter' && document.activeElement && document.activeElement.id==='lgPass') doLogin();
 });
-boot();
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
+else boot();
 
 /* ==========================================================================
    CUSTOMER SALES REPORT (مبيعات العملاء) - استيراد سنوي من اكسيل
@@ -7188,7 +7168,7 @@ async function autoBackupIfNeeded(){
 
     // حذف النسخ الأقدم من 60 يوم (تقريباً آخر 8 نسخ أسبوعية) للحفاظ على المساحة
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-60);
-    const cutoffStr = cutoff.toISOString().slice(0,10);
+    const cutoffStr = localISO(cutoff);
     const oldSnap = await db.collection('systemBackups').where(firebase.firestore.FieldPath.documentId(),'<',cutoffStr).get();
     for(const d of oldSnap.docs){
       const chunksSnap = await d.ref.collection('chunks').get();
@@ -7209,7 +7189,7 @@ async function loadRecentBackups(){
   wrap.innerHTML = 'جاري التحميل...';
   try{
     // بنجيب كل المستندات من غير orderBy على معرّف المستند (بيسبب مشاكل توافق في بعض المتصفحات)
-    // ونرتبهم في الجافاسكريبت نفسه - المجموعة أصلاً بيتم تقليمها لآخر 14 يوم تلقائياً فمفيش داعي لـ limit هنا
+    // ونرتبهم في الجافاسكريبت نفسه - المجموعة بيتم تقليمها تلقائياً تلقائياً فمفيش داعي لـ limit هنا
     const snap = await db.collection('systemBackups').get();
     if(snap.empty){ wrap.innerHTML = 'لا توجد نسخ تلقائية بعد - هتتكوّن أول نسخة تلقائياً عند دخول الأدمن'; return; }
     const ids = snap.docs.map(d=>d.id).sort().reverse();
@@ -7575,7 +7555,7 @@ function renderAuditLogTable(){
   if(auditLogFilters.collection) list = list.filter(a=>a.collection===auditLogFilters.collection);
   const rows = list.map(a=>{
     const t = a.timestamp && a.timestamp.toDate ? a.timestamp.toDate() : null;
-    const timeStr = t ? `${fmtDate(t.toISOString().slice(0,10))} ${t.toLocaleTimeString('ar-EG-u-nu-latn',{hour:'2-digit',minute:'2-digit'})}` : '-';
+    const timeStr = t ? `${fmtDate(localISO(t))} ${t.toLocaleTimeString('ar-EG-u-nu-latn',{hour:'2-digit',minute:'2-digit'})}` : '-';
     return `<tr>
       <td>${timeStr}</td>
       <td>${escapeHTML(a.userName||'')} <span class="smallMuted">(${roleLabel(a.userRole)})</span></td>
@@ -8405,7 +8385,7 @@ function monthComparisonCard(){
   const now = new Date();
   const thisMonthKey = todayISO().slice(0,7);
   const lm = new Date(now.getFullYear(), now.getMonth()-1, 1);
-  const lastMonthKey = lm.toISOString().slice(0,7);
+  const lastMonthKey = localISO(lm).slice(0,7);
 
   const thisVisits = VISITS.filter(v=>(v.date||'').startsWith(thisMonthKey)).length;
   const lastVisits = VISITS.filter(v=>(v.date||'').startsWith(lastMonthKey)).length;
@@ -8497,7 +8477,7 @@ function viewStaleCustomersReport(){
       <td>${escapeHTML(c.code)}</td>
       <td>${escapeHTML(c.city)}</td>
       <td>${escapeHTML(c.area||'')}</td>
-      <td>${c.lastVisit ? fmtDate(c.lastVisit) : '<span class="badge badge-red">${noVisitLabel()}</span>'}</td>
+      <td>${c.lastVisit ? fmtDate(c.lastVisit) : `<span class="badge badge-red">${noVisitLabel()}</span>`}</td>
       <td>${c.lastVisit ? `<span class="badge ${c.gap>60?'badge-red':'badge-amber'}">${c.gap} يوم</span>` : '-'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(c.code))})">📝 زيارة</button></td>
     </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:24px;">كل العملاء اتزاروا خلال آخر ${staleThresholdDays} يوم 🎉</td></tr>`;
@@ -9075,7 +9055,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.49 - تشمل بوابة العملاء وبيانات الشركة والنسخ الاحتياطي): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.68): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -9084,18 +9064,23 @@ service cloud.firestore {
 
     // ===== تعريفات الأدوار =====
     function isSignedIn() { return request.auth != null; }
-    // موظف = مستخدم عنده مستند في users (حسابات العملاء مالهاش مستند هناك)
-    function isStaff() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
-    function myProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function profileDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    // موظف = مستخدم عنده مستند في users وحسابه مش موقوف (حسابات العملاء مالهاش مستند هناك)
+    function isStaff() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && profileDoc().data.get('active', true) != false;
+    }
+    function myProfile() { return profileDoc().data; }
     function myRole() { return isStaff() ? myProfile().role : null; }
     function isAdmin() { return myRole() == 'admin'; }
     function isManager() { return myRole() == 'manager'; }
     function isAdminOrManager() { return isAdmin() || isManager(); }
+    function myUsername() { return myProfile().username; }
+    function myRepId() { return myProfile().get('repId', null); }
     // عميل بوابة = مسجّل دخول وعنده مستند في customerPortal وملوش مستند موظف
-    function isCustomer() { return isSignedIn() && !isStaff() && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
+    function isCustomer() { return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
     function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
-    // مجموعات ليها قواعد خاصة ومينفعش القاعدة العامة تفتحها
-    function protectedColl(c) { return c in ['users','appConfig','teamChat','catalog','portalAccounts','customerPortal','portalOrders','systemBackups']; }
 
     // ===== المستخدمون =====
     match /users/{uid} {
@@ -9103,7 +9088,7 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       // المستخدم يحدّث حضوره، ويقدر يقفل علم "لازم يغيّر كلمة المرور" (يتحط false بس) بعد ما يغيّرها
       allow update: if isAdmin() ||
-        (isSignedIn() && request.auth.uid == uid &&
+        (isStaff() && request.auth.uid == uid &&
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt','currentPage','mustChangePassword']) &&
          (!('mustChangePassword' in request.resource.data.diff(resource.data).affectedKeys()) ||
           request.resource.data.mustChangePassword == false));
@@ -9119,19 +9104,82 @@ service cloud.firestore {
 
     // ===== محادثة الفريق =====
     match /teamChat/{id} {
-      allow read, create: if isStaff();
-      allow delete: if isAdminOrManager() || resource.data.senderUsername == myProfile().username;
+      allow read: if isStaff();
+      allow create: if isStaff() && request.resource.data.senderUsername == myUsername();
+      allow delete: if isAdminOrManager() || (isStaff() && resource.data.senderUsername == myUsername());
       allow update: if false;
     }
 
     // ===== النسخ الاحتياطي (مجموعة فرعية chunks جواها) =====
-    // القاعدة العامة بتغطي المستندات الرئيسية بس، فالمجموعات الفرعية لازم قاعدة صريحة وإلا بتتمنع
     match /systemBackups/{date} {
-      allow read, write: if isAdminOrManager();
+      allow read: if isAdminOrManager();
+      allow write: if isAdmin();
       match /chunks/{cid} {
-        allow read, write: if isAdminOrManager();
+        allow read: if isAdminOrManager();
+        allow write: if isAdmin();
       }
     }
+
+    // ===== الزيارات: المندوب يسجّل زياراته هو بس، والتعديل والحذف للأدمن =====
+    match /visits/{id} {
+      allow read: if isStaff();
+      allow create: if isAdminOrManager()
+        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== خطة الزيارات =====
+    match /plannedVisits/{id} {
+      allow read: if isStaff();
+      allow create: if isAdminOrManager()
+        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+      allow update: if isAdmin();
+      allow delete: if isAdminOrManager()
+        || (isStaff() && myRole() == 'rep' && myRepId() != null && resource.data.repId == myRepId());
+    }
+
+    // ===== متابعات التلي سيلز =====
+    match /followups/{id} {
+      allow read: if isStaff();
+      allow create: if isAdminOrManager()
+        || (isStaff() && myRole() == 'telesales' && request.resource.data.telesalesUsername == myUsername());
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== الطلبيات المقترحة من المناديب =====
+    match /suggestedOrders/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && request.resource.data.repUsername == myUsername();
+      allow update, delete: if isAdminOrManager();
+    }
+
+    // ===== بيانات العملاء اللي بيسجلها المناديب (رخصة، كود مكاني...) =====
+    match /customerData/{id} {
+      allow read: if isStaff();
+      allow create, update: if isStaff() && request.resource.data.updatedBy == myUsername();
+      allow delete: if isAdmin();
+    }
+
+    // ===== سجل التعديلات: إضافة فقط (مفيش تعديل ولا حذف) والقراءة للإدارة =====
+    match /auditLog/{id} {
+      allow read: if isAdminOrManager();
+      allow create: if isStaff() && request.resource.data.userName is string;
+      allow update, delete: if false;
+    }
+
+    // ===== بيانات مرجعية: قراءة للموظفين، وكتابة للأدمن (الاستيراد والتعريفات) =====
+    match /reps/{id}               { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /customers/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /claims/{id}             { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /visitResults/{id}       { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /followupResults/{id}    { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /announcements/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /customerSales/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /citySales/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /salesAnalytics/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /inventory/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /bonusOffers/{id}        { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /orderTemplates/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
 
     // ===== بوابة العملاء =====
     // كتالوج الأصناف (أسعار وخصومات وبونص بدون كميات): العميل والموظف يقرأوا، الأدمن بس ينشر
@@ -9147,7 +9195,7 @@ service cloud.firestore {
     // ربط حساب الدخول بكود العميل: بيتعمل مرة واحدة أول دخول، ومربوط بإيميل الحساب نفسه
     match /customerPortal/{uid} {
       allow read: if isStaff() || request.auth.uid == uid;
-      allow create: if isSignedIn() && request.auth.uid == uid && !isStaff()
+      allow create: if isSignedIn() && request.auth.uid == uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && request.resource.data.keys().hasOnly(['code','pwChanged','createdAt'])
         && request.resource.data.pwChanged == false
         && request.auth.token.email == request.resource.data.code + '@portal.apc.local'
@@ -9172,14 +9220,8 @@ service cloud.firestore {
       allow delete: if isAdminOrManager();
     }
 
-    // ===== باقي المجموعات (للموظفين فقط) =====
-    // تنبيه: القاعدة دي بتتجمّع مع القواعد الخاصة (لو أي واحدة سمحت يتسمح)، عشان كده استثنينا المجموعات المحمية فوق
-    match /{collection}/{id} {
-      allow read: if isStaff();
-      allow create, update: if isStaff() && !protectedColl(collection);
-      allow delete: if isAdminOrManager() && !protectedColl(collection);
-    }
+    // أي مجموعة تانية مش مذكورة فوق: مرفوضة (deny by default)
   }
 }
 
-============================================================= -->
+============================================================ -->
