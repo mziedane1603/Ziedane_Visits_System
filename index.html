@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.68)</title>
+<title>Ziedane CRM (v2.69)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -850,7 +850,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.68';
+const APP_VERSION = '2.69';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1570,7 +1570,7 @@ function dataNeededForView(view){
   const role = CURRENT_USER ? CURRENT_USER.role : '';
   switch(view){
     case 'dashboard':
-      if(role==='rep') return ['citySales'].concat(reportsTab==='citycompare' ? ['customerSales'] : []);
+      if(role==='rep') return ['citySales'].concat(['citycompare','repcustomers'].includes(reportsTab) ? ['customerSales'] : []);
       if(role==='telesales') return ['citySales','followups'].concat(reportsTab==='citycompare' ? ['customerSales'] : []);
       return ['citySales','claims','customerSales','followups','plannedVisits','users'].concat(reportsTab==='analytics' ? ['salesAnalytics'] : []);
     case 'addvisit': return ['claims'];
@@ -1878,30 +1878,18 @@ function repCities(){
   if(r && Array.isArray(r.cities) && r.cities.length) return r.cities;
   return null; // null = كل المدن
 }
-function visibleCustomers(){
-  const cities = repCities();
-  if(!cities) return CUSTOMERS;
-  return CUSTOMERS.filter(c=>cities.includes(c.city));
-}
-function visibleClaims(){
-  const cities = repCities();
-  if(!cities) return CLAIMS;
-  return CLAIMS.filter(c=>cities.includes(c.city));
-}
-function visibleCustomerSales(){
-  const cities = repCities();
-  if(!cities) return CUSTOMER_SALES;
-  return CUSTOMER_SALES.filter(c=>cities.includes(c.city));
-}
-function visibleCitySales(){
-  const cities = repCities();
-  if(!cities) return CITY_SALES;
-  return CITY_SALES.filter(c=>cities.includes(c.city));
-}
-function visibleSalesAnalytics(){
-  const cities = repCities();
-  if(!cities) return SALES_ANALYTICS;
-  return SALES_ANALYTICS.filter(c=>cities.includes(c.city));
+// فلترة أي مجموعة بيانات على مدن المندوب/التلي سيلز (null = كل المدن) - بدل 5 دوال متطابقة
+function scopeByCity(list){ const cities = repCities(); return cities ? list.filter(c=>cities.includes(c.city)) : list; }
+function visibleCustomers(){ return scopeByCity(CUSTOMERS); }
+function visibleClaims(){ return scopeByCity(CLAIMS); }
+function visibleCustomerSales(){ return scopeByCity(CUSTOMER_SALES); }
+function visibleCitySales(){ return scopeByCity(CITY_SALES); }
+function visibleSalesAnalytics(){ return scopeByCity(SALES_ANALYTICS); }
+// آخر لقطة يومية لمبيعات المدن في الشهر (مقيّدة بمدن المستخدم) - كانت متكررة في أكتر من مكان وبتعرض كل المدن للمندوب
+function latestCitySalesRows(month){
+  const src = visibleCitySales();
+  const last = src.map(c=>c.date||'').filter(d=>d.startsWith(month)).reduce((m,d)=>d>m?d:m,'');
+  return src.filter(c=>c.date===last);
 }
 function fmtMoney(n){
   n = Number(n)||0;
@@ -1959,12 +1947,7 @@ function renderView(){
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
     { const gt = groupTabsHTML(); if(gt) main.insertAdjacentHTML('afterbegin', gt); }
 
-    if(currentView==='dashboard') setTimeout(drawDashboardCharts, 30);
-    if(currentView==='dashboard') setTimeout(drawReportCharts, 30);
-    if(currentView==='dashboard') setTimeout(drawClaimsChart, 30);
-    if(currentView==='dashboard') setTimeout(drawLeaderboardChart, 30);
-    if(currentView==='dashboard') setTimeout(drawSalesReportCharts, 30);
-    if(currentView==='dashboard') setTimeout(drawCoverageChart, 30);
+    if(currentView==='dashboard') [drawDashboardCharts,drawReportCharts,drawClaimsChart,drawLeaderboardChart,drawSalesReportCharts,drawCoverageChart].forEach(f=>setTimeout(f,30));
     if(currentView==='dashboard' && reportsTab==='analytics') setTimeout(drawSalesAnalyticsCharts, 30);
     if(currentView==='dashboard' && reportsTab==='citycompare') setTimeout(drawCityCompareCharts, 30);
     if(currentView==='customerstatement') setTimeout(drawCustomerStatementChart, 30);
@@ -2341,9 +2324,7 @@ function openKpiReport(key){
       (last.length ? `<div class="qrSub">آخر زيارات التحصيل</div>`+last.map(v=>`<div class="qrLine"><span>${escapeHTML(v.customerName||v.customerCode||'')}</span><small>${escapeHTML(String(v.date||''))}${isRep?'':' · '+escapeHTML(repName(v.repId))}</small></div>`).join('') : ''),
       'كل الزيارات', "goTo('visits')");
   }else if(key==='citysales'){
-    const months = CITY_SALES.map(c=>c.date||'').filter(d=>d.startsWith(month));
-    const last = months.reduce((m,d)=>d>m?d:m,'');
-    const rows = CITY_SALES.filter(c=>c.date===last);
+    const rows = latestCitySalesRows(month); const last = rows.length ? rows[0].date : '';
     if(!rows.length){ openQuickReport('💰 مبيعات المدن','<div class="emptyState">مفيش بيانات مبيعات مدن لهذا الشهر</div>'); return; }
     const sorted = rows.slice().sort((a,b)=>(Number(b.netSales)||0)-(Number(a.netSales)||0));
     const net = rows.reduce((a,c)=>a+(Number(c.netSales)||0),0), act = rows.reduce((a,c)=>a+(Number(c.customersActive)||0),0);
@@ -2494,8 +2475,7 @@ function asIntents(qn){
     out.push(['🛒', `طلبيات بوابة جديدة: <b>${n}</b>`, "closeAssistant();goTo('portalorders')", 'فتح الطلبيات']);
   }
   if(has('مبيعات') || has('عملاء متعاملين') || has('متعامل')){
-    const months = CITY_SALES.map(c=>c.date||'').filter(d=>d.startsWith(month)), last = months.reduce((m,d)=>d>m?d:m,'');
-    const rows = CITY_SALES.filter(c=>c.date===last);
+    const rows = latestCitySalesRows(month), last = rows.length ? rows[0].date : '';
     const hit = rows.filter(c=>c.city && qn.includes(asNorm(c.city)));
     hit.slice(0,3).forEach(c=>{ const t = Number(c.salesTarget)||0, net = Number(c.netSales)||0;
       out.push(['🏙️', `${escapeHTML(c.city)}: مبيعات <b>${fmtMoney(net)}</b>${t>0?` (${Math.round(net/t*100)}% من الهدف)`:''} · ${Number(c.customersActive)||0} عميل متعامل`, '', '']); });
@@ -6175,11 +6155,51 @@ function printClaims(){
 let reportsTab = 'overview';
 let repReportFilters = {repId:'', month: todayISO().slice(0,7)};
 
+
+/* ---------- تقرير "عملائي": اتجاه مبيعات عملاء المندوب (توقفوا / تراجعوا / الأفضل) ---------- */
+let repCustYear = null;
+function setRepCustYear(y){ repCustYear = y; renderView(); }
+function viewRepCustomersTrend(){
+  const years = availableSalesYears();
+  if(!years.includes(repCustYear)) repCustYear = years[0];
+  const yearSel = `<select onchange="setRepCustYear(Number(this.value))">${years.map(y=>`<option value="${y}" ${repCustYear===y?'selected':''}>${y}</option>`).join('')}</select>`;
+  const list = visibleCustomerSales().filter(c=>c.year===repCustYear);
+  if(!list.length) return `<div class="card"><div class="pageHead"><h2 style="font-size:15px;">عملائي</h2>${yearSel}</div><div class="emptyState">مفيش بيانات مبيعات لعملائك في ${repCustYear}.</div></div>`;
+  const rows = list.map(c=>({c, m:MONTH_KEYS.map(k=>Number(c[k])||0)}));
+  const tot = Array(12).fill(0); rows.forEach(r=>r.m.forEach((v,i)=>tot[i]+=v));
+  let cur = 11; while(cur>0 && !(tot[cur]>0)) cur--;           // آخر شهر فيه مبيعات
+  rows.forEach(r=>{ r.total = r.m.reduce((a,b)=>a+b,0); r.cur = r.m[cur]; r.prev = cur>0 ? r.m[cur-1] : 0; });
+  const stopped = rows.filter(r=>r.prev>0 && r.cur<=0).sort((a,b)=>b.prev-a.prev);
+  const dropped = rows.filter(r=>r.prev>0 && r.cur>0 && r.cur<r.prev*0.7).sort((a,b)=>(b.prev-b.cur)-(a.prev-a.cur));
+  const top = rows.slice().sort((a,b)=>b.total-a.total).slice(0,10);
+  const activeNow = rows.filter(r=>r.cur>0).length, yearTotal = tot.reduce((a,b)=>a+b,0);
+  const btn = r=>`<button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(r.c.code))})">📝 زيارة</button>`;
+  const nm = r=>`<td style="white-space:normal;min-width:140px;">${escapeHTML(r.c.name)}<div class="smallMuted">${escapeHTML(r.c.code)} · ${escapeHTML(r.c.city||'')}</div></td>`;
+  const card = (title, desc, head, arr, rowFn, emptyMsg)=>`<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">${title}</h2><div class="desc">${desc}</div></div>
+    <div class="tableWrap"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}<th></th></tr></thead><tbody>${arr.slice(0,40).map(rowFn).join('') || `<tr><td colspan="${head.length+1}" style="text-align:center;color:var(--gray-500);padding:18px;">${emptyMsg}</td></tr>`}</tbody></table></div></div>`;
+  const kpi = (ic,l,v)=>`<div class="kpi2"><div class="kic" style="background:var(--teal-light);color:var(--teal-dark);">${ic}</div><div class="kbody"><div class="klbl">${l}</div><div class="kval" style="font-size:17px;">${v}</div></div></div>`;
+  return `
+    <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">عملائي - ${repCustYear}</h2>${yearSel}</div>
+      <div class="kpis" style="margin-bottom:0;">
+        ${kpi('💰','مبيعات السنة', fmtMoney(yearTotal))}
+        ${kpi('👥','متعاملين في '+MONTH_LABELS[cur], activeNow+' من '+rows.length)}
+        ${kpi('🛑','وقفوا عن الشراء', stopped.length)}
+        ${kpi('📉','تراجعوا 30%+', dropped.length)}
+      </div>
+      <div class="smallMuted" style="margin-top:6px;">المقارنة بين ${MONTH_LABELS[cur]} و${cur>0?MONTH_LABELS[cur-1]:'-'}. لو الشهر لسه شغال، بعض العملاء ممكن ما اشتروش لحد دلوقتي.</div></div>
+    ${card('🛑 عملاء وقفوا الشراء','اشتروا الشهر اللي قبله ومشتروش '+MONTH_LABELS[cur],['العميل','الشهر السابق'],stopped,r=>`<tr>${nm(r)}<td>${fmtMoney(r.prev)}</td><td>${btn(r)}</td></tr>`,'مفيش عملاء وقفوا 🎉')}
+    ${card('📉 عملاء مبيعاتهم نزلت','نزلوا 30% أو أكتر عن الشهر السابق',['العميل','السابق','الحالي'],dropped,r=>`<tr>${nm(r)}<td>${fmtMoney(r.prev)}</td><td>${fmtMoney(r.cur)}</td><td>${btn(r)}</td></tr>`,'مفيش تراجع كبير')}
+    ${card('🏆 أفضل 10 عملاء','حسب إجمالي مبيعات '+repCustYear,['العميل','الإجمالي','آخر شهر'],top,r=>`<tr>${nm(r)}<td>${fmtMoney(r.total)}</td><td>${fmtMoney(r.cur)}</td><td>${btn(r)}</td></tr>`,'-')}`;
+}
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
+    const RT = [['repmatrix','📊 أدائي'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['stale','⏰ محتاجين زيارة']];
+    if(!RT.some(x=>x[0]===reportsTab)) reportsTab = 'repmatrix';
+    const bodies = {repmatrix:viewRepMatrixReport, citycompare:viewCityYearCompare, repcustomers:viewRepCustomersTrend, stale:viewStaleCustomersReport};
     return `
-      <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">تقاريري</h2><div class="desc">تقرير أدائك الشهري بالتفصيل</div></div></div>
-      ${viewRepMatrixReport()}
+      <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">تقاريري</h2><div class="desc">أداؤك، ومبيعات مدنك على مدار السنة، وعملاؤك</div></div></div>
+      <div class="segRow">${RT.map(x=>`<button class="seg ${reportsTab===x[0]?'on':''}" onclick="setReportsTab('${x[0]}')">${x[1]}</button>`).join('')}</div>
+      ${bodies[reportsTab]()}
     `;
   }
   if(CURRENT_USER.role==='telesales'){
@@ -9055,7 +9075,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.68): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.69): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
