@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.69)</title>
+<title>Ziedane CRM (v2.70)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -681,6 +681,9 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .rbUnit{font-weight:800;color:var(--gray-500);font-size:13px;}
 .rbCond .rbSales{margin-top:6px;}
 .rbCtrls select{padding:6px 8px;border:1.5px solid #D5E3E1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff;}
+.iChip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--gray-100,#f1f3f5);margin:3px 3px 0 0;}
+.iCh{border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700;}.iCh.ok{border-color:#0f7a6b;background:rgba(15,122,107,.08);}
+.iAlert{border-inline-start:4px solid #f59e0b;padding:6px 10px;margin:6px 0;background:var(--gray-50,#f9fafb);border-radius:6px;}.iAlert.red{border-inline-start-color:#dc2626;}
 </style>
 </head>
 <body>
@@ -850,7 +853,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.69';
+const APP_VERSION = '2.70';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1101,7 +1104,7 @@ const REPORT_GROUPS = [
   {label:'📊 نظرة عامة', tabs:[['overview','نظرة عامة']]},
   {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['leaderboard','لوحة الأداء'],['routeadherence','الالتزام بالخطة']]},
   {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['citycompare','مقارنة المدن سنوياً'],['analytics','تحليلات المبيعات']]},
-  {label:'🏥 العملاء', tabs:[['stale','بدون زيارة'],['coverage','تغطية المدن']]},
+  {label:'🏥 العملاء', tabs:[['stale','بدون زيارة'],['coverage','تغطية المدن'],['abc','تصنيف ABC والخطر'],['dataquality','جودة البيانات']]},
   {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
 ];
 const REPORT_DRAW = {overview:'drawReportCharts', leaderboard:'drawLeaderboardChart', sales:'drawSalesReportCharts', citycompare:'drawCityCompareCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
@@ -1570,7 +1573,7 @@ function dataNeededForView(view){
   const role = CURRENT_USER ? CURRENT_USER.role : '';
   switch(view){
     case 'dashboard':
-      if(role==='rep') return ['citySales'].concat(['citycompare','repcustomers'].includes(reportsTab) ? ['customerSales'] : []);
+      if(role==='rep') return ['citySales','customerSales','claims'];
       if(role==='telesales') return ['citySales','followups'].concat(reportsTab==='citycompare' ? ['customerSales'] : []);
       return ['citySales','claims','customerSales','followups','plannedVisits','users'].concat(reportsTab==='analytics' ? ['salesAnalytics'] : []);
     case 'addvisit': return ['claims'];
@@ -2161,6 +2164,7 @@ function viewDashboard(){
     </div>
     <div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>
+    ${homeExtrasHTML()}
     ${dashboardAttentionHTML(list)}
     ${CURRENT_USER.role==='rep' ? repStaleCustomersWidgetHTML() : ''}
     ${topRepsCardHTML()}
@@ -6174,7 +6178,7 @@ function viewRepCustomersTrend(){
   const top = rows.slice().sort((a,b)=>b.total-a.total).slice(0,10);
   const activeNow = rows.filter(r=>r.cur>0).length, yearTotal = tot.reduce((a,b)=>a+b,0);
   const btn = r=>`<button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(r.c.code))})">📝 زيارة</button>`;
-  const nm = r=>`<td style="white-space:normal;min-width:140px;">${escapeHTML(r.c.name)}<div class="smallMuted">${escapeHTML(r.c.code)} · ${escapeHTML(r.c.city||'')}</div></td>`;
+  const nm = r=>`<td style="white-space:normal;min-width:140px;">${custLink(r.c)}<div class="smallMuted">${escapeHTML(r.c.code)} · ${escapeHTML(r.c.city||'')}</div></td>`;
   const card = (title, desc, head, arr, rowFn, emptyMsg)=>`<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">${title}</h2><div class="desc">${desc}</div></div>
     <div class="tableWrap"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}<th></th></tr></thead><tbody>${arr.slice(0,40).map(rowFn).join('') || `<tr><td colspan="${head.length+1}" style="text-align:center;color:var(--gray-500);padding:18px;">${emptyMsg}</td></tr>`}</tbody></table></div></div>`;
   const kpi = (ic,l,v)=>`<div class="kpi2"><div class="kic" style="background:var(--teal-light);color:var(--teal-dark);">${ic}</div><div class="kbody"><div class="klbl">${l}</div><div class="kval" style="font-size:17px;">${v}</div></div></div>`;
@@ -6191,11 +6195,239 @@ function viewRepCustomersTrend(){
     ${card('📉 عملاء مبيعاتهم نزلت','نزلوا 30% أو أكتر عن الشهر السابق',['العميل','السابق','الحالي'],dropped,r=>`<tr>${nm(r)}<td>${fmtMoney(r.prev)}</td><td>${fmtMoney(r.cur)}</td><td>${btn(r)}</td></tr>`,'مفيش تراجع كبير')}
     ${card('🏆 أفضل 10 عملاء','حسب إجمالي مبيعات '+repCustYear,['العميل','الإجمالي','آخر شهر'],top,r=>`<tr>${nm(r)}<td>${fmtMoney(r.total)}</td><td>${fmtMoney(r.cur)}</td><td>${btn(r)}</td></tr>`,'-')}`;
 }
+
+/* ==========================================================================
+   v2.70 - ذكاء العملاء: تصنيف ABC، درجة خطر الفقدان، خطة اليوم، بطاقة 360،
+   هدف/حافز، تحديات وسلاسل التزام، تنبيهات المدير، جودة البيانات
+   ========================================================================== */
+const ABC_INTERVAL = {A:14, B:30, C:60, D:90};   // أقصى فترة مقبولة بين زيارتين لكل فئة (بالأيام)
+function gapDays(iso){ return iso ? Math.max(0, Math.floor((Date.now()-new Date(iso+'T00:00:00').getTime())/864e5)) : 9999; }
+function normName(s){ return String(s||'').replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase(); }
+let _intel = null;
+function crmIntel(){
+  const today = todayISO(), key = [VISITS.length, CUSTOMER_SALES.length, CLAIMS.length, CUSTOMERS.length, today, CURRENT_USER.username, (repCities()||[]).join()].join('|');
+  if(_intel && _intel.key===key) return _intel;
+  const yr = Number(today.slice(0,4)), cur = 12 + Number(today.slice(5,7)) - 1, series = {};
+  CUSTOMER_SALES.forEach(c=>{
+    if(!c.code || (c.year!==yr && c.year!==yr-1)) return;
+    const s = series[c.code] || (series[c.code] = Array(24).fill(0)), off = c.year===yr ? 12 : 0;
+    MONTH_KEYS.forEach((k,i)=>{ s[off+i] += Number(c[k])||0; });
+  });
+  const lastV = {}, todayN = {}, cnt90 = {}, rsum = {}, d90 = localISO(new Date(Date.now()-90*864e5));
+  VISITS.forEach(v=>{
+    const cd = v.customerCode; if(!cd) return;
+    if(v.date===today){ todayN[cd] = 1; return; }                       // زيارات النهارده بتتحسب لوحدها عشان الأولويات متتغيرش بعد الزيارة
+    if(!lastV[cd] || v.date>lastV[cd]) lastV[cd] = v.date;
+    if(v.date>=d90){ cnt90[cd] = (cnt90[cd]||0)+1; rsum[cd] = (rsum[cd]||0)+(Number(v.rating)||0); }
+  });
+  const claimBy = {}; CLAIMS.forEach(c=>{ const n = Number(c.netSales)||0; if(c.code && n>0) claimBy[c.code] = (claimBy[c.code]||0)+n; });
+  const avg = (s,a,b)=>{ let t=0,n=0; for(let i=a;i<=b;i++){ if(i>=0&&i<24){ t+=s[i]; n++; } } return n ? t/n : 0; };
+  const list = scopeByCity(CUSTOMERS).map(c=>{
+    const s = series[c.code] || Array(24).fill(0), total12 = s.slice(cur-11, cur+1).reduce((a,b)=>a+b,0);
+    const lastFull = s[cur-1], prev = s[cur-2], recent = avg(s,cur-3,cur-1), base = avg(s,cur-9,cur-4), gap = gapDays(lastV[c.code]);
+    let risk = null; const why = [];
+    if(total12>0){
+      risk = 0;
+      if(base>0 && recent<base){ const d = 1-recent/base; risk += Math.round(d*50); if(d>=.3) why.push('مبيعاته نازلة '+Math.round(d*100)+'%'); }
+      if(prev>0 && lastFull<=0){ risk += 20; why.push('وقف يشتري'); }
+      else if(lastFull>0 && s[cur]<=0 && Number(today.slice(8))>15){ risk += 12; why.push('لسه ما اشتراش الشهر ده'); }
+      risk += gap>=45 ? 15 : gap>=30 ? 8 : 0;
+      risk = Math.min(100, risk);
+    }
+    return {c, s, cur, total12, risk, why, gap, lastVisit:lastV[c.code]||null, visitedToday:!!todayN[c.code], visits90:cnt90[c.code]||0, avgRating:cnt90[c.code] ? rsum[c.code]/cnt90[c.code] : 0, claim:claimBy[c.code]||0};
+  });
+  const sorted = list.filter(x=>x.total12>0).sort((a,b)=>b.total12-a.total12), grand = sorted.reduce((a,x)=>a+x.total12,0);
+  let cum = 0; sorted.forEach(x=>{ x.abc = cum/grand<0.7 ? 'A' : cum/grand<0.9 ? 'B' : 'C'; cum += x.total12; });
+  list.forEach(x=>{
+    if(!x.abc) x.abc = 'D';
+    x.interval = ABC_INTERVAL[x.abc];
+    let sc = (x.risk||0)*0.45 + Math.min(1, x.gap/x.interval)*30 + {A:15,B:8,C:3,D:0}[x.abc];
+    const reasons = x.why.slice();
+    if(x.claim>0){ sc += 15; reasons.push('عليه مطالبة '+fmtMoney(x.claim)); }
+    if(x.gap>=x.interval) reasons.push(x.gap>=9999 ? 'عمره ما اتزار' : 'بقاله '+x.gap+' يوم بدون زيارة');
+    if(x.abc==='A') reasons.push('عميل A');
+    x.score = Math.round(sc); x.reasons = reasons;
+  });
+  return _intel = {key, list, byCode:Object.fromEntries(list.map(x=>[x.c.code, x]))};
+}
+function riskBadge(x){
+  if(x.risk==null) return '<span class="badge">بدون مبيعات</span>';
+  const k = x.risk>=60 ? ['badge-red','🔴 خطر عالي'] : x.risk>=35 ? ['badge-amber','🟠 متوسط'] : ['','🟢 مستقر'];
+  return `<span class="badge ${k[0]}">${k[1]} · ${x.risk}</span>`;
+}
+const abcBadge = x=>`<span class="badge" style="font-weight:800;">${x.abc}</span>`;
+const custLink = (c)=>`<a href="#" onclick="openCustomer360(${escapeHTML(JSON.stringify(c.code))});return false;" style="font-weight:700;">${escapeHTML(c.name)}</a>`;
+const visitBtn2 = c=>`<button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(c.code))})">📝 زيارة</button>`;
+
+/* ---------- بطاقة العميل 360° ---------- */
+function openCustomer360(code){
+  const x = crmIntel().byCode[code]; if(!x){ toast('العميل مش في نطاقك','warn'); return; }
+  const c = x.c, I = crmIntel();
+  const last3 = VISITS.filter(v=>v.customerCode===code).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,3);
+  const vals = x.s.slice(x.cur-11, x.cur+1), mx = Math.max(...vals, 1), yr = Number(todayISO().slice(5,7))-1;
+  const bars = vals.map((v,i)=>{ const h = Math.round(v/mx*44), mIdx = (yr-11+i+120)%12;
+    return `<rect x="${i*20+2}" y="${50-h}" width="14" height="${Math.max(h,1)}" rx="2" fill="${i===11?'#0f7a6b':'#7fc4b9'}"><title>${MONTH_LABELS[mIdx]}: ${fmtMoney(v)}</title></rect><text x="${i*20+9}" y="60" font-size="6" text-anchor="middle" fill="#888">${MONTH_SHORT[mIdx]}</text>`; }).join('');
+  const action = x.reasons.length ? x.reasons.join(' · ') : 'العميل مستقر ✅ - كمّل بنفس الوتيرة';
+  const m = document.createElement('div'); m.className = 'modalBg';
+  m.innerHTML = `<div class="modal">
+    <h3>${escapeHTML(c.name)} <span class="smallMuted">${escapeHTML(c.code)}</span></h3>
+    <div class="smallMuted" style="margin-bottom:8px;">${escapeHTML(c.city||'')} ${c.area?'- '+escapeHTML(c.area):''} · ${abcBadge(x)} ${riskBadge(x)}</div>
+    <div style="margin-bottom:8px;">${callWhatsAppButtonsHTML(c.phone)}${visitBtn2(c)}</div>
+    <div class="goal"><div class="goalSub" style="margin:0;"><b>💡 المطلوب:</b> ${escapeHTML(action)}</div></div>
+    <div class="kpis" style="margin:8px 0;">
+      <div class="kpi2"><div class="kbody"><div class="klbl">آخر زيارة</div><div class="kval" style="font-size:15px;">${x.lastVisit?fmtDate(x.lastVisit):'لا يوجد'}</div><div class="smallMuted">${x.gap<9999?x.gap+' يوم (الحد '+x.interval+')':''}</div></div></div>
+      <div class="kpi2"><div class="kbody"><div class="klbl">زيارات آخر 90 يوم</div><div class="kval" style="font-size:15px;">${x.visits90}</div><div class="smallMuted">${x.avgRating?'تقييم '+x.avgRating.toFixed(1):''}</div></div></div>
+      <div class="kpi2"><div class="kbody"><div class="klbl">مبيعات 12 شهر</div><div class="kval" style="font-size:15px;">${fmtMoney(x.total12)}</div></div></div>
+      <div class="kpi2"><div class="kbody"><div class="klbl">مطالبات</div><div class="kval" style="font-size:15px;">${x.claim?fmtMoney(x.claim):'لا يوجد'}</div></div></div>
+    </div>
+    <svg viewBox="0 0 240 64" style="width:100%;height:auto;direction:ltr;">${bars}</svg>
+    <div class="secTitle" style="margin-top:8px;">آخر زيارات</div>
+    ${last3.map(v=>`<div class="qrLine"><span>${fmtDate(v.date)} · ${escapeHTML(v.visitResult||'-')}</span><small>${v.rating?'⭐'.repeat(Math.min(5,v.rating)):''}</small></div>`).join('') || '<div class="smallMuted">لا توجد زيارات</div>'}
+    <div class="modalActions"><button class="btn btn-ghost" onclick="this.closest('.modalBg').remove()">إغلاق</button></div></div>`;
+  document.body.appendChild(m);
+}
+
+/* ---------- خطة اليوم الذكية ---------- */
+function smartPlanHTML(){
+  const I = crmIntel(), done = I.list.filter(x=>x.visitedToday).length;
+  const plan = I.list.filter(x=>!x.visitedToday && x.score>=25).sort((a,b)=>b.score-a.score).slice(0,10);
+  const rows = plan.map(x=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--gray-200,#e5e7eb);">
+      <div style="flex:1;min-width:170px;">${custLink(x.c)} ${abcBadge(x)}<div class="smallMuted">${escapeHTML(x.c.city||'')} ${x.c.area?'- '+escapeHTML(x.c.area):''}</div>
+      <div>${x.reasons.slice(0,3).map(r=>`<span class="iChip">${escapeHTML(r)}</span>`).join('')}</div></div>
+      ${callWhatsAppButtonsHTML(x.c.phone)}${visitBtn2(x.c)}</div>`).join('');
+  return `<div class="card"><div class="pageHead" style="margin-bottom:4px;"><div><h2 style="font-size:15px;">🧭 خطة يومك الذكية</h2><div class="desc">أهم العملاء اللي محتاجين زيارة النهارده (${done} اتزاروا النهارده)</div></div></div>
+    ${rows || '<div class="emptyState"><div class="t">مفيش عملاء ملحّين النهارده 🎉</div></div>'}</div>`;
+}
+
+/* ---------- هدفي وحافزي ---------- */
+function targetBonusCardHTML(){
+  const month = todayISO().slice(0,7), now = new Date(), dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(), daysLeft = Math.max(1, dim-now.getDate()+1);
+  const rows = latestCitySalesRows(month), tgt = rows.reduce((a,c)=>a+(Number(c.salesTarget)||0),0), net = rows.reduce((a,c)=>a+(Number(c.netSales)||0),0);
+  let cityPart = '';
+  if(tgt>0){
+    const pct = Math.round(net/tgt*100), rem = Math.max(0, tgt-net), elapsed = Math.round(now.getDate()/dim*100);
+    cityPart = `<div class="goalTop"><span>🏙️ هدف مبيعات مدنك</span><span><b>${pct}%</b> · ${fmtMoney(net)} من ${fmtMoney(tgt)}</span></div>
+      <div class="goalBar"><div class="goalFill" style="width:${Math.min(100,pct)}%"></div><div class="goalTick" style="right:${elapsed}%"></div></div>
+      <div class="goalSub">${rem>0 ? `باقي ${fmtMoney(rem)} ≈ ${fmtMoney(Math.ceil(rem/daysLeft))} في اليوم لمدة ${daysLeft} يوم` : 'تم تحقيق الهدف 🎉'}</div>`;
+  }
+  let bonusPart = '';
+  try{
+    const r = repBonusRowsForMonth(month).find(x=>x.repId===CURRENT_USER.repId);
+    if(r && r.parts.some(p=>p.enabled)) bonusPart = `<div class="goalTop" style="margin-top:10px;"><span>💰 حافزك المتوقع لحد دلوقتي</span><span><b>${fmtMoney(r.bonus)}</b></span></div>
+      <div>${r.parts.filter(p=>p.enabled).map(p=>`<span class="iChip">${p.ic} ${escapeHTML(p.label)}: ${escapeHTML(String(p.info||'-'))} → ${fmtMoney(p.amount)}</span>`).join('')}</div>`;
+  }catch(e){}
+  return (cityPart||bonusPart) ? `<div class="card"><div class="goal" style="margin:0;">${cityPart}${bonusPart}</div></div>` : '';
+}
+
+/* ---------- تحديات اليوم وسلسلة الالتزام ---------- */
+function challengesHTML(){
+  const today = todayISO(), mine = visibleVisits(), td = mine.filter(v=>v.date===today), r = currentRep(), mt = Number(r&&r.monthlyVisitTarget)||0;
+  const dailyGoal = mt>0 ? Math.max(3, Math.ceil(mt/22)) : 6, I = crmIntel();
+  const important = td.filter(v=>{ const x = I.byCode[v.customerCode]; return x && x.score>=40; }).length;
+  const rated = td.filter(v=>v.rating), avgR = rated.length ? rated.reduce((a,v)=>a+v.rating,0)/rated.length : 0;
+  const dates = new Set(mine.map(v=>v.date)); let d = new Date(), streak = 0;
+  if(!dates.has(localISO(d))) d.setDate(d.getDate()-1);
+  for(let i=0;i<150;i++){ if(d.getDay()===5){ d.setDate(d.getDate()-1); continue; } if(dates.has(localISO(d))){ streak++; d.setDate(d.getDate()-1); } else break; }   // الجمعة إجازة ومبتقطعش السلسلة
+  const ch = (ic,t,n,g,extra)=>{ const ok = n>=g; return `<div class="iCh ${ok?'ok':''}"><div>${ok?'✅':ic} ${t}</div><div class="goalBar" style="margin:4px 0;"><div class="goalFill" style="width:${Math.min(100,Math.round(n/g*100))}%"></div></div><div class="smallMuted">${extra||n+' / '+g}</div></div>`; };
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🔥 تحديات اليوم</h2><div class="desc">${streak>0?`سلسلة التزامك: <b>${streak}</b> يوم متتالي`:'ابدأ سلسلة التزام جديدة النهارده'}</div></div>
+    <div class="grid grid-3" style="gap:8px;">
+      ${ch('🎯','زياراتك اليوم', td.length, dailyGoal)}
+      ${ch('🧭','زور 3 من عملاء الخطة', important, 3)}
+      ${ch('⭐','جودة: متوسط تقييم 4+', rated.length>=2 && avgR>=4 ? 1 : 0, 1, rated.length>=2 ? 'متوسطك '+avgR.toFixed(1) : 'محتاج زيارتين متقيّمتين')}
+    </div></div>`;
+}
+
+/* ---------- تنبيهات المدير ---------- */
+function collectAlerts(){
+  const today = todayISO(), now = new Date(), out = [], reps = REPS.filter(r=>r.active!==false), mp = today.slice(0,7);
+  const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(), elapsed = Math.round(now.getDate()/dim*100);
+  if(now.getHours()>=12 && now.getDay()!==5){
+    const idle = reps.filter(r=>!VISITS.some(v=>v.repId===r.id && v.date===today));
+    if(idle.length) out.push({lv:'red', ic:'🕛', t:`${idle.length} مندوب لسه ما سجّلوش أي زيارة النهارده`, d:idle.map(r=>r.name).join('، ')});
+  }
+  if(elapsed>=20){
+    const slow = reps.map(r=>{ const tg = Number(r.monthlyVisitTarget)||0; if(!tg) return null; const dn = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(mp)).length, pct = Math.round(dn/tg*100); return pct<elapsed-15 ? {r,pct} : null; }).filter(Boolean);
+    if(slow.length) out.push({lv:'amber', ic:'🐢', t:`${slow.length} مندوب متأخرين عن معدل هدف الزيارات (المفروض ${elapsed}%)`, d:slow.map(x=>x.r.name+' '+x.pct+'%').join('، ')});
+  }
+  if(now.getDate()>=15){
+    const low = latestCitySalesRows(mp).filter(c=>cityAchievementPct(c)<CITY_THRESHOLDS.salesMinPct);
+    if(low.length) out.push({lv:'amber', ic:'🏙️', t:`${low.length} مدينة تحت حد تحقيق المبيعات`, d:low.map(c=>c.city+' '+Math.round(cityAchievementPct(c))+'%').join('، ')});
+  }
+  const I = crmIntel(), hot = I.list.filter(x=>x.abc==='A' && x.risk>=60).sort((a,b)=>b.risk-a.risk);
+  if(hot.length) out.push({lv:'red', ic:'🚨', t:`${hot.length} عميل فئة A في خطر فقدان`, d:hot.slice(0,6).map(x=>x.c.name).join('، ')});
+  const stopped = I.list.filter(x=>x.why.includes('وقف يشتري')).length;
+  if(stopped) out.push({lv:'amber', ic:'🛑', t:`${stopped} عميل وقفوا الشراء الشهر ده`, d:'افتح تقارير ← العملاء ← تصنيف ABC والخطر'});
+  return out;
+}
+function managerAlertsHTML(){
+  const a = collectAlerts();
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🚨 تنبيهات اليوم</h2>${a.length?`<button class="btn btn-outline btn-sm" onclick="shareAlertsWhatsApp()">📤 واتساب</button>`:''}</div>
+    ${a.map(x=>`<div class="iAlert ${x.lv}"><b>${x.ic} ${escapeHTML(x.t)}</b><div class="smallMuted">${escapeHTML(x.d)}</div></div>`).join('') || '<div class="emptyState"><div class="t">مفيش تنبيهات - كله تمام ✅</div></div>'}</div>`;
+}
+function shareAlertsWhatsApp(){
+  const txt = `🚨 تنبيهات ${fmtDateArabic(todayISO())}\n\n` + collectAlerts().map(x=>`${x.ic} ${x.t}\n${x.d}`).join('\n\n');
+  window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
+function homeExtrasHTML(){
+  try{
+    if(CURRENT_USER.role==='rep') return challengesHTML() + targetBonusCardHTML() + smartPlanHTML();
+    if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager') return managerAlertsHTML();
+  }catch(e){ console.error('home extras', e); }
+  return '';
+}
+
+/* ---------- تقرير تصنيف ABC والخطر ---------- */
+let abcFilter = 'all';
+function setAbcFilter(k){ abcFilter = k; renderView(); }
+function viewAbcRiskReport(){
+  const I = crmIntel(), cnt = {A:0,B:0,C:0,D:0}, sal = {A:0,B:0,C:0,D:0};
+  I.list.forEach(x=>{ cnt[x.abc]++; sal[x.abc] += x.total12; });
+  const all = I.list.reduce((a,x)=>a+x.total12,0) || 1, riskN = I.list.filter(x=>x.risk>=60).length;
+  let list = I.list.slice();
+  if(['A','B','C','D'].includes(abcFilter)) list = list.filter(x=>x.abc===abcFilter);
+  else if(abcFilter==='risk') list = list.filter(x=>x.risk>=60);
+  list.sort((a,b)=>b.score-a.score);
+  const seg = (k,l)=>`<button class="seg ${abcFilter===k?'on':''}" onclick="setAbcFilter('${k}')">${l}</button>`;
+  const rows = list.slice(0,80).map(x=>`<tr><td style="white-space:normal;min-width:150px;">${custLink(x.c)}<div class="smallMuted">${escapeHTML(x.c.code)} · ${escapeHTML(x.c.city||'')}</div></td><td>${abcBadge(x)}</td><td>${riskBadge(x)}</td>
+    <td>${x.lastVisit?fmtDate(x.lastVisit):'-'}<div class="smallMuted">${x.gap<9999?x.gap+' يوم / الحد '+x.interval:'لم يُزَر'}</div></td><td>${fmtMoney(x.total12)}</td><td>${visitBtn2(x.c)}</td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;">لا يوجد</td></tr>';
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🎯 تصنيف العملاء ودرجة الخطر</h2></div>
+    <div class="kpis" style="margin-bottom:6px;">${['A','B','C','D'].map(k=>`<div class="kpi2"><div class="kbody"><div class="klbl">فئة ${k} ${k==='D'?'(بدون مبيعات)':''}</div><div class="kval" style="font-size:17px;">${cnt[k]} عميل</div><div class="smallMuted">${Math.round(sal[k]/all*100)}% من المبيعات · زيارة كل ${ABC_INTERVAL[k]} يوم</div></div></div>`).join('')}</div>
+    <div class="segRow">${seg('all','الكل')}${seg('A','A')}${seg('B','B')}${seg('C','C')}${seg('D','D')}${seg('risk','🔴 خطر عالي ('+riskN+')')}</div>
+    <div class="tableWrap"><table><thead><tr><th>العميل</th><th>الفئة</th><th>الخطر</th><th>آخر زيارة</th><th>مبيعات 12 شهر</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="smallMuted" style="margin-top:6px;">A = أعلى عملاء بيحققوا 70% من المبيعات، B = لحد 90%، C = الباقي. الخطر (0-100) من نزول مبيعات آخر 3 شهور عن المتوسط السابق، وتوقف الشراء، وطول فترة عدم الزيارة. مرتبين حسب أولوية الزيارة.</div></div>`;
+}
+
+/* ---------- تقرير جودة بيانات العملاء ---------- */
+function viewDataQualityReport(){
+  const cs = CUSTOMERS, digits = p=>String(p||'').replace(/\D/g,'').replace(/^20/,'0');
+  const group = (keyFn)=>{ const m = {}; cs.forEach(c=>{ const k = keyFn(c); if(k) (m[k] = m[k]||[]).push(c); }); return Object.values(m).filter(g=>g.length>1); };
+  const noPhone = cs.filter(c=>!c.phone), badPhone = cs.filter(c=>c.phone && !/^01[0125]\d{8}$/.test(digits(c.phone))), noLoc = cs.filter(c=>!c.city || !c.area);
+  const dupPhone = group(c=>digits(c.phone).length>=10 ? digits(c.phone) : ''), dupCode = group(c=>String(c.code||'').trim());
+  const dupName = group(c=>normName(c.name)).filter(g=>new Set(g.map(c=>c.code)).size>1);
+  const have = new Set(cs.map(c=>c.code)), orphan = {}; CUSTOMER_SALES.forEach(c=>{ if(c.code && !have.has(c.code)) orphan[c.code] = c.name||''; });
+  const orphanList = Object.entries(orphan);
+  const problem = new Set([...noPhone,...badPhone,...noLoc,...dupPhone.flat(),...dupCode.flat(),...dupName.flat()].map(c=>c.id));
+  const health = cs.length ? Math.round((1-problem.size/cs.length)*100) : 100;
+  const edit = c=>`<button class="btn btn-ghost btn-sm" onclick="openCustomerModal('${escapeHTML(c.id)}')">✏️ تعديل</button>`;
+  const line = c=>`<div class="qrLine"><span>${escapeHTML(c.name||'-')} · ${escapeHTML(c.code||'')} ${c.phone?'· '+escapeHTML(c.phone):''}</span>${edit(c)}</div>`;
+  const sec = (ic,title,n,body)=>`<div class="card"><div class="pageHead" style="margin-bottom:4px;"><h2 style="font-size:14px;">${ic} ${title}</h2><span class="badge ${n?'badge-amber':''}">${n}</span></div>${n?body:'<div class="smallMuted">سليم ✅</div>'}</div>`;
+  const grp = g=>`<div style="border-top:1px solid var(--gray-200,#e5e7eb);padding:4px 0;">${g.map(line).join('')}</div>`;
+  return `<div class="card"><div class="pageHead"><h2 style="font-size:15px;">🧹 جودة بيانات العملاء</h2></div>
+    <div class="kpis"><div class="kpi2"><div class="kbody"><div class="klbl">سلامة البيانات</div><div class="kval" style="font-size:19px;">${health}%</div><div class="smallMuted">${problem.size} عميل فيهم ملاحظات من ${cs.length}</div></div></div></div></div>
+    ${sec('📵','عملاء بدون رقم هاتف',noPhone.length,noPhone.slice(0,40).map(line).join(''))}
+    ${sec('⚠️','رقم هاتف غير صحيح',badPhone.length,badPhone.slice(0,40).map(line).join(''))}
+    ${sec('📍','بدون مدينة أو منطقة',noLoc.length,noLoc.slice(0,40).map(line).join(''))}
+    ${sec('👯','نفس رقم الهاتف لأكتر من عميل',dupPhone.length,dupPhone.slice(0,20).map(grp).join(''))}
+    ${sec('🔁','كود مكرر',dupCode.length,dupCode.slice(0,20).map(grp).join(''))}
+    ${sec('🔎','أسماء متشابهة بأكواد مختلفة (احتمال عميل مكرر)',dupName.length,dupName.slice(0,20).map(grp).join(''))}
+    ${sec('🧩','عملاء في ملف المبيعات وغير مسجلين',orphanList.length,orphanList.slice(0,40).map(([k,v])=>`<div class="qrLine"><span>${escapeHTML(v)} · ${escapeHTML(k)}</span></div>`).join(''))}`;
+}
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
-    const RT = [['repmatrix','📊 أدائي'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['stale','⏰ محتاجين زيارة']];
+    const RT = [['repmatrix','📊 أدائي'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['stale','⏰ محتاجين زيارة'],['abc','🎯 تصنيف عملائي']];
     if(!RT.some(x=>x[0]===reportsTab)) reportsTab = 'repmatrix';
-    const bodies = {repmatrix:viewRepMatrixReport, citycompare:viewCityYearCompare, repcustomers:viewRepCustomersTrend, stale:viewStaleCustomersReport};
+    const bodies = {repmatrix:viewRepMatrixReport, citycompare:viewCityYearCompare, repcustomers:viewRepCustomersTrend, stale:viewStaleCustomersReport, abc:viewAbcRiskReport};
     return `
       <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">تقاريري</h2><div class="desc">أداؤك، ومبيعات مدنك على مدار السنة، وعملاؤك</div></div></div>
       <div class="segRow">${RT.map(x=>`<button class="seg ${reportsTab===x[0]?'on':''}" onclick="setReportsTab('${x[0]}')">${x[1]}</button>`).join('')}</div>
@@ -6220,7 +6452,9 @@ function viewReportsBody(){
     stale: viewStaleCustomersReport,
     coverage: viewCoverageReport,
     routeadherence: viewRouteAdherenceReport,
-    analytics: viewSalesAnalytics
+    analytics: viewSalesAnalytics,
+    abc: viewAbcRiskReport,
+    dataquality: viewDataQualityReport
   };
   return `
     <div class="rpt">
@@ -9075,7 +9309,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.69): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.70): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
