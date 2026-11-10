@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.71)</title>
+<title>Ziedane CRM (v2.72)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -683,7 +683,8 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .rbCtrls select{padding:6px 8px;border:1.5px solid #D5E3E1;border-radius:9px;font-family:inherit;font-size:12.5px;background:#fff;}
 .iChip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--gray-100,#f1f3f5);margin:3px 3px 0 0;}
 .iCh{border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700;}.iCh.ok{border-color:#0f7a6b;background:rgba(15,122,107,.08);}
-.iAlert{border-inline-start:4px solid #f59e0b;padding:6px 10px;margin:6px 0;background:var(--gray-50,#f9fafb);border-radius:6px;}.iAlert.red{border-inline-start-color:#dc2626;}
+.iAlert{border-inline-start:4px solid #f59e0b;padding:6px 10px;margin:6px 0;background:var(--gray-50,#f9fafb);border-radius:6px;}.iAlert.go{cursor:pointer;transition:background .15s;}.iAlert.go:hover,.iAlert.go:focus{background:var(--teal-light,#e6f4f1);outline:none;}.iGo{font-size:11px;color:var(--teal-dark,#0f7a6b);font-weight:700;float:left;}
+.iAlert.red{border-inline-start-color:#dc2626;}
 </style>
 </head>
 <body>
@@ -853,7 +854,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.71';
+const APP_VERSION = '2.72';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -6369,26 +6370,26 @@ function collectAlerts(){
   const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(), elapsed = Math.round(now.getDate()/dim*100);
   if(now.getHours()>=12 && now.getDay()!==5){
     const idle = reps.filter(r=>!VISITS.some(v=>v.repId===r.id && v.date===today));
-    if(idle.length) out.push({lv:'red', ic:'🕛', t:`${idle.length} مندوب لسه ما سجّلوش أي زيارة النهارده`, d:idle.map(r=>r.name).join('، ')});
+    if(idle.length) out.push({lv:'red', ic:'🕛', t:`${idle.length} مندوب لسه ما سجّلوش أي زيارة النهارده`, d:idle.map(r=>r.name).join('، '), go:"openReport('repssummary')"});
   }
   if(elapsed>=20){
     const slow = reps.map(r=>{ const tg = Number(r.monthlyVisitTarget)||0; if(!tg) return null; const dn = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(mp)).length, pct = Math.round(dn/tg*100); return pct<elapsed-15 ? {r,pct} : null; }).filter(Boolean);
-    if(slow.length) out.push({lv:'amber', ic:'🐢', t:`${slow.length} مندوب متأخرين عن معدل هدف الزيارات (المفروض ${elapsed}%)`, d:slow.map(x=>x.r.name+' '+x.pct+'%').join('، ')});
+    if(slow.length) out.push({lv:'amber', ic:'🐢', t:`${slow.length} مندوب متأخرين عن معدل هدف الزيارات (المفروض ${elapsed}%)`, d:slow.map(x=>x.r.name+' '+x.pct+'%').join('، '), go:"openReport('leaderboard')"});
   }
   if(now.getDate()>=15){
     const low = latestCitySalesRows(mp).filter(c=>cityAchievementPct(c)<CITY_THRESHOLDS.salesMinPct);
-    if(low.length) out.push({lv:'amber', ic:'🏙️', t:`${low.length} مدينة تحت حد تحقيق المبيعات`, d:low.map(c=>c.city+' '+Math.round(cityAchievementPct(c))+'%').join('، ')});
+    if(low.length) out.push({lv:'amber', ic:'🏙️', t:`${low.length} مدينة تحت حد تحقيق المبيعات`, d:low.map(c=>c.city+' '+Math.round(cityAchievementPct(c))+'%').join('، '), go:"goTo('citysales')"});
   }
   const I = crmIntel(), hot = I.list.filter(x=>x.abc==='A' && x.risk>=60).sort((a,b)=>b.risk-a.risk);
-  if(hot.length) out.push({lv:'red', ic:'🚨', t:`${hot.length} عميل فئة A في خطر فقدان`, d:hot.slice(0,6).map(x=>x.c.name).join('، ')});
-  const stopped = I.list.filter(x=>x.why.includes('وقف يشتري')).length;
-  if(stopped) out.push({lv:'amber', ic:'🛑', t:`${stopped} عميل وقفوا الشراء الشهر ده`, d:'افتح تقارير ← العملاء ← تصنيف ABC والخطر'});
+  if(hot.length) out.push({lv:'red', ic:'🚨', t:`${hot.length} عميل فئة A في خطر فقدان`, d:hot.slice(0,6).map(x=>x.c.name).join('، '), go:"openReport('abc','risk')"});
+  const stoppedList = I.list.filter(x=>x.why.includes('وقف يشتري')), stopped = stoppedList.length, stoppedNames = stoppedList.slice(0,6).map(x=>x.c.name).join('، ');
+  if(stopped) out.push({lv:'amber', ic:'🛑', t:`${stopped} عميل وقفوا الشراء الشهر ده`, d:stoppedNames, go:"openReport('abc','stopped')"});
   return out;
 }
 function managerAlertsHTML(){
   const a = collectAlerts();
   return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🚨 تنبيهات اليوم</h2>${a.length?`<button class="btn btn-outline btn-sm" onclick="shareAlertsWhatsApp()">📤 واتساب</button>`:''}</div>
-    ${a.map(x=>`<div class="iAlert ${x.lv}"><b>${x.ic} ${escapeHTML(x.t)}</b><div class="smallMuted">${escapeHTML(x.d)}</div></div>`).join('') || '<div class="emptyState"><div class="t">مفيش تنبيهات - كله تمام ✅</div></div>'}</div>`;
+    ${a.map(x=>`<div class="iAlert ${x.lv} go" role="button" tabindex="0" onclick="${x.go}" onkeydown="if(event.key==='Enter')${x.go}"><b>${x.ic} ${escapeHTML(x.t)}</b> <span class="iGo">اضغط للفتح ‹</span><div class="smallMuted">${escapeHTML(x.d)}</div></div>`).join('') || '<div class="emptyState"><div class="t">مفيش تنبيهات - كله تمام ✅</div></div>'}</div>`;
 }
 function shareAlertsWhatsApp(){
   const txt = `🚨 تنبيهات ${fmtDateArabic(todayISO())}\n\n` + collectAlerts().map(x=>`${x.ic} ${x.t}\n${x.d}`).join('\n\n');
@@ -6405,6 +6406,16 @@ function homeExtrasHTML(){
 
 /* ---------- تقرير تصنيف ABC والخطر ---------- */
 let abcFilter = 'all';
+// فتح تقرير معيّن من أي مكان (من التنبيهات مثلاً): بيروح للرئيسية، يختار التبويب والفلتر، وينزل للتقرير
+function openReport(tab, filter){
+  if(filter) abcFilter = filter;
+  reportsTab = tab;
+  if(currentView!=='dashboard') goTo('dashboard'); else renderView();
+  setTimeout(()=>{
+    const f = REPORT_DRAW[tab]; if(f && typeof window[f]==='function') window[f]();
+    const el = document.querySelector('.rpt'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 120);
+}
 function setAbcFilter(k){ abcFilter = k; renderView(); }
 function viewAbcRiskReport(){
   const I = crmIntel(), cnt = {A:0,B:0,C:0,D:0}, sal = {A:0,B:0,C:0,D:0};
@@ -6413,13 +6424,14 @@ function viewAbcRiskReport(){
   let list = I.list.slice();
   if(['A','B','C','D'].includes(abcFilter)) list = list.filter(x=>x.abc===abcFilter);
   else if(abcFilter==='risk') list = list.filter(x=>x.risk>=60);
+  else if(abcFilter==='stopped') list = list.filter(x=>x.why.includes('وقف يشتري'));
   list.sort((a,b)=>b.score-a.score);
   const seg = (k,l)=>`<button class="seg ${abcFilter===k?'on':''}" onclick="setAbcFilter('${k}')">${l}</button>`;
   const rows = list.slice(0,80).map(x=>`<tr><td style="white-space:normal;min-width:150px;">${custLink(x.c)}<div class="smallMuted">${escapeHTML(x.c.code)} · ${escapeHTML(x.c.city||'')}</div></td><td>${abcBadge(x)}</td><td>${riskBadge(x)}</td>
     <td>${x.lastVisit?fmtDate(x.lastVisit):'-'}<div class="smallMuted">${x.gap<9999?x.gap+' يوم / الحد '+x.interval:'لم يُزَر'}</div></td><td>${fmtMoney(x.total12)}</td><td>${visitBtn2(x.c)}</td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;">لا يوجد</td></tr>';
   return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🎯 تصنيف العملاء ودرجة الخطر</h2></div>
     <div class="kpis" style="margin-bottom:6px;">${['A','B','C','D'].map(k=>`<div class="kpi2"><div class="kbody"><div class="klbl">فئة ${k} ${k==='D'?'(بدون مبيعات)':''}</div><div class="kval" style="font-size:17px;">${cnt[k]} عميل</div><div class="smallMuted">${Math.round(sal[k]/all*100)}% من المبيعات · زيارة كل ${ABC_INTERVAL[k]} يوم</div></div></div>`).join('')}</div>
-    <div class="segRow">${seg('all','الكل')}${seg('A','A')}${seg('B','B')}${seg('C','C')}${seg('D','D')}${seg('risk','🔴 خطر عالي ('+riskN+')')}</div>
+    <div class="segRow">${seg('all','الكل')}${seg('A','A')}${seg('B','B')}${seg('C','C')}${seg('D','D')}${seg('risk','🔴 خطر عالي ('+riskN+')')}${seg('stopped','🛑 وقفوا الشراء')}</div>
     <div class="tableWrap"><table><thead><tr><th>العميل</th><th>الفئة</th><th>الخطر</th><th>آخر زيارة</th><th>مبيعات 12 شهر</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="smallMuted" style="margin-top:6px;">A = أعلى عملاء بيحققوا 70% من المبيعات، B = لحد 90%، C = الباقي. الخطر (0-100) من نزول مبيعات آخر 3 شهور عن المتوسط السابق، وتوقف الشراء، وطول فترة عدم الزيارة. مرتبين حسب أولوية الزيارة.</div></div>`;
 }
@@ -9335,7 +9347,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.71): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.72): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
