@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.70)</title>
+<title>Ziedane CRM (v2.71)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -28,7 +28,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <style>
 :root{
@@ -853,7 +853,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.70';
+const APP_VERSION = '2.71';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1399,7 +1399,7 @@ function openForceChangePasswordModal(){
     <div class="modal" style="max-width:380px;">
       <h3>🔒 لازم تغيّر كلمة المرور</h3>
       <p class="smallMuted">أنت بتستخدم كلمة مرور مؤقتة - من فضلك اختار كلمة مرور جديدة قبل الاستمرار.</p>
-      <div class="field"><label>كلمة المرور الجديدة</label><input id="fcpNew" type="password" placeholder="6 أحرف على الأقل"></div>
+      <div class="field"><label>كلمة المرور الجديدة</label><input id="fcpNew" type="password" placeholder="8 أحرف على الأقل"></div>
       <div class="field"><label>تأكيد كلمة المرور</label><input id="fcpConfirm" type="password"></div>
       <div id="fcpErr" style="color:var(--red);font-size:12px;min-height:16px;"></div>
       <div class="modalActions"><button class="btn btn-primary" style="width:100%;" onclick="submitForceChangePassword()">حفظ وتأكيد</button></div>
@@ -1410,7 +1410,7 @@ async function submitForceChangePassword(){
   const p1 = document.getElementById('fcpNew').value;
   const p2 = document.getElementById('fcpConfirm').value;
   const errBox = document.getElementById('fcpErr');
-  if(p1.length<6){ errBox.textContent='كلمة المرور لازم تكون 6 أحرف على الأقل'; return; }
+  if(p1.length<8){ errBox.textContent='كلمة المرور لازم تكون 8 أحرف على الأقل'; return; }
   if(p1!==p2){ errBox.textContent='كلمتا المرور غير متطابقتين'; return; }
   try{
     await auth.currentUser.updatePassword(p1);
@@ -1430,7 +1430,7 @@ function openChangePasswordModal(){
     <div class="modal" style="max-width:380px;">
       <h3>🔑 تغيير كلمة المرور</h3>
       <div class="field"><label>كلمة المرور الحالية</label><input id="cpOld" type="password"></div>
-      <div class="field"><label>كلمة المرور الجديدة</label><input id="cpNew" type="password" placeholder="6 أحرف على الأقل"></div>
+      <div class="field"><label>كلمة المرور الجديدة</label><input id="cpNew" type="password" placeholder="8 أحرف على الأقل"></div>
       <div class="field"><label>تأكيد كلمة المرور الجديدة</label><input id="cpConfirm" type="password"></div>
       <div id="cpErr" style="color:var(--red);font-size:12px;min-height:16px;"></div>
       <div class="modalActions">
@@ -1446,7 +1446,7 @@ async function submitChangePassword(){
   const p2 = document.getElementById('cpConfirm').value;
   const errBox = document.getElementById('cpErr');
   if(!oldPass){ errBox.textContent='ادخل كلمة المرور الحالية'; return; }
-  if(p1.length<6){ errBox.textContent='كلمة المرور الجديدة لازم تكون 6 أحرف على الأقل'; return; }
+  if(p1.length<8){ errBox.textContent='كلمة المرور الجديدة لازم تكون 8 أحرف على الأقل'; return; }
   if(p1!==p2){ errBox.textContent='كلمتا المرور غير متطابقتين'; return; }
   try{
     const cred = firebase.auth.EmailAuthProvider.credential(usernameToEmail(CURRENT_USER.username), oldPass);
@@ -1614,6 +1614,31 @@ function ensureDataForView(view){
 function renderIfNeeds(coll){
   if(dataNeededForView(currentView).includes(coll) || (coll==='followups' && isAdminLike() && currentView==='dashboard')) renderView();
 }
+
+/* ==========================================================================
+   تقييد القراءة بمدن المستخدم (متوافق مع firestore.rules): قواعد الأمان مش فلتر، فالاستعلام نفسه لازم يكون مقيّد.
+   مندوب/تلي سيلز له مدن => listener لكل مدينة (==) وندمج النتائج. أدمن/مدير أو بدون مدن => listener واحد.
+   ========================================================================== */
+let _scopePromise = null;
+function scopeCitiesAsync(){
+  if(_scopePromise) return _scopePromise;
+  const role = CURRENT_USER.role;
+  if(role==='telesales') _scopePromise = Promise.resolve(Array.isArray(CURRENT_USER.cities) ? CURRENT_USER.cities : []);
+  else if(role==='rep' && CURRENT_USER.repId) _scopePromise = db.collection('reps').doc(CURRENT_USER.repId).get().then(d=>(d.exists && Array.isArray(d.data().cities)) ? d.data().cities : []).catch(()=>[]);
+  else _scopePromise = Promise.resolve([]);
+  return _scopePromise;
+}
+function scopedListen(coll, onData){
+  scopeCitiesAsync().then(cities=>{
+    const map = d=>({id:d.id, ...d.data()}), err = e=>console.error(coll+' listener', e);
+    if(!cities.length){ unsubs.push(db.collection(coll).onSnapshot(s=>onData(s.docs.map(map)), err)); return; }
+    const parts = {};
+    [...new Set(cities)].forEach(city=>{
+      unsubs.push(db.collection(coll).where('city','==',city).onSnapshot(s=>{ parts[city] = s.docs.map(map); onData([].concat(...Object.values(parts))); }, err));
+    });
+  });
+}
+function lazyScoped(name, coll, setter){ DATA_ATTACHERS[name] = ()=>scopedListen(coll, list=>{ setter(list); renderIfNeeds(name); }); }
 function lazyListen(name, query, onData){
   DATA_ATTACHERS[name] = ()=>{
     unsubs.push(query().onSnapshot(snap=>{ onData(snap); }, err=>console.error(name+' listener', err)));
@@ -1630,9 +1655,9 @@ DATA_ATTACHERS['cdFields'] = ()=>{
     if(currentView==='dashboard' && !document.activeElement?.closest?.('input,textarea,select')) renderView();
   }, err=>console.error('cdFields listener', err)));
 };
-lazyListen('claims', ()=>db.collection('claims'), snap=>{ CLAIMS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('claims'); });
-lazyListen('customerSales', ()=>db.collection('customerSales'), snap=>{ CUSTOMER_SALES = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('customerSales'); });
-lazyListen('citySales', ()=>db.collection('citySales'), snap=>{ CITY_SALES = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('citySales'); });
+lazyScoped('claims', 'claims', l=>{ CLAIMS = l; });
+lazyScoped('customerSales', 'customerSales', l=>{ CUSTOMER_SALES = l; });
+lazyScoped('citySales', 'citySales', l=>{ CITY_SALES = l; });
 lazyListen('salesAnalytics', ()=>db.collection('salesAnalytics'), snap=>{ SALES_ANALYTICS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('salesAnalytics'); });
 lazyListen('plannedVisits', ()=>db.collection('plannedVisits'), snap=>{ PLANNED_VISITS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('plannedVisits'); });
 lazyListen('inventory', ()=>db.collection('inventory'), snap=>{ INVENTORY = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('inventory'); });
@@ -1752,7 +1777,8 @@ function attachVisitsListener(){
   if(!visitsFromISO) visitsFromISO = visitsDefaultFrom();
   if(visitsUnsub){ try{ visitsUnsub(); }catch(e){} }
   visitsFirstLoad = true;
-  visitsUnsub = db.collection('visits').where('date','>=',visitsFromISO).orderBy('date','desc').onSnapshot(snap=>{
+  let vq = db.collection('visits'); if(CURRENT_USER.role==='rep') vq = vq.where('repId','==',CURRENT_USER.repId);   // مطلوب لقواعد الأمان (فهرس: repId تصاعدي + date تنازلي)
+  visitsUnsub = vq.where('date','>=',visitsFromISO).orderBy('date','desc').onSnapshot(snap=>{
     if(!visitsFirstLoad && isAdminLike()){
       snap.docChanges().forEach(ch=>{
         if(ch.type==='added'){
@@ -1825,10 +1851,10 @@ function attachListeners(){
     if(currentView==='announcements') renderView();
   }, err=>console.error('announcements listener', err)));
 
-  unsubs.push(db.collection('customers').orderBy('code').onSnapshot(snap=>{
-    CUSTOMERS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  scopedListen('customers', list=>{
+    CUSTOMERS = list.sort((a,b)=>String(a.code||'')<String(b.code||'') ? -1 : String(a.code||'')>String(b.code||'') ? 1 : 0);
     renderView();
-  }, err=>console.error('customers listener', err)));
+  });
 
   attachVisitsListener();
 
@@ -5173,7 +5199,7 @@ function openUserModal(id){
       <div class="field"><label>الاسم</label><input id="mUName" value="${escapeHTML(u?.name||'')}"></div>
       <div class="field"><label>اسم المستخدم (تسجيل الدخول)</label><input id="mUUsername" value="${escapeHTML(u?.username||'')}" ${u?'disabled':''}></div>
       ${u ? `<div class="smallMuted" style="margin:-6px 0 10px;">اسم المستخدم وكلمة المرور مالهمش تغيير من هنا بعد التحديث الأمني - المستخدم يقدر يغيّر كلمة سره بنفسه من داخل حسابه، أو كلّم الأدمن التقني لو محتاج Reset فعلي.</div>`
-        : `<div class="field"><label>كلمة المرور</label><input id="mUPass" type="password" placeholder="6 أحرف على الأقل"></div>`}
+        : `<div class="field"><label>كلمة المرور</label><input id="mUPass" type="password" placeholder="8 أحرف على الأقل"></div>`}
       <div class="field"><label>الصلاحية (الدور)</label>
         <select id="mURole" data-original-role="${u?.role||''}" onchange="onUserRoleChange()">
           <option value="rep" ${u?.role==='rep'?'selected':''}>مندوب مبيعات</option>
@@ -5241,7 +5267,7 @@ async function saveUser(id){
   const pass = id ? '' : document.getElementById('mUPass').value;
   const role = document.getElementById('mURole').value;
   if(!username){ toast('اسم المستخدم مطلوب','warn'); return; }
-  if(!id && pass.length<6){ toast('كلمة المرور لازم تكون 6 أحرف على الأقل','warn'); return; }
+  if(!id && pass.length<8){ toast('كلمة المرور لازم تكون 8 أحرف على الأقل','warn'); return; }
   const permissions = {};
   document.querySelectorAll('#permChecklist .permCheckbox').forEach(cb=>{ permissions[cb.dataset.page] = cb.checked; });
   const payload = {
@@ -9309,7 +9335,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.70): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.71): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -9332,13 +9358,23 @@ service cloud.firestore {
     function isAdminOrManager() { return isAdmin() || isManager(); }
     function myUsername() { return myProfile().username; }
     function myRepId() { return myProfile().get('repId', null); }
+    function isRep() { return myRole() == 'rep' && myRepId() != null; }
     // عميل بوابة = مسجّل دخول وعنده مستند في customerPortal وملوش مستند موظف
     function isCustomer() { return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
     function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
 
-    // ===== المستخدمون =====
+    // ===== نطاق المدن: المندوب (من مستند reps) والتلي سيلز (من مستند users) =====
+    // قايمة فاضية = كل المدن (نفس سلوك التطبيق). لو عايز تمنع المندوب من غير مدن، غيّر الشرط size() == 0 إلى false.
+    function myCities() {
+      return isRep() ? get(/databases/$(database)/documents/reps/$(myRepId())).data.get('cities', [])
+           : (myRole() == 'telesales' ? myProfile().get('cities', []) : []);
+    }
+    function inMyCities(city) { return isAdminOrManager() || myCities().size() == 0 || city in myCities(); }
+    function sameCity() { return isStaff() && inMyCities(resource.data.get('city', '')); }
+
+    // ===== المستخدمون: كل واحد يقرا مستنده، والإدارة تقرا الكل =====
     match /users/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdminOrManager());
       allow create, delete: if isAdmin();
       // المستخدم يحدّث حضوره، ويقدر يقفل علم "لازم يغيّر كلمة المرور" (يتحط false بس) بعد ما يغيّرها
       allow update: if isAdmin() ||
@@ -9364,7 +9400,7 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // ===== النسخ الاحتياطي (مجموعة فرعية chunks جواها) =====
+    // ===== النسخ الاحتياطي =====
     match /systemBackups/{date} {
       allow read: if isAdminOrManager();
       allow write: if isAdmin();
@@ -9374,11 +9410,20 @@ service cloud.firestore {
       }
     }
 
-    // ===== الزيارات: المندوب يسجّل زياراته هو بس، والتعديل والحذف للأدمن =====
+    // ===== الزيارات =====
+    // المندوب يقرا زياراته هو بس (الاستعلام لازم يحتوي where repId == ...)، والإدارة والتلي سيلز يقروا الكل
     match /visits/{id} {
-      allow read: if isStaff();
+      allow read: if isAdminOrManager() || myRole() == 'telesales'
+        || (isRep() && resource.data.get('repId', '') == myRepId());
       allow create: if isAdminOrManager()
-        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+        || (isRep() && request.resource.data.repId == myRepId()
+            && request.resource.data.keys().hasOnly(['repId','customerCode','customerName','city','area','paymentStatus','visitResult','rating','date','createdAt','createdBy'])
+            && request.resource.data.keys().hasAll(['repId','customerCode','date','createdAt','createdBy'])
+            && request.resource.data.createdBy == myUsername()
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.date is string
+            && request.resource.data.date.matches('^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+            && (!('rating' in request.resource.data) || (request.resource.data.rating is number && request.resource.data.rating >= 0 && request.resource.data.rating <= 10)));
       allow update, delete: if isAdmin();
     }
 
@@ -9386,10 +9431,10 @@ service cloud.firestore {
     match /plannedVisits/{id} {
       allow read: if isStaff();
       allow create: if isAdminOrManager()
-        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+        || (isRep() && request.resource.data.repId == myRepId());
       allow update: if isAdmin();
       allow delete: if isAdminOrManager()
-        || (isStaff() && myRole() == 'rep' && myRepId() != null && resource.data.repId == myRepId());
+        || (isRep() && resource.data.repId == myRepId());
     }
 
     // ===== متابعات التلي سيلز =====
@@ -9407,46 +9452,54 @@ service cloud.firestore {
       allow update, delete: if isAdminOrManager();
     }
 
-    // ===== بيانات العملاء اللي بيسجلها المناديب (رخصة، كود مكاني...) =====
+    // ===== بيانات العملاء اللي بيسجلها المناديب =====
     match /customerData/{id} {
       allow read: if isStaff();
       allow create, update: if isStaff() && request.resource.data.updatedBy == myUsername();
       allow delete: if isAdmin();
     }
 
-    // ===== سجل التعديلات: إضافة فقط (مفيش تعديل ولا حذف) والقراءة للإدارة =====
+    // ===== سجل التعديلات: إضافة فقط، بشكل ثابت، وبهوية المستخدم الحقيقية (مينفعش يتزوّر) =====
     match /auditLog/{id} {
       allow read: if isAdminOrManager();
-      allow create: if isStaff() && request.resource.data.userName is string;
+      allow create: if isStaff()
+        && request.resource.data.keys().hasOnly(['action','collection','label','userName','userRole','timestamp'])
+        && request.resource.data.keys().hasAll(['action','userName','userRole','timestamp'])
+        && request.resource.data.userRole == myRole()
+        && request.resource.data.userName in [myProfile().get('name', ''), myUsername()]
+        && request.resource.data.timestamp == request.time
+        && request.resource.data.action is string && request.resource.data.action.size() <= 200
+        && (!('label' in request.resource.data) || (request.resource.data.label is string && request.resource.data.label.size() <= 500))
+        && (!('collection' in request.resource.data) || (request.resource.data.collection is string && request.resource.data.collection.size() <= 100));
       allow update, delete: if false;
     }
 
-    // ===== بيانات مرجعية: قراءة للموظفين، وكتابة للأدمن (الاستيراد والتعريفات) =====
+    // ===== بيانات مرجعية عامة للموظفين: كتابة للأدمن =====
     match /reps/{id}               { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /customers/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /claims/{id}             { allow read: if isStaff(); allow write: if isAdmin(); }
     match /visitResults/{id}       { allow read: if isStaff(); allow write: if isAdmin(); }
     match /followupResults/{id}    { allow read: if isStaff(); allow write: if isAdmin(); }
     match /announcements/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /customerSales/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /citySales/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /salesAnalytics/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
     match /inventory/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
     match /bonusOffers/{id}        { allow read: if isStaff(); allow write: if isAdmin(); }
     match /orderTemplates/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
 
+    // ===== بيانات مقيّدة بمدن المستخدم (الاستعلام لازم يحتوي where city == ...) =====
+    match /customers/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /claims/{id}             { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /customerSales/{id}      { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /citySales/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
+    // تحليلات المبيعات: للإدارة فقط
+    match /salesAnalytics/{id}     { allow read: if isAdminOrManager(); allow write: if isAdmin(); }
+
     // ===== بوابة العملاء =====
-    // كتالوج الأصناف (أسعار وخصومات وبونص بدون كميات): العميل والموظف يقرأوا، الأدمن بس ينشر
     match /catalog/{id} {
       allow read: if isStaff() || isCustomer();
       allow write: if isAdmin();
     }
-    // قايمة الأكواد المسموح لها تدخل البوابة: العميل يقرأ بياناته هو بس
     match /portalAccounts/{key} {
       allow read: if isStaff() || (isCustomer() && myKey() == key);
       allow write: if isAdmin();
     }
-    // ربط حساب الدخول بكود العميل: بيتعمل مرة واحدة أول دخول، ومربوط بإيميل الحساب نفسه
     match /customerPortal/{uid} {
       allow read: if isStaff() || request.auth.uid == uid;
       allow create: if isSignedIn() && request.auth.uid == uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -9459,7 +9512,6 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pwChanged']);
       allow delete: if isAdmin();
     }
-    // طلبيات العملاء: العميل يضيف ويقرأ طلبياته بس، والموظفين يقروا ويحدّثوا الحالة
     match /portalOrders/{id} {
       allow create: if isCustomer()
         && request.resource.data.uid == request.auth.uid
