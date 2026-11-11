@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.72)</title>
+<title>Ziedane CRM (v2.73)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -684,6 +684,7 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .iChip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--gray-100,#f1f3f5);margin:3px 3px 0 0;}
 .iCh{border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700;}.iCh.ok{border-color:#0f7a6b;background:rgba(15,122,107,.08);}
 .iAlert{border-inline-start:4px solid #f59e0b;padding:6px 10px;margin:6px 0;background:var(--gray-50,#f9fafb);border-radius:6px;}.iAlert.go{cursor:pointer;transition:background .15s;}.iAlert.go:hover,.iAlert.go:focus{background:var(--teal-light,#e6f4f1);outline:none;}.iGo{font-size:11px;color:var(--teal-dark,#0f7a6b);font-weight:700;float:left;}
+.ctIn{width:100%;padding:8px;margin:4px 0 8px;border:1px solid var(--gray-300,#d1d5db);border-radius:8px;font:inherit;background:var(--white,#fff);color:inherit;}
 .iAlert.red{border-inline-start-color:#dc2626;}
 </style>
 </head>
@@ -854,7 +855,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.72';
+const APP_VERSION = '2.73';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1105,6 +1106,7 @@ const REPORT_GROUPS = [
   {label:'📊 نظرة عامة', tabs:[['overview','نظرة عامة']]},
   {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['leaderboard','لوحة الأداء'],['routeadherence','الالتزام بالخطة']]},
   {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['citycompare','مقارنة المدن سنوياً'],['analytics','تحليلات المبيعات']]},
+  {label:'🏆 المنافسة', tabs:[['contests','المسابقات والجوايز']]},
   {label:'🏥 العملاء', tabs:[['stale','بدون زيارة'],['coverage','تغطية المدن'],['abc','تصنيف ABC والخطر'],['dataquality','جودة البيانات']]},
   {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
 ];
@@ -1856,6 +1858,10 @@ function attachListeners(){
     CUSTOMERS = list.sort((a,b)=>String(a.code||'')<String(b.code||'') ? -1 : String(a.code||'')>String(b.code||'') ? 1 : 0);
     renderView();
   });
+  // المنافسة والمسابقات (ملخصات مجمّعة ينشرها الأدمن/المدير)
+  unsubs.push(db.collection('leaderboard').doc(todayISO().slice(0,7)).onSnapshot(s=>{ COMPETITION = s.exists ? s.data() : null; if(currentView==='dashboard') renderView(); }, e=>console.error('leaderboard', e)));
+  unsubs.push(db.collection('contests').onSnapshot(s=>{ CONTESTS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='dashboard') renderView(); }, e=>console.error('contests', e)));
+  if(['admin','manager'].includes(CURRENT_USER.role) && !window._pubTimer){ setTimeout(()=>publishCompetition(false), 20000); window._pubTimer = setInterval(()=>publishCompetition(false), 10*60*1000); }
 
   attachVisitsListener();
 
@@ -2305,6 +2311,8 @@ function openKpiReport(key){
   const reps = REPS.filter(r=>r.active!==false);
   const repName = id => (REPS.find(r=>r.id===id)||{}).name || '-';
   const full = tab => isRep ? '' : `openReportTab('${tab}')`;
+  if(isRep && key==='rating'){ openQuickReport('⭐ ملخص التقييم (هذا الشهر)', compRatingBody()+compUpdatedLine(), 'كل المنافسة', "openReport('compete')"); return; }
+  if(isRep && key==='citysales'){ openQuickReport('💰 مبيعات المدن', compCityBody()+compUpdatedLine(), 'كل المنافسة', "openReport('compete')"); return; }
   if(key==='visits'){
     const by = new Map(reps.map(r=>[r.id,{n:r.name,t:0,y:0,w:0,m:0}]));
     list.forEach(v=>{ const x = by.get(v.repId); if(!x) return; const d = v.date||'';
@@ -6398,7 +6406,7 @@ function shareAlertsWhatsApp(){
 
 function homeExtrasHTML(){
   try{
-    if(CURRENT_USER.role==='rep') return challengesHTML() + targetBonusCardHTML() + smartPlanHTML();
+    if(CURRENT_USER.role==='rep') return challengesHTML() + competitionCardHTML() + targetBonusCardHTML() + smartPlanHTML();
     if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager') return managerAlertsHTML();
   }catch(e){ console.error('home extras', e); }
   return '';
@@ -6461,11 +6469,164 @@ function viewDataQualityReport(){
     ${sec('🔎','أسماء متشابهة بأكواد مختلفة (احتمال عميل مكرر)',dupName.length,dupName.slice(0,20).map(grp).join(''))}
     ${sec('🧩','عملاء في ملف المبيعات وغير مسجلين',orphanList.length,orphanList.slice(0,40).map(([k,v])=>`<div class="qrLine"><span>${escapeHTML(v)} · ${escapeHTML(k)}</span></div>`).join(''))}`;
 }
+
+/* ==========================================================================
+   v2.73 - المنافسة والمسابقات
+   القواعد بتمنع المندوب من قراءة زيارات زمايله ومبيعات المدن التانية، فالأدمن/المدير بينشروا ملخص مجمّع
+   (أرقام إجمالية بس، بدون بيانات عملاء) في leaderboard/{الشهر} ويحدّثوا ترتيب المسابقات في contests/{id}.
+   ========================================================================== */
+let COMPETITION = null, CONTESTS = [], _pubBusy = false, _lastPub = 0;
+const CONTEST_METRICS = {
+  visits:['📝','أكتر عدد زيارات'], customers:['🏥','أكتر عدد عملاء مختلفين'], rating:['⭐','أعلى متوسط تقييم'],
+  collect:['💵','أكتر زيارات تحصيل'], sales:['💰','أعلى مبيعات في مدن المندوب (الشهر الحالي)']
+};
+const medalOf = i => ['🥇','🥈','🥉'][i] || String(i+1);
+const fmtContestVal = (k,v)=> k.metric==='rating' ? (v?Number(v).toFixed(2):'-') : k.metric==='sales' ? fmtMoney(v) : String(v);
+
+function contestStandings(k, reps){
+  const s = k.startDate||'0000-00-00', e = k.endDate||'9999-99-99', month = todayISO().slice(0,7);
+  const inV = VISITS.filter(v=>(v.date||'')>=s && (v.date||'')<=e);
+  const cityRows = k.metric==='sales' ? latestCitySalesRows(month) : [];
+  const rows = reps.map(r=>{
+    const vs = inV.filter(v=>v.repId===r.id); let value = 0, extra = '';
+    if(k.metric==='visits') value = vs.length;
+    else if(k.metric==='customers') value = new Set(vs.map(v=>v.customerCode)).size;
+    else if(k.metric==='collect') value = vs.filter(v=>String(v.visitResult||'').includes('تحصيل')).length;
+    else if(k.metric==='rating'){ const rt = vs.filter(v=>Number(v.rating)>0), mn = Number(k.minVisits)||5; value = rt.length>=mn ? +(rt.reduce((a,v)=>a+Number(v.rating),0)/rt.length).toFixed(2) : 0; extra = rt.length+' زيارة متقيّمة'; }
+    else if(k.metric==='sales'){ const cs = r.cities||[]; value = cityRows.filter(c=>!cs.length || cs.includes(c.city)).reduce((a,c)=>a+(Number(c.netSales)||0),0); }
+    return {id:r.id, name:r.name||'', value, extra};
+  });
+  return rows.sort((a,b)=>b.value-a.value).map((x,i)=>({...x, rank:i+1}));
+}
+
+async function publishCompetition(force){
+  if(!['admin','manager'].includes(CURRENT_USER.role) || _pubBusy) return;
+  if(!force && Date.now()-_lastPub < 9*60*1000) return;
+  if(!REPS.length || !VISITS.length){ if(force) toast('البيانات لسه بتتحمّل، جرّب بعد ثواني','warn'); return; }
+  _pubBusy = true;
+  try{
+    const today = todayISO(), month = today.slice(0,7), reps = REPS.filter(r=>r.active!==false), mv = VISITS.filter(v=>(v.date||'').startsWith(month));
+    const dist = Array(RATING_MAX+1).fill(0); let rs = 0, rc = 0;
+    const repRows = reps.map(r=>{
+      const vs = mv.filter(v=>v.repId===r.id), rated = vs.filter(v=>Number(v.rating)>0);
+      rated.forEach(v=>{ const n = Math.round(Number(v.rating)); if(n>=1 && n<=RATING_MAX) dist[n]++; rs += Number(v.rating); rc++; });
+      return {id:r.id, name:r.name||'', visits:vs.length, today:vs.filter(v=>v.date===today).length, rated:rated.length,
+        avg:rated.length ? +(rated.reduce((a,v)=>a+Number(v.rating),0)/rated.length).toFixed(2) : 0,
+        customers:new Set(vs.map(v=>v.customerCode)).size, collect:vs.filter(v=>String(v.visitResult||'').includes('تحصيل')).length};
+    });
+    const doc = {month, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:CURRENT_USER.username, reps:repRows, ratingDist:dist, ratedCount:rc, avgAll:rc ? +(rs/rc).toFixed(2) : 0};
+    const crow = latestCitySalesRows(month);
+    if(crow.length){
+      doc.cityDate = crow[0].date;
+      doc.cities = crow.map(c=>({city:c.city||'', net:Number(c.netSales)||0, target:Number(c.salesTarget)||0, customers:Number(c.customersActive)||0})).sort((a,b)=>b.net-a.net);
+      doc.netTotal = doc.cities.reduce((a,c)=>a+c.net,0); doc.activeTotal = doc.cities.reduce((a,c)=>a+c.customers,0);
+    }
+    await db.collection('leaderboard').doc(month).set(doc, {merge:true});
+    for(const k of CONTESTS){
+      if(k.active===false || k.finalized) continue;
+      const payload = {standings:contestStandings(k, reps), standingsAt:firebase.firestore.FieldValue.serverTimestamp()};
+      if(today > (k.endDate||'9999')) payload.finalized = true;
+      await db.collection('contests').doc(k.id).update(payload);
+    }
+    _lastPub = Date.now();
+    if(force) toast('✅ تم تحديث الترتيب للمناديب','ok');
+  }catch(e){ console.error('publishCompetition', e); if(force) toast('تعذّر نشر الترتيب: '+(e.code||e.message),'warn'); }
+  finally{ _pubBusy = false; }
+}
+
+/* ---------- أجزاء الواجهة (بتتستخدم في تبويب المنافسة وفي النوافذ السريعة) ---------- */
+const compEmpty = ()=>'<div class="emptyState">لسه ما اتنشرتش بيانات المنافسة الشهر ده. بتتحدّث تلقائياً لما الإدارة تفتح التطبيق.</div>';
+function compRatingBody(){
+  const C = COMPETITION; if(!C) return compEmpty();
+  const me = CURRENT_USER.repId, rows = (C.reps||[]).filter(x=>x.rated>0).sort((a,b)=>b.avg-a.avg), dist = C.ratingDist||[];
+  const col = a=>ratingGood(a) ? 'var(--teal-dark)' : ratingMid(a) ? 'var(--amber)' : 'var(--red)';
+  return `<div class="qrStats">${qrStat('متوسط عام', C.ratedCount ? Number(C.avgAll).toFixed(2) : '-')}${qrStat('زيارات متقيّمة', C.ratedCount||0)}</div>`+
+    `<div class="qrDist">${ratingRange().slice().reverse().map(n=>`<span><b>${dist[n]||0}</b>${'★'.repeat(n)}</span>`).join('')}</div>`+
+    (rows.length ? qrTable(['#','المندوب','المتوسط','زيارات'], rows.map((x,i)=>[medalOf(i), x.id===me ? `<b>${escapeHTML(x.name)} (أنت)</b>` : escapeHTML(x.name), `<b style="color:${col(x.avg)}">${Number(x.avg).toFixed(2)}</b>`, x.rated])) : '<div class="emptyState">مفيش زيارات متقيّمة</div>');
+}
+function compCityBody(){
+  const C = COMPETITION; if(!C || !C.cities) return C ? '<div class="emptyState">مفيش بيانات مبيعات مدن لهذا الشهر</div>' : compEmpty();
+  const mine = repCities() || [];
+  const rows = C.cities.slice(0,8).map(c=>{ const pct = c.target>0 ? Math.round(c.net/c.target*100) : null, mineC = mine.includes(c.city);
+    return [mineC ? `<b>${escapeHTML(c.city)} (مدينتك)</b>` : escapeHTML(c.city), fmtMoney(c.net), pct==null ? '-' : `<b style="color:${pct>=100?'var(--teal-dark)':pct>=60?'var(--amber)':'var(--red)'}">${pct}%</b>`, c.customers]; });
+  return `<div class="qrStats">${qrStat('صافي المبيعات', fmtMoney(C.netTotal||0))}${qrStat('عملاء متعاملين', C.activeTotal||0)}</div>`+
+    `<div class="qrSub">أعلى 8 مدن · حتى ${escapeHTML(String(C.cityDate||'').slice(5).replace('-','/'))}</div>`+ qrTable(['المدينة','المبيعات','من الهدف','عملاء'], rows);
+}
+function compUpdatedLine(){
+  const C = COMPETITION, d = C && C.updatedAt && C.updatedAt.toDate ? C.updatedAt.toDate() : null;
+  return d ? `<div class="smallMuted" style="margin-top:6px;">آخر تحديث: ${d.toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</div>` : '';
+}
+function viewCompetition(){
+  const C = COMPETITION; if(!C) return `<div class="card">${compEmpty()}</div>`;
+  const me = CURRENT_USER.repId, rows = (C.reps||[]).slice().sort((a,b)=>b.visits-a.visits || b.avg-a.avg);
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🏆 ترتيب المناديب - زيارات الشهر</h2></div>
+      ${qrTable(['#','المندوب','زيارات الشهر','النهارده','عملاء'], rows.map((x,i)=>[medalOf(i), x.id===me ? `<b>${escapeHTML(x.name)} (أنت)</b>` : escapeHTML(x.name), x.visits, x.today, x.customers]))}${compUpdatedLine()}</div>
+    <div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">⭐ ملخص التقييم (هذا الشهر)</h2></div>${compRatingBody()}</div>
+    <div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">💰 مبيعات المدن</h2></div>${compCityBody()}</div>`;
+}
+
+/* ---------- المسابقات ---------- */
+function contestStatus(k){ const td = todayISO(); return k.active===false ? '⏸ موقوفة' : td<k.startDate ? '⏳ لسه ما بدأتش' : td>k.endDate ? '🏁 انتهت' : '🟢 شغالة'; }
+function daysLeft(k){ return Math.max(0, Math.ceil((new Date(k.endDate+'T23:59:59')-Date.now())/864e5)); }
+function openContestForm(){
+  const td = todayISO(), end = localISO(new Date(Date.now()+7*864e5)), m = document.createElement('div'); m.className = 'modalBg';
+  m.innerHTML = `<div class="modal"><h3>🎁 مسابقة جديدة</h3>
+    <label>اسم المسابقة</label><input class="ctIn" id="ctTitle" placeholder="مثال: بطل الأسبوع">
+    <label>المعيار</label><select class="ctIn" id="ctMetric">${Object.entries(CONTEST_METRICS).map(([k,v])=>`<option value="${k}">${v[0]} ${v[1]}</option>`).join('')}</select>
+    <div style="display:flex;gap:8px;"><div style="flex:1;"><label>من</label><input class="ctIn" type="date" id="ctStart" value="${td}"></div><div style="flex:1;"><label>إلى</label><input class="ctIn" type="date" id="ctEnd" value="${end}"></div></div>
+    <label>الجايزة 🎁</label><input class="ctIn" id="ctPrize" placeholder="مثال: 500 جنيه / شهادة تقدير">
+    <label>أقل عدد زيارات متقيّمة (لمسابقة التقييم)</label><input class="ctIn" type="number" id="ctMin" value="5" min="1">
+    <div class="modalActions"><button class="btn btn-ghost" onclick="this.closest('.modalBg').remove()">إلغاء</button><button class="btn btn-primary" onclick="saveContest(this)">حفظ وبدء</button></div></div>`;
+  document.body.appendChild(m);
+}
+async function saveContest(btn){
+  const g = id=>document.getElementById(id).value.trim(), title = g('ctTitle'), s = g('ctStart'), e = g('ctEnd');
+  if(!title){ toast('اكتب اسم المسابقة','warn'); return; }
+  if(!s || !e || e<s){ toast('تاريخ النهاية لازم يكون بعد البداية','warn'); return; }
+  btn.disabled = true;
+  try{
+    await db.collection('contests').add({title, metric:g('ctMetric'), startDate:s, endDate:e, prize:g('ctPrize'), minVisits:Number(g('ctMin'))||5, active:true, finalized:false, standings:[], createdBy:CURRENT_USER.username, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    btn.closest('.modalBg').remove(); toast('✅ تم إنشاء المسابقة','ok');
+    setTimeout(()=>publishCompetition(true), 800);
+  }catch(err){ btn.disabled = false; toast('تعذّر الحفظ: '+(err.code||err.message),'warn'); }
+}
+async function toggleContest(id, on){ try{ await db.collection('contests').doc(id).update({active:on}); }catch(e){ toast('تعذّر التعديل','warn'); } }
+async function deleteContest(id){ if(CURRENT_USER.role!=='admin' || !confirm('حذف المسابقة نهائياً؟')) return; try{ await db.collection('contests').doc(id).delete(); }catch(e){ toast('تعذّر الحذف','warn'); } }
+function viewContests(){
+  const mgr = ['admin','manager'].includes(CURRENT_USER.role), me = CURRENT_USER.repId;
+  const list = CONTESTS.filter(k=>mgr || k.active!==false).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+  const card = k=>{
+    const st = k.standings||[], mine = st.find(x=>x.id===me), lead = st[0], meta = CONTEST_METRICS[k.metric]||['',''], running = contestStatus(k)==='🟢 شغالة';
+    const summary = (!mgr && mine) ? `<div class="goal" style="margin:6px 0;"><div class="goalSub" style="margin:0;"><b>ترتيبك: ${medalOf(mine.rank-1)} (${mine.rank} من ${st.length})</b>${mine.rank>1 && lead ? ` · باقي ${escapeHTML(fmtContestVal(k, Math.max(0,lead.value-mine.value)))} للمركز الأول` : ' · إنت في الصدارة! 🔥'}${running ? ` · باقي ${daysLeft(k)} يوم` : ''}</div></div>` : '';
+    const winner = (k.finalized || contestStatus(k)==='🏁 انتهت') && lead && lead.value>0 ? `<div style="margin:6px 0;font-weight:800;">🏆 الفائز: ${escapeHTML(lead.name)}${k.prize?' - '+escapeHTML(k.prize):''}</div>` : '';
+    return `<div class="card"><div class="pageHead" style="margin-bottom:4px;"><h2 style="font-size:15px;">${meta[0]} ${escapeHTML(k.title)}</h2><span class="badge">${contestStatus(k)}</span></div>
+      <div class="smallMuted">${escapeHTML(meta[1])}${k.metric==='rating'?' (حد أدنى '+(k.minVisits||5)+' زيارة)':''} · من ${escapeHTML(k.startDate)} إلى ${escapeHTML(k.endDate)}${k.prize?' · 🎁 '+escapeHTML(k.prize):''}</div>
+      ${summary}${winner}
+      ${st.length ? qrTable(['#','المندوب','النتيجة'], st.slice(0,10).map((x,i)=>[medalOf(i), x.id===me ? `<b>${escapeHTML(x.name)} (أنت)</b>` : escapeHTML(x.name), `<b>${escapeHTML(fmtContestVal(k,x.value))}</b>${x.extra?` <span class="smallMuted">${escapeHTML(x.extra)}</span>`:''}`])) : '<div class="smallMuted" style="margin-top:6px;">الترتيب هيظهر أول ما يتحدّث.</div>'}
+      ${mgr ? `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="toggleContest('${escapeHTML(k.id)}',${k.active===false})">${k.active===false?'▶️ تفعيل':'⏸ إيقاف'}</button>${CURRENT_USER.role==='admin'?`<button class="btn btn-ghost btn-sm" onclick="deleteContest('${escapeHTML(k.id)}')">🗑 حذف</button>`:''}</div>` : ''}</div>`;
+  };
+  const head = mgr ? `<div class="card"><div class="pageHead" style="margin-bottom:0;"><div><h2 style="font-size:15px;">🎁 المسابقات</h2><div class="desc">المناديب بيشوفوا الترتيب والجايزة ومين في الصدارة</div></div>
+      <div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="publishCompetition(true)">🔄 تحديث الترتيب</button><button class="btn btn-primary btn-sm" onclick="openContestForm()">➕ مسابقة</button></div></div></div>` : '';
+  return head + (list.map(card).join('') || `<div class="card"><div class="emptyState"><div class="t">${mgr?'لسه ما عملتش مسابقات - اضغط ➕ مسابقة':'مفيش مسابقات شغالة دلوقتي'}</div></div></div>`);
+}
+
+/* ---------- كارت المنافسة في رئيسية المندوب ---------- */
+function competitionCardHTML(){
+  const me = CURRENT_USER.repId, C = COMPETITION, rows = C ? (C.reps||[]).slice().sort((a,b)=>b.visits-a.visits || b.avg-a.avg) : [];
+  const idx = rows.findIndex(x=>x.id===me);
+  let line = '<div class="smallMuted">لسه ما اتنشرتش بيانات المنافسة الشهر ده.</div>';
+  if(idx>=0){ const lead = rows[0], gap = lead.visits-rows[idx].visits;
+    line = `<div style="font-weight:800;">ترتيبك في زيارات الشهر: ${medalOf(idx)} <span class="smallMuted">(${idx+1} من ${rows.length})</span></div><div class="smallMuted">${idx===0 ? 'إنت في الصدارة، حافظ عليها! 🔥' : 'الأول: '+escapeHTML(lead.name)+' - فاضلك '+gap+' زيارة تلحقه'}</div>`; }
+  const active = CONTESTS.filter(k=>k.active!==false && contestStatus(k)==='🟢 شغالة').slice(0,2).map(k=>{ const m = (k.standings||[]).find(x=>x.id===me);
+    return `<div class="iChip">🎁 ${escapeHTML(k.title)}${m?` · ترتيبك ${m.rank}`:''} · باقي ${daysLeft(k)} يوم</div>`; }).join('');
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🏆 المنافسة</h2></div>${line}<div>${active}</div>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="openKpiReport('rating')">⭐ ملخص التقييم</button><button class="btn btn-ghost btn-sm" onclick="openKpiReport('citysales')">💰 مبيعات المدن</button><button class="btn btn-primary btn-sm" onclick="openReport('contests')">🎁 المسابقات</button></div>${compUpdatedLine()}</div>`;
+}
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
-    const RT = [['repmatrix','📊 أدائي'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['stale','⏰ محتاجين زيارة'],['abc','🎯 تصنيف عملائي']];
+    const RT = [['repmatrix','📊 أدائي'],['compete','🏆 المنافسة'],['contests','🎁 المسابقات'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['stale','⏰ محتاجين زيارة'],['abc','🎯 تصنيف عملائي']];
     if(!RT.some(x=>x[0]===reportsTab)) reportsTab = 'repmatrix';
-    const bodies = {repmatrix:viewRepMatrixReport, citycompare:viewCityYearCompare, repcustomers:viewRepCustomersTrend, stale:viewStaleCustomersReport, abc:viewAbcRiskReport};
+    const bodies = {repmatrix:viewRepMatrixReport, citycompare:viewCityYearCompare, repcustomers:viewRepCustomersTrend, stale:viewStaleCustomersReport, abc:viewAbcRiskReport, compete:viewCompetition, contests:viewContests};
     return `
       <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">تقاريري</h2><div class="desc">أداؤك، ومبيعات مدنك على مدار السنة، وعملاؤك</div></div></div>
       <div class="segRow">${RT.map(x=>`<button class="seg ${reportsTab===x[0]?'on':''}" onclick="setReportsTab('${x[0]}')">${x[1]}</button>`).join('')}</div>
@@ -6492,7 +6653,8 @@ function viewReportsBody(){
     routeadherence: viewRouteAdherenceReport,
     analytics: viewSalesAnalytics,
     abc: viewAbcRiskReport,
-    dataquality: viewDataQualityReport
+    dataquality: viewDataQualityReport,
+    contests: viewContests
   };
   return `
     <div class="rpt">
@@ -9347,7 +9509,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.72): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.73): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -9502,6 +9664,10 @@ service cloud.firestore {
     match /citySales/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
     // تحليلات المبيعات: للإدارة فقط
     match /salesAnalytics/{id}     { allow read: if isAdminOrManager(); allow write: if isAdmin(); }
+
+    // ===== المنافسة والمسابقات: ملخصات مجمّعة (أرقام إجمالية بس)، الكل يقرا والإدارة تكتب =====
+    match /leaderboard/{id}        { allow read: if isStaff(); allow write: if isAdminOrManager(); }
+    match /contests/{id}           { allow read: if isStaff(); allow write: if isAdminOrManager(); }
 
     // ===== بوابة العملاء =====
     match /catalog/{id} {
