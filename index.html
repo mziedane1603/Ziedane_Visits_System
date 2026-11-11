@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.73)</title>
+<title>Ziedane CRM (v2.74)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -686,6 +686,34 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .iAlert{border-inline-start:4px solid #f59e0b;padding:6px 10px;margin:6px 0;background:var(--gray-50,#f9fafb);border-radius:6px;}.iAlert.go{cursor:pointer;transition:background .15s;}.iAlert.go:hover,.iAlert.go:focus{background:var(--teal-light,#e6f4f1);outline:none;}.iGo{font-size:11px;color:var(--teal-dark,#0f7a6b);font-weight:700;float:left;}
 .ctIn{width:100%;padding:8px;margin:4px 0 8px;border:1px solid var(--gray-300,#d1d5db);border-radius:8px;font:inherit;background:var(--white,#fff);color:inherit;}
 .iAlert.red{border-inline-start-color:#dc2626;}
+/* ---------- v2.74: المخزون والأصناف ---------- */
+.invKpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px;}
+.invKpis>div{background:var(--white,#fff);border:1px solid var(--gray-200,#e5e7eb);border-radius:14px;padding:12px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.invKpis b{display:block;font-size:20px;color:var(--teal-dark,#0f5d52);}.invKpis span{font-size:11.5px;color:var(--gray-500,#6b7280);}
+.invKpis .k-bonus b{color:#b7791f;}.invKpis .k-low b{color:#d97706;}.invKpis .k-out b{color:#dc2626;}
+.invGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}
+.invItem{border:1px solid var(--gray-200,#e5e7eb);border-radius:14px;padding:12px;background:var(--white,#fff);display:flex;flex-direction:column;gap:9px;transition:box-shadow .15s;}
+.invItem:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.invTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.invName{font-weight:800;font-size:14px;line-height:1.35;}
+.invCo{display:inline-block;margin-top:4px;font-size:11px;color:var(--teal-dark,#0f5d52);background:var(--teal-light,#e6f4f1);border-radius:999px;padding:2px 9px;}
+.invPrice{text-align:left;font-weight:900;font-size:15px;white-space:nowrap;}.invPrice small{font-size:10.5px;color:var(--gray-500,#6b7280);margin-right:3px;font-weight:600;}
+.invDisc{display:block;font-size:10.5px;color:var(--gray-500,#6b7280);font-weight:600;}
+.invStock{display:flex;align-items:center;gap:10px;}.invBarWrap{flex:1;height:8px;border-radius:99px;background:var(--gray-100,#f1f3f5);overflow:hidden;}
+.invBar{height:100%;border-radius:99px;background:linear-gradient(90deg,#34b79f,#0f7a6b);transition:width .4s;}
+.invLow .invBar{background:linear-gradient(90deg,#fbbf24,#d97706);}.invOut .invBar{background:#dc2626;}
+.invQty{font-size:12px;white-space:nowrap;color:var(--gray-600,#4b5563);}.invQty b{font-size:14px;}
+.invLow .invQty{color:#b45309;}.invOut .invQty{color:#dc2626;}.invOut .invName{opacity:.65;}
+.invBonus{display:flex;flex-wrap:wrap;gap:5px;}.invTier{background:linear-gradient(180deg,#FFE79B,#F3B22E);color:#573700;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800;direction:ltr;}
+/* ---------- v2.74: الشريط + إحساس التطبيق ---------- */
+.bzBar{height:46px;}.bzLabel span{display:inline-block;animation:bzPulse 1.8s ease-in-out infinite;}
+@keyframes bzPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.18);}}
+.bzItem:hover{transform:translateY(-1px);}
+@media(max-width:520px){.bzLabel{padding:0 10px;font-size:0;}.bzLabel span{font-size:17px;}.bzName{font-size:12.5px;}.bzCo{display:none;}}
+html{-webkit-tap-highlight-color:transparent;scroll-behavior:smooth;}body{overscroll-behavior-y:contain;}
+button,.btn,.seg,.navItem,select,input{touch-action:manipulation;}
+.btn{transition:transform .1s,box-shadow .15s,background .15s;}.btn:active{transform:scale(.97);}
+:focus-visible{outline:2px solid var(--teal,#0f7a6b);outline-offset:2px;}
 </style>
 </head>
 <body>
@@ -855,7 +883,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.73';
+const APP_VERSION = '2.74';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -3156,9 +3184,43 @@ function inventoryFilteredList(){
   if(inventoryFilters.company) list = list.filter(i=>i.company===inventoryFilters.company);
   if(q) list = list.filter(i=>(i.itemName||'').toLowerCase().includes(q) || (i.company||'').toLowerCase().includes(q));
   if(inventoryFilters.bonusOnly) list = list.filter(i=>bonusTiersFor(i.itemName, i.company).length>0);
-  return list.slice().sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||'','ar'));
+  if(invView.lowOnly){ const st = invStockStats(); list = list.filter(i=>invLevel(Number(i.quantity)||0, st)!=='ok'); }
+  const nm = (a,b)=>(a.itemName||'').localeCompare(b.itemName||'','ar'), qn = i=>Number(i.quantity)||0;
+  const by = {name:nm, qtyDesc:(a,b)=>qn(b)-qn(a)||nm(a,b), qtyAsc:(a,b)=>qn(a)-qn(b)||nm(a,b), price:(a,b)=>(Number(b.publicPrice)||0)-(Number(a.publicPrice)||0)||nm(a,b),
+    bonus:(a,b)=>(bonusTiersFor(b.itemName,b.company).length-bonusTiersFor(a.itemName,a.company).length)||nm(a,b)}[invView.sort] || nm;
+  return list.slice().sort(by);
+}
+let invView = {sort:'name', lowOnly:false};
+function invStockStats(){
+  const q = INVENTORY.map(i=>Number(i.quantity)||0).filter(n=>n>0).sort((a,b)=>a-b);
+  const maxQ = q.length ? q[Math.min(q.length-1, Math.floor(q.length*0.9))] : 1;
+  return {maxQ:Math.max(maxQ,1), lowAt:Math.max(20, Math.round(maxQ*0.1))};
+}
+const invLevel = (qty, st)=> qty<=0 ? 'out' : qty<=st.lowAt ? 'low' : 'ok';
+function setInvSort(v){ invView.sort = v; updateInventoryResults(); }
+function setInvLow(v){ invView.lowOnly = v; updateInventoryResults(); }
+function invKpisHTML(bonusCount){
+  if(!INVENTORY.length) return '';
+  const st = invStockStats(), qs = INVENTORY.map(i=>Number(i.quantity)||0);
+  const total = qs.reduce((a,b)=>a+b,0), out = qs.filter(q=>q<=0).length, low = qs.filter(q=>q>0 && q<=st.lowAt).length;
+  const k = (cls,v,l)=>`<div class="${cls}"><b>${v}</b><span>${l}</span></div>`;
+  return `<div class="invKpis">${k('',INVENTORY.length.toLocaleString('en-US'),'صنف')}${k('',total.toLocaleString('en-US'),'إجمالي الكمية')}${k('k-bonus',bonusCount,'🎁 عليه بونص')}${k('k-low',low,'⚠️ مخزون منخفض')}${k('k-out',out,'⛔ نفد')}</div>`;
 }
 function inventoryTableHTML(list){
+  const st = invStockStats(), fm = n=>Number(n).toLocaleString('en-US'), lvl = {ok:['','متاح'], low:['invLow','منخفض'], out:['invOut','نفد']};
+  const cards = list.slice(0,300).map(i=>{
+    const qty = Number(i.quantity)||0, lv = invLevel(qty, st), pct = Math.max(qty>0?4:0, Math.min(100, Math.round(qty/st.maxQ*100))), tiers = bonusTiersFor(i.itemName, i.company);
+    return `<div class="invItem ${lvl[lv][0]}">
+      <div class="invTop"><div><div class="invName">${escapeHTML(i.itemName||'')}</div>${i.company?`<span class="invCo">${escapeHTML(i.company)}</span>`:''}</div>
+        <div class="invPrice">${i.publicPrice!=null ? fm(i.publicPrice) : '-'}<small>ج.م</small>${i.pharmacyDiscount!=null ? `<span class="invDisc">خصم الصيدلي ${i.pharmacyDiscount}%</span>` : ''}</div></div>
+      <div class="invStock"><div class="invBarWrap"><div class="invBar" style="width:${pct}%"></div></div><span class="invQty"><b>${fm(qty)}</b> ${lvl[lv][1]}</span></div>
+      ${tiers.length ? `<div class="invBonus">${tiers.map(t=>`<span class="invTier">🎁 ${t.qty} + ${t.bonusQty}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+  return (cards ? `<div class="invGrid">${cards}</div>` : `<div class="emptyState"><div class="ic">📦</div><div class="t">لا توجد أصناف مطابقة</div></div>`)
+    + (list.length>300 ? `<div class="smallMuted" style="text-align:center;margin-top:10px;">تم عرض أول 300 صنف من ${list.length} - استخدم البحث أو الفلاتر لتضييق النتائج</div>` : '');
+}
+function inventoryTableHTML_OLD(list){
   const rows = list.slice(0,400).map(i=>{
     const tiers = bonusTiersFor(i.itemName, i.company);
     const bonusHTML = tiers.length
@@ -3961,6 +4023,7 @@ function viewInventory(){
       <div><h2>المخزون</h2><div class="desc">${INVENTORY.length} صنف · ${bonusCount} صنف عليه بونص حالياً</div></div>
       ${bonusCount ? `<button class="btn btn-primary btn-sm" onclick="shareBonusOffersWhatsApp()">📤 مشاركة عروض البونص</button>` : ''}
     </div>
+    ${invKpisHTML(bonusCount)}
     ${importSection}
     <div class="card">
       <div class="filterBar">
@@ -3974,6 +4037,12 @@ function viewInventory(){
           <input type="checkbox" ${inventoryFilters.bonusOnly?'checked':''} onchange="inventoryFilters.bonusOnly=this.checked; updateInventoryResults();">
           🎁 عليه بونص فقط
         </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" ${invView.lowOnly?'checked':''} onchange="setInvLow(this.checked)"> ⚠️ منخفض/نافد فقط
+        </label>
+        <select onchange="setInvSort(this.value)">
+          ${[['name','ترتيب: الاسم'],['qtyDesc','الأكبر مخزوناً'],['qtyAsc','الأقل مخزوناً'],['price','الأعلى سعراً'],['bonus','البونص أولاً']].map(([k,l])=>`<option value="${k}" ${invView.sort===k?'selected':''}>${l}</option>`).join('')}
+        </select>
       </div>
       <div class="tableWrap" id="inventoryTableWrap">${inventoryTableHTML(list)}</div>
     </div>
@@ -6622,6 +6691,8 @@ function competitionCardHTML(){
   return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🏆 المنافسة</h2></div>${line}<div>${active}</div>
     <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="openKpiReport('rating')">⭐ ملخص التقييم</button><button class="btn btn-ghost btn-sm" onclick="openKpiReport('citysales')">💰 مبيعات المدن</button><button class="btn btn-primary btn-sm" onclick="openReport('contests')">🎁 المسابقات</button></div>${compUpdatedLine()}</div>`;
 }
+// اهتزاز خفيف عند الضغط على الأزرار (على الموبايل) - إحساس تطبيق حقيقي
+document.addEventListener('click', e=>{ if(navigator.vibrate && e.target.closest && e.target.closest('.btn,.seg,.navItem')) navigator.vibrate(8); }, {passive:true});
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
     const RT = [['repmatrix','📊 أدائي'],['compete','🏆 المنافسة'],['contests','🎁 المسابقات'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['stale','⏰ محتاجين زيارة'],['abc','🎯 تصنيف عملائي']];
@@ -7750,6 +7821,25 @@ async function saveCityThresholds(){
   }catch(e){ console.error(e); toast('فشل الحفظ','err'); }
 }
 
+/* ---------- سياسة الاحتفاظ: لقطات مبيعات المدن اليومية القديمة بتتحذف ----------
+   بنحتفظ بآخر 3 أيام (للمقارنة يوم بيوم) + آخر يوم في كل شهر (مقارنة المدن السنوية بتعتمد عليه). الباقي زيادة وبيتحذف. */
+function citySalesPruneInfo(){
+  const dates = [...new Set(CITY_SALES.map(c=>c.date).filter(Boolean))].sort(), keep = new Set(dates.slice(-3)), lastOfMonth = {};
+  dates.forEach(d=>{ lastOfMonth[d.slice(0,7)] = d; }); Object.values(lastOfMonth).forEach(d=>keep.add(d));
+  const del = CITY_SALES.filter(c=>c.date && !keep.has(c.date));
+  return {del, days:new Set(del.map(c=>c.date)).size};
+}
+async function pruneCitySalesHistory(silent){
+  if(CURRENT_USER.role!=='admin') return;
+  const {del, days} = citySalesPruneInfo();
+  if(!del.length){ if(!silent) toast('مفيش لقطات قديمة للحذف ✔','ok'); return; }
+  if(!silent && !confirm(`هيتم حذف ${days} يوم (${del.length} سجل) من لقطات مبيعات المدن القديمة.\nبنحتفظ بآخر 3 أيام + آخر يوم في كل شهر (عشان مقارنة المدن السنوية).\nمتأكد؟`)) return;
+  try{
+    for(let i=0;i<del.length;i+=400){ const b = db.batch(); del.slice(i,i+400).forEach(c=>b.delete(db.collection('citySales').doc(c.id))); await b.commit(); }
+    logAudit('delete','citySales',`تنظيف ${days} يوم قديم من لقطات مبيعات المدن (${del.length} سجل)`);
+    toast(`🧹 تم حذف ${days} يوم قديم`,'ok');
+  }catch(e){ console.error(e); toast('تعذّر التنظيف: '+(e.code||e.message),'err'); }
+}
 function availableCitySalesDates(){
   return [...new Set(visibleCitySales().map(c=>c.date))].sort().reverse();
 }
@@ -7763,7 +7853,7 @@ function viewCitySales(){
     <label class="btn btn-outline btn-sm" style="cursor:pointer;">
       ⬆ استيراد اليوم (${todayISO()})
       <input type="file" accept=".xlsx,.xls" onchange="handleCitySalesExcelImport(this.files[0])" style="display:none;">
-    </label>` : '';
+    </label>${(()=>{ const p = canEdit ? citySalesPruneInfo() : {days:0}; return p.days>0 ? `<button class="btn btn-ghost btn-sm" onclick="pruneCitySalesHistory(false)">🧹 تنظيف ${p.days} يوم قديم</button>` : ''; })()}` : '';
 
   if(!rowsForDate.length){
     return `
@@ -7931,6 +8021,7 @@ async function handleCitySalesExcelImport(file){
         await replaceCollectionDataByDate('citySales', rows, importDate);
         logAudit('import','citySales', `استيراد مبيعات المدن ليوم ${importDate} - ${rows.length} مدينة من ملف ${file.name}`);
         toast('تم حفظ بيانات اليوم بنجاح ✔','ok');
+        setTimeout(()=>pruneCitySalesHistory(true), 3000);   // تنظيف تلقائي للأيام القديمة بعد كل استيراد
       });
   }catch(e){
     console.error(e);
@@ -9509,7 +9600,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.73): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.74): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
