@@ -2,6 +2,10 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<!-- سياسة أمان المحتوى (CSP): بتمنع تحميل سكريبتات من أي موقع غير المسموح، وبتمنع إرسال بيانات لأي سيرفر غير Firebase.
+     لو ظهر خطأ "Refused to ..." في الـ Console بعد النشر، ابعتهولي أو شيل الـ meta ده مؤقتاً.
+     ملحوظة: 'unsafe-inline' لازم دلوقتي لأن التطبيق فيه أحداث onclick مكتوبة جوه الـ HTML. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://cdn.sheetjs.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com https://cdn.jsdelivr.net; frame-src 'self' https://visits-system-306d3.firebaseapp.com https://accounts.google.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0F7A6B">
 <meta name="application-name" content="Ziedane CRM">
@@ -13,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.74)</title>
+<title>Ziedane CRM (v2.77)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -714,6 +718,23 @@ html{-webkit-tap-highlight-color:transparent;scroll-behavior:smooth;}body{oversc
 button,.btn,.seg,.navItem,select,input{touch-action:manipulation;}
 .btn{transition:transform .1s,box-shadow .15s,background .15s;}.btn:active{transform:scale(.97);}
 :focus-visible{outline:2px solid var(--teal,#0f7a6b);outline-offset:2px;}
+/* ---------- v2.75: الكليندر والتنبيهات ---------- */
+.calHead{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--gray-500,#6b7280);font-weight:700;margin-bottom:4px;}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.calCell{aspect-ratio:1/1.05;border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;background:var(--white,#fff);color:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:2px;font:inherit;}
+.calCell.empty{border:none;background:none;cursor:default;}.calCell b{font-size:13px;}
+.calCell.today{border-color:var(--teal,#0f7a6b);box-shadow:inset 0 0 0 1px var(--teal,#0f7a6b);}
+.calCell.sel{background:var(--teal,#0f7a6b);color:#fff;}.calCell.sel .calV{color:#fff;}
+.calDots{display:flex;gap:2px;height:6px;}.calDots i{width:5px;height:5px;border-radius:50%;background:#f59e0b;display:block;}.calDots i.dn{background:#9ca3af;}
+.calV{font-size:9px;color:#059669;font-weight:700;}
+.tkItem{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--gray-200,#e5e7eb);}
+.tkChk{width:26px;height:26px;border-radius:50%;border:2px solid var(--teal,#0f7a6b);background:var(--white,#fff);cursor:pointer;flex:none;font-size:14px;line-height:1;color:#fff;padding:0;}
+.tkItem.done .tkChk{background:var(--teal,#0f7a6b);}.tkItem.done .tkTitle{text-decoration:line-through;opacity:.55;}
+.tkTitle{font-weight:800;font-size:14px;}.tkTime{font-size:11.5px;background:var(--teal-light,#e6f4f1);color:var(--teal-dark,#0f5d52);border-radius:999px;padding:1px 8px;margin-inline-start:6px;font-weight:700;}
+#alertBanner{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translate(-50%,-150%);width:min(94vw,460px);z-index:3000;display:flex;align-items:center;gap:10px;background:#0b3d36;color:#fff;border-radius:16px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .35s cubic-bezier(.2,.9,.3,1.2);font-size:13px;}
+#alertBanner.show{transform:translate(-50%,0);}
+.abIc{font-size:24px;}.abTx{flex:1;cursor:pointer;}.abTx b{display:block;font-size:13.5px;}.abTx div{opacity:.88;font-size:12px;}
+.abBtn{background:#fff;color:#0b3d36;border:none;border-radius:10px;padding:6px 9px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;}.abX{background:none;border:none;color:#fff;opacity:.7;font-size:16px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -883,7 +904,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.74';
+const APP_VERSION = '2.77';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1033,6 +1054,7 @@ const ALL_PAGES = [
   {id:'dashboard', label:'الرئيسية', ic:'🏠'},
   {id:'teamchat',  label:'محادثة الفريق', ic:'💬'},
   {id:'routeplan', label:'خطة الزيارات', ic:'🗺️'},
+  {id:'calendar', label:'مهامي (كليندر)', ic:'📅'},
   {id:'addvisit',  label:'زيارة جديدة', ic:'📝'},
   {id:'visits',    label:'الزيارات', ic:'📋'},
   {id:'customers', label:'العملاء', ic:'🏥'},
@@ -1061,11 +1083,11 @@ function defaultPermissionsForRole(role){
   if(role==='admin'){ ALL_PAGES.forEach(x=>p[x.id]=true); return p; }
   if(role==='manager'){ ALL_PAGES.forEach(x=>p[x.id]=true); p.users=false; p.repbonus=false; return p; }
   if(role==='rep'){
-    ['dashboard','teamchat','routeplan','addvisit','visits','custdata','inventory','suggestedorders','claims','customerstatement','citysales'].forEach(id=>p[id]=true);
+    ['dashboard','teamchat','routeplan','calendar','addvisit','visits','custdata','inventory','suggestedorders','claims','customerstatement','citysales'].forEach(id=>p[id]=true);
     return p;
   }
   if(role==='telesales'){
-    ['dashboard','teamchat','followup','inventory','suggestedorders','customerstatement'].forEach(id=>p[id]=true);
+    ['dashboard','teamchat','calendar','followup','inventory','suggestedorders','customerstatement'].forEach(id=>p[id]=true);
     return p;
   }
   return p;
@@ -1132,13 +1154,13 @@ function tabs2HTML(groups, current, setFn, pillMain){
 }
 const REPORT_GROUPS = [
   {label:'📊 نظرة عامة', tabs:[['overview','نظرة عامة']]},
-  {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['leaderboard','لوحة الأداء'],['routeadherence','الالتزام بالخطة']]},
+  {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['routeadherence','الالتزام بالخطة']]},
   {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['citycompare','مقارنة المدن سنوياً'],['analytics','تحليلات المبيعات']]},
   {label:'🏆 المنافسة', tabs:[['contests','المسابقات والجوايز']]},
-  {label:'🏥 العملاء', tabs:[['stale','بدون زيارة'],['coverage','تغطية المدن'],['abc','تصنيف ABC والخطر'],['dataquality','جودة البيانات']]},
+  {label:'🏥 العملاء', tabs:[['coverage','تغطية المدن'],['abc','تصنيف ABC والخطر'],['dataquality','جودة البيانات']]},
   {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
 ];
-const REPORT_DRAW = {overview:'drawReportCharts', leaderboard:'drawLeaderboardChart', sales:'drawSalesReportCharts', citycompare:'drawCityCompareCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
+const REPORT_DRAW = {overview:'drawReportCharts', sales:'drawSalesReportCharts', citycompare:'drawCityCompareCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
 function setReportsTab(k){ reportsTab = k; renderView(); const f = REPORT_DRAW[k]; if(f && typeof window[f]==='function') setTimeout(window[f], 30); }
 function saGroups(){
   return [
@@ -1163,8 +1185,9 @@ const NAV_GROUPS = [
   {id:'g_orders', label:'الطلبيات',        ic:'🧾',   members:['suggestedorders','portalorders']},
   {id:'g_sales',  label:'المبيعات',        ic:'📈',   members:['customersales','citysales','customerstatement']},
   {id:'g_comm',   label:'التواصل',         ic:'💬',   members:['teamchat','announcements']},
-  {id:'g_reps',   label:'المناديب',        ic:'🧑‍💼', members:['reps','repbonus']},
-  {id:'g_sys',    label:'المستخدمون والسجل', ic:'🔐', members:['users','auditlog']}
+  {id:'g_cust',   label:'العملاء',         ic:'🏥',   members:['customers','custdata']},
+  {id:'g_plan',   label:'خطتي ومهامي',     ic:'🗺️',   members:['routeplan','calendar']},
+  {id:'g_sys',    label:'الإدارة',          ic:'⚙️',   members:['reps','repbonus','definitions','users','auditlog']}
 ];
 function navEntriesFor(user){
   const items = navItemsFor(user), byId = new Map(items.map(i=>[i.id,i])), done = new Set(), out = [];
@@ -1200,7 +1223,7 @@ function groupTabsHTML(){
 // أقسام القايمة: كل صفحة تابعة لقسم، والقايمة بتتعرض مقسّمة بعناوين
 const PAGE_SECTION = {
   dashboard:'main',
-  routeplan:'daily', addvisit:'daily', visits:'daily', customers:'daily', custdata:'daily', followup:'daily',
+  routeplan:'daily', calendar:'daily', addvisit:'daily', visits:'daily', customers:'daily', custdata:'daily', followup:'daily',
   inventory:'sales', suggestedorders:'sales', portalorders:'sales', customersales:'sales', citysales:'sales', customerstatement:'sales', claims:'sales',
   teamchat:'comm', announcements:'comm',
   reps:'admin', repbonus:'admin', definitions:'admin', users:'admin', auditlog:'admin',
@@ -1408,8 +1431,9 @@ async function afterLogin(){
     try{ const qv = new URLSearchParams(location.search).get('view'); if(qv && allowed.includes(qv)) currentView = qv; }catch(e){} }
   pwaAfterLogin();
   document.getElementById('mobileMenuIcon').classList.remove('hidden');
+  document.getElementById('alertsWrap').style.display='block';
+  initAlertsEngine();
   if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager'){
-    document.getElementById('alertsWrap').style.display='block';
     if(window.Notification && Notification.permission==='default'){
       Notification.requestPermission().catch(()=>{});
     }
@@ -1550,17 +1574,18 @@ function toggleAlertsPanel(){
 }
 function renderAlertsPanel(){
   const panel = document.getElementById('alertsPanel');
+  const perm = ('Notification' in window && Notification.permission==='default') ? `<div style="padding:8px 12px;background:#fff7e6;font-size:12px;"><button class="btn btn-outline btn-sm" onclick="enableDeviceNotifications()">🔔 فعّل إشعارات الجهاز</button><div class="smallMuted" style="margin-top:3px;">عشان التنبيهات توصلك حتى والتطبيق في الخلفية</div></div>` : '';
   if(!ALERTS.length){
-    panel.innerHTML = `<div style="padding:20px;text-align:center;color:var(--gray-500);font-size:12.5px;">لا توجد تنبيهات حالياً</div>`;
+    panel.innerHTML = perm + `<div style="padding:20px;text-align:center;color:var(--gray-500);font-size:12.5px;">لا توجد تنبيهات حالياً</div>`;
   }else{
     panel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--gray-100);">
         <b style="font-size:13px;">التنبيهات</b>
         <button class="btn btn-ghost btn-sm" onclick="markAllAlertsRead()">تعليم الكل كمقروء</button>
-      </div>
+      </div>${perm}
       ${ALERTS.map(a=>`
-        <div style="padding:10px 12px;border-bottom:1px solid var(--gray-100);font-size:12.5px;background:${a.read?'#fff':'var(--teal-lighter)'};cursor:pointer;" onclick="goToVisitFromAlert('${a.id}')">
-          <div>${escapeHTML(a.text)}</div>
+        <div style="padding:10px 12px;border-bottom:1px solid var(--gray-100);font-size:12.5px;background:${a.read?'#fff':'var(--teal-lighter)'};cursor:pointer;" onclick="goToVisitFromAlert('${safeId(a.id)}')">
+          ${a.title ? `<div><b>${escapeHTML(a.ic||'')} ${escapeHTML(a.title)}</b></div>${a.body?`<div class="smallMuted">${escapeHTML(a.body)}</div>`:''}` : `<div>${escapeHTML(a.text)}</div>`}
           <div class="smallMuted" style="margin-top:3px;">${a.time.toLocaleTimeString('ar-EG-u-nu-latn',{hour:'2-digit',minute:'2-digit'})}</div>
         </div>`).join('')}
     `;
@@ -1572,6 +1597,7 @@ function markAllAlertsRead(){ ALERTS.forEach(a=>a.read=true); renderAlertBadge()
 function goToVisitFromAlert(id){
   document.getElementById('alertsPanel').classList.add('hidden');
   const a = ALERTS.find(x=>x.id===id);
+  if(a && a.go){ runAlertGo(a.go); return; }
   if(a && a.type==='order'){ goTo('suggestedorders'); return; }
   visitFilters = {rep:'', type:'', from:'', to:'', q:''};
   goTo('visits');
@@ -1890,6 +1916,7 @@ function attachListeners(){
   unsubs.push(db.collection('leaderboard').doc(todayISO().slice(0,7)).onSnapshot(s=>{ COMPETITION = s.exists ? s.data() : null; if(currentView==='dashboard') renderView(); }, e=>console.error('leaderboard', e)));
   unsubs.push(db.collection('contests').onSnapshot(s=>{ CONTESTS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='dashboard') renderView(); }, e=>console.error('contests', e)));
   if(['admin','manager'].includes(CURRENT_USER.role) && !window._pubTimer){ setTimeout(()=>publishCompetition(false), 20000); window._pubTimer = setInterval(()=>publishCompetition(false), 10*60*1000); }
+  unsubs.push(db.collection('repTasks').where('owner','==',CURRENT_USER.username).onSnapshot(s=>{ REP_TASKS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='calendar' || currentView==='dashboard') renderView(); setTimeout(alertTick, 300); }, e=>console.error('repTasks', e)));
 
   attachVisitsListener();
 
@@ -2002,6 +2029,7 @@ function renderView(){
     else if(currentView==='followup') main.innerHTML = viewFollowup();
     else if(currentView==='teamchat') main.innerHTML = viewTeamChat();
     else if(currentView==='routeplan') main.innerHTML = viewRoutePlan();
+    else if(currentView==='calendar') main.innerHTML = viewCalendar();
     else if(currentView==='repbonus') main.innerHTML = viewRepBonus();
     else if(currentView==='suggestedorders') main.innerHTML = viewSuggestedOrders();
     else if(currentView==='portalorders') main.innerHTML = viewPortalOrders();
@@ -2011,7 +2039,7 @@ function renderView(){
     else main.innerHTML = '<div class="emptyState">صفحة غير موجودة</div>';
     { const gt = groupTabsHTML(); if(gt) main.insertAdjacentHTML('afterbegin', gt); }
 
-    if(currentView==='dashboard') [drawDashboardCharts,drawReportCharts,drawClaimsChart,drawLeaderboardChart,drawSalesReportCharts,drawCoverageChart].forEach(f=>setTimeout(f,30));
+    if(currentView==='dashboard') [drawDashboardCharts,drawReportCharts,drawClaimsChart,drawSalesReportCharts,drawCoverageChart].forEach(f=>setTimeout(f,30));
     if(currentView==='dashboard' && reportsTab==='analytics') setTimeout(drawSalesAnalyticsCharts, 30);
     if(currentView==='dashboard' && reportsTab==='citycompare') setTimeout(drawCityCompareCharts, 30);
     if(currentView==='customerstatement') setTimeout(drawCustomerStatementChart, 30);
@@ -2249,7 +2277,7 @@ function staleCountFast(){
   return n;
 }
 function openStaleReport(){
-  setReportsTab('stale');
+  abcFilter = 'overdue'; setReportsTab('abc');
   setTimeout(()=>document.getElementById('rptAnchor')?.scrollIntoView({behavior:'smooth', block:'start'}), 80);
 }
 // شريط "محتاج تدخل" + تقدّم هدف الزيارات الشهري
@@ -2914,6 +2942,7 @@ async function saveVisit(){
   try{
     const p = db.collection('visits').add(payload);
     trackWrite(p);
+    afterVisitAlert(payload);
     toast(navigator.onLine ? 'تم حفظ الزيارة بنجاح ✔' : 'تم الحفظ محلياً 📡 - سيتم الرفع تلقائياً عند توفر الاتصال', navigator.onLine?'ok':'warn');
     addVisitState = {customer:null, rating:0, resultId:null};
     if(routePlanInlineCode){
@@ -6424,22 +6453,6 @@ function targetBonusCardHTML(){
 }
 
 /* ---------- تحديات اليوم وسلسلة الالتزام ---------- */
-function challengesHTML(){
-  const today = todayISO(), mine = visibleVisits(), td = mine.filter(v=>v.date===today), r = currentRep(), mt = Number(r&&r.monthlyVisitTarget)||0;
-  const dailyGoal = mt>0 ? Math.max(3, Math.ceil(mt/22)) : 6, I = crmIntel();
-  const important = td.filter(v=>{ const x = I.byCode[v.customerCode]; return x && x.score>=40; }).length;
-  const rated = td.filter(v=>v.rating), avgR = rated.length ? rated.reduce((a,v)=>a+v.rating,0)/rated.length : 0;
-  const dates = new Set(mine.map(v=>v.date)); let d = new Date(), streak = 0;
-  if(!dates.has(localISO(d))) d.setDate(d.getDate()-1);
-  for(let i=0;i<150;i++){ if(d.getDay()===5){ d.setDate(d.getDate()-1); continue; } if(dates.has(localISO(d))){ streak++; d.setDate(d.getDate()-1); } else break; }   // الجمعة إجازة ومبتقطعش السلسلة
-  const ch = (ic,t,n,g,extra)=>{ const ok = n>=g; return `<div class="iCh ${ok?'ok':''}"><div>${ok?'✅':ic} ${t}</div><div class="goalBar" style="margin:4px 0;"><div class="goalFill" style="width:${Math.min(100,Math.round(n/g*100))}%"></div></div><div class="smallMuted">${extra||n+' / '+g}</div></div>`; };
-  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🔥 تحديات اليوم</h2><div class="desc">${streak>0?`سلسلة التزامك: <b>${streak}</b> يوم متتالي`:'ابدأ سلسلة التزام جديدة النهارده'}</div></div>
-    <div class="grid grid-3" style="gap:8px;">
-      ${ch('🎯','زياراتك اليوم', td.length, dailyGoal)}
-      ${ch('🧭','زور 3 من عملاء الخطة', important, 3)}
-      ${ch('⭐','جودة: متوسط تقييم 4+', rated.length>=2 && avgR>=4 ? 1 : 0, 1, rated.length>=2 ? 'متوسطك '+avgR.toFixed(1) : 'محتاج زيارتين متقيّمتين')}
-    </div></div>`;
-}
 
 /* ---------- تنبيهات المدير ---------- */
 function collectAlerts(){
@@ -6451,7 +6464,7 @@ function collectAlerts(){
   }
   if(elapsed>=20){
     const slow = reps.map(r=>{ const tg = Number(r.monthlyVisitTarget)||0; if(!tg) return null; const dn = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(mp)).length, pct = Math.round(dn/tg*100); return pct<elapsed-15 ? {r,pct} : null; }).filter(Boolean);
-    if(slow.length) out.push({lv:'amber', ic:'🐢', t:`${slow.length} مندوب متأخرين عن معدل هدف الزيارات (المفروض ${elapsed}%)`, d:slow.map(x=>x.r.name+' '+x.pct+'%').join('، '), go:"openReport('leaderboard')"});
+    if(slow.length) out.push({lv:'amber', ic:'🐢', t:`${slow.length} مندوب متأخرين عن معدل هدف الزيارات (المفروض ${elapsed}%)`, d:slow.map(x=>x.r.name+' '+x.pct+'%').join('، '), go:"openReport('repssummary')"});
   }
   if(now.getDate()>=15){
     const low = latestCitySalesRows(mp).filter(c=>cityAchievementPct(c)<CITY_THRESHOLDS.salesMinPct);
@@ -6471,14 +6484,6 @@ function managerAlertsHTML(){
 function shareAlertsWhatsApp(){
   const txt = `🚨 تنبيهات ${fmtDateArabic(todayISO())}\n\n` + collectAlerts().map(x=>`${x.ic} ${x.t}\n${x.d}`).join('\n\n');
   window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
-}
-
-function homeExtrasHTML(){
-  try{
-    if(CURRENT_USER.role==='rep') return challengesHTML() + competitionCardHTML() + targetBonusCardHTML() + smartPlanHTML();
-    if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager') return managerAlertsHTML();
-  }catch(e){ console.error('home extras', e); }
-  return '';
 }
 
 /* ---------- تقرير تصنيف ABC والخطر ---------- */
@@ -6502,13 +6507,14 @@ function viewAbcRiskReport(){
   if(['A','B','C','D'].includes(abcFilter)) list = list.filter(x=>x.abc===abcFilter);
   else if(abcFilter==='risk') list = list.filter(x=>x.risk>=60);
   else if(abcFilter==='stopped') list = list.filter(x=>x.why.includes('وقف يشتري'));
+  else if(abcFilter==='overdue') list = list.filter(x=>x.gap>=x.interval);
   list.sort((a,b)=>b.score-a.score);
   const seg = (k,l)=>`<button class="seg ${abcFilter===k?'on':''}" onclick="setAbcFilter('${k}')">${l}</button>`;
   const rows = list.slice(0,80).map(x=>`<tr><td style="white-space:normal;min-width:150px;">${custLink(x.c)}<div class="smallMuted">${escapeHTML(x.c.code)} · ${escapeHTML(x.c.city||'')}</div></td><td>${abcBadge(x)}</td><td>${riskBadge(x)}</td>
     <td>${x.lastVisit?fmtDate(x.lastVisit):'-'}<div class="smallMuted">${x.gap<9999?x.gap+' يوم / الحد '+x.interval:'لم يُزَر'}</div></td><td>${fmtMoney(x.total12)}</td><td>${visitBtn2(x.c)}</td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;">لا يوجد</td></tr>';
   return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🎯 تصنيف العملاء ودرجة الخطر</h2></div>
     <div class="kpis" style="margin-bottom:6px;">${['A','B','C','D'].map(k=>`<div class="kpi2"><div class="kbody"><div class="klbl">فئة ${k} ${k==='D'?'(بدون مبيعات)':''}</div><div class="kval" style="font-size:17px;">${cnt[k]} عميل</div><div class="smallMuted">${Math.round(sal[k]/all*100)}% من المبيعات · زيارة كل ${ABC_INTERVAL[k]} يوم</div></div></div>`).join('')}</div>
-    <div class="segRow">${seg('all','الكل')}${seg('A','A')}${seg('B','B')}${seg('C','C')}${seg('D','D')}${seg('risk','🔴 خطر عالي ('+riskN+')')}${seg('stopped','🛑 وقفوا الشراء')}</div>
+    <div class="segRow">${seg('all','الكل')}${seg('A','A')}${seg('B','B')}${seg('C','C')}${seg('D','D')}${seg('risk','🔴 خطر عالي ('+riskN+')')}${seg('stopped','🛑 وقفوا الشراء')}${seg('overdue','⏰ متأخرين عن الزيارة')}</div>
     <div class="tableWrap"><table><thead><tr><th>العميل</th><th>الفئة</th><th>الخطر</th><th>آخر زيارة</th><th>مبيعات 12 شهر</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="smallMuted" style="margin-top:6px;">A = أعلى عملاء بيحققوا 70% من المبيعات، B = لحد 90%، C = الباقي. الخطر (0-100) من نزول مبيعات آخر 3 شهور عن المتوسط السابق، وتوقف الشراء، وطول فترة عدم الزيارة. مرتبين حسب أولوية الزيارة.</div></div>`;
 }
@@ -6680,24 +6686,270 @@ function viewContests(){
 }
 
 /* ---------- كارت المنافسة في رئيسية المندوب ---------- */
-function competitionCardHTML(){
-  const me = CURRENT_USER.repId, C = COMPETITION, rows = C ? (C.reps||[]).slice().sort((a,b)=>b.visits-a.visits || b.avg-a.avg) : [];
-  const idx = rows.findIndex(x=>x.id===me);
-  let line = '<div class="smallMuted">لسه ما اتنشرتش بيانات المنافسة الشهر ده.</div>';
-  if(idx>=0){ const lead = rows[0], gap = lead.visits-rows[idx].visits;
-    line = `<div style="font-weight:800;">ترتيبك في زيارات الشهر: ${medalOf(idx)} <span class="smallMuted">(${idx+1} من ${rows.length})</span></div><div class="smallMuted">${idx===0 ? 'إنت في الصدارة، حافظ عليها! 🔥' : 'الأول: '+escapeHTML(lead.name)+' - فاضلك '+gap+' زيارة تلحقه'}</div>`; }
-  const active = CONTESTS.filter(k=>k.active!==false && contestStatus(k)==='🟢 شغالة').slice(0,2).map(k=>{ const m = (k.standings||[]).find(x=>x.id===me);
-    return `<div class="iChip">🎁 ${escapeHTML(k.title)}${m?` · ترتيبك ${m.rank}`:''} · باقي ${daysLeft(k)} يوم</div>`; }).join('');
-  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🏆 المنافسة</h2></div>${line}<div>${active}</div>
-    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="openKpiReport('rating')">⭐ ملخص التقييم</button><button class="btn btn-ghost btn-sm" onclick="openKpiReport('citysales')">💰 مبيعات المدن</button><button class="btn btn-primary btn-sm" onclick="openReport('contests')">🎁 المسابقات</button></div>${compUpdatedLine()}</div>`;
-}
 // اهتزاز خفيف عند الضغط على الأزرار (على الموبايل) - إحساس تطبيق حقيقي
 document.addEventListener('click', e=>{ if(navigator.vibrate && e.target.closest && e.target.closest('.btn,.seg,.navItem')) navigator.vibrate(8); }, {passive:true});
+
+/* ==========================================================================
+   v2.75 - كليندر المهام + محرك التنبيهات (تنبيهات ذكية طول اليوم)
+   ========================================================================== */
+let REP_TASKS = [], calMonth = null, calSel = null;
+const CAL_DAYS = ['س','ح','ن','ث','ر','خ','ج'];   // الأسبوع بيبدأ السبت
+const safeId = s => String(s||'').replace(/[^\w-]/g,'');
+const REMIND_LABELS = {'-1':'بدون تنبيه','0':'عند الميعاد','10':'قبلها بـ 10 دقايق','30':'قبلها بنص ساعة','60':'قبلها بساعة'};
+const REPEAT_LABELS = {none:'مرة واحدة', daily:'كل يوم', weekdays:'كل يوم (ماعدا الجمعة)', weekly:'كل أسبوع'};
+
+/* ---------- المهام ---------- */
+function tasksOn(d){
+  const wd = new Date(d+'T00:00:00').getDay();
+  return REP_TASKS.filter(t=>{
+    if(!t.date) return false;
+    if(t.repeat==='daily') return d>=t.date;
+    if(t.repeat==='weekdays') return d>=t.date && wd!==5;
+    if(t.repeat==='weekly') return d>=t.date && new Date(t.date+'T00:00:00').getDay()===wd;
+    return t.date===d;
+  });
+}
+const taskDone = (t,d)=>Array.isArray(t.doneDates) && t.doneDates.includes(d);
+const taskSort = (a,b)=>(a.time||'00:00').localeCompare(b.time||'00:00') || String(a.title).localeCompare(String(b.title),'ar');
+async function toggleTaskDone(id, d){
+  const t = REP_TASKS.find(x=>x.id===id); if(!t) return;
+  const done = taskDone(t,d), FV = firebase.firestore.FieldValue;
+  try{
+    await db.collection('repTasks').doc(id).update({doneDates: done ? FV.arrayRemove(d) : FV.arrayUnion(d)});
+    if(!done) toast('👏 تمام، خلصت: '+t.title,'ok');
+  }catch(e){ toast('تعذّر التعديل','warn'); }
+}
+function completeTask(id, d){ const t = REP_TASKS.find(x=>x.id===id); if(t && !taskDone(t,d)) toggleTaskDone(id,d); }
+function snoozeTask(id, min){
+  const s = alertStore(); (s.sn = s.sn||{})[id] = Date.now()+min*60000; alertSave(s);
+  toast(`⏰ هفكّرك بعد ${min} دقيقة`,'ok');
+}
+async function deleteTask(id){ if(!confirm('حذف المهمة؟')) return; try{ await db.collection('repTasks').doc(id).delete(); }catch(e){ toast('تعذّر الحذف','warn'); } }
+function ctSuggest(inp){
+  const q = inp.value.trim().toLowerCase(), dl = document.getElementById('ctCustList'); if(!dl) return;
+  if(q.length<2){ dl.innerHTML=''; return; }
+  dl.innerHTML = visibleCustomers().filter(c=>(c.code||'').toLowerCase().includes(q) || (c.name||'').toLowerCase().includes(q)).slice(0,20)
+    .map(c=>`<option value="${escapeHTML(c.code)}" label="${escapeHTML(c.name||'')}"></option>`).join('');
+}
+function openTaskForm(id, date){
+  const t = id ? REP_TASKS.find(x=>x.id===id) : null, d = (t && t.date) || date || calSel || todayISO();
+  const m = document.createElement('div'); m.className = 'modalBg';
+  const opt = (obj,cur)=>Object.entries(obj).map(([k,v])=>`<option value="${k}" ${String(cur)===k?'selected':''}>${v}</option>`).join('');
+  m.innerHTML = `<div class="modal"><h3>${t?'✏️ تعديل المهمة':'➕ مهمة جديدة'}</h3>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">${['📞 اتصال بـ','💵 تحصيل من','🏥 زيارة','📦 توصيل طلبية لـ','📝 متابعة'].map(x=>`<button type="button" class="iChip" onclick="document.getElementById('tkTitle').value='${x} ';document.getElementById('tkTitle').focus()" style="border:none;cursor:pointer;">${x}</button>`).join('')}</div>
+    <label>المهمة</label><input class="ctIn" id="tkTitle" maxlength="200" value="${escapeHTML(t?t.title:'')}" placeholder="اكتب المهمة">
+    <div style="display:flex;gap:8px;"><div style="flex:1;"><label>التاريخ</label><input class="ctIn" type="date" id="tkDate" value="${escapeHTML(d)}"></div><div style="flex:1;"><label>الساعة (اختياري)</label><input class="ctIn" type="time" id="tkTime" value="${escapeHTML((t&&t.time)||'')}"></div></div>
+    <div style="display:flex;gap:8px;"><div style="flex:1;"><label>التنبيه</label><select class="ctIn" id="tkRemind">${opt(REMIND_LABELS, t ? String(t.remind) : '10')}</select></div><div style="flex:1;"><label>التكرار</label><select class="ctIn" id="tkRepeat">${opt(REPEAT_LABELS, (t&&t.repeat)||'none')}</select></div></div>
+    <label>العميل (اختياري - اكتب الكود أو الاسم)</label><input class="ctIn" id="tkCust" list="ctCustList" oninput="ctSuggest(this)" value="${escapeHTML((t&&t.customerCode)||'')}" placeholder="كود العميل"><datalist id="ctCustList"></datalist>
+    <label>ملاحظة</label><input class="ctIn" id="tkNote" maxlength="300" value="${escapeHTML((t&&t.note)||'')}">
+    <div class="modalActions"><button class="btn btn-ghost" onclick="this.closest('.modalBg').remove()">إلغاء</button><button class="btn btn-primary" onclick="saveTask(this,'${t?safeId(t.id):''}')">حفظ</button></div></div>`;
+  document.body.appendChild(m); setTimeout(()=>document.getElementById('tkTitle').focus(), 50);
+}
+async function saveTask(btn, id){
+  const g = i=>document.getElementById(i).value.trim(), title = g('tkTitle'), date = g('tkDate'), time = g('tkTime');
+  if(!title){ toast('اكتب المهمة','warn'); return; }
+  if(!date){ toast('اختار التاريخ','warn'); return; }
+  const txt = g('tkCust'), c = txt ? (visibleCustomers().find(x=>x.code===txt) || visibleCustomers().find(x=>(x.name||'').includes(txt))) : null;
+  let remind = Number(g('tkRemind')); if(!time) remind = -1;
+  const data = {title, note:g('tkNote'), date, time, remind, repeat:g('tkRepeat'), customerCode:c?c.code:'', customerName:c?c.name:''};
+  btn.disabled = true;
+  try{
+    if(id) await db.collection('repTasks').doc(id).update(data);
+    else await db.collection('repTasks').add({...data, owner:CURRENT_USER.username, doneDates:[], createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    btn.closest('.modalBg').remove(); calSel = date; calMonth = date.slice(0,7); toast('✅ تم حفظ المهمة','ok'); setTimeout(alertTick, 600);
+  }catch(e){ btn.disabled = false; toast('تعذّر الحفظ: '+(e.code||e.message),'warn'); }
+}
+
+/* ---------- صفحة الكليندر ---------- */
+function calGo(delta){ const [y,m] = calMonth.split('-').map(Number), d = new Date(y,m-1+delta,1); calMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); renderView(); }
+function calPick(d){ calSel = d; renderView(); }
+function calToday(){ calSel = todayISO(); calMonth = calSel.slice(0,7); renderView(); }
+function taskItemHTML(t, d){
+  const done = taskDone(t,d), sid = escapeHTML(t.id);
+  return `<div class="tkItem ${done?'done':''}"><button class="tkChk" onclick="toggleTaskDone('${sid}','${d}')">${done?'✓':''}</button>
+    <div style="flex:1;min-width:0;"><div><span class="tkTitle">${escapeHTML(t.title)}</span>${t.time?`<span class="tkTime">${escapeHTML(t.time)}</span>`:''}${t.repeat&&t.repeat!=='none'?' <span class="smallMuted">🔁</span>':''}</div>
+      ${t.customerCode?`<div class="smallMuted">🏥 <a href="#" onclick="openCustomer360(${escapeHTML(JSON.stringify(t.customerCode))});return false;">${escapeHTML(t.customerName||t.customerCode)}</a></div>`:''}
+      ${t.note?`<div class="smallMuted">${escapeHTML(t.note)}</div>`:''}</div>
+    <div style="display:flex;gap:2px;"><button class="iconBtn" onclick="openTaskForm('${sid}')">✏️</button><button class="iconBtn" onclick="deleteTask('${sid}')">🗑</button></div></div>`;
+}
+function viewCalendar(){
+  const today = todayISO(); if(!calMonth) calMonth = today.slice(0,7); if(!calSel) calSel = today;
+  const [y,m] = calMonth.split('-').map(Number), dim = new Date(y,m,0).getDate(), lead = (new Date(y,m-1,1).getDay()+1)%7, myV = {};
+  visibleVisits().forEach(v=>{ if((v.date||'').startsWith(calMonth)) myV[v.date] = (myV[v.date]||0)+1; });
+  let cells = '<div class="calCell empty"></div>'.repeat(lead);
+  for(let d=1; d<=dim; d++){
+    const iso = `${calMonth}-${String(d).padStart(2,'0')}`, ts = tasksOn(iso), open = ts.filter(x=>!taskDone(x,iso)).length, dn = Math.min(ts.length-open, Math.max(0,3-Math.min(open,3)));
+    cells += `<button class="calCell ${iso===today?'today':''} ${iso===calSel?'sel':''}" onclick="calPick('${iso}')"><b>${d}</b><span class="calDots">${'<i></i>'.repeat(Math.min(open,3))}${'<i class="dn"></i>'.repeat(dn)}</span>${myV[iso]?`<small class="calV">✓${myV[iso]}</small>`:''}</button>`;
+  }
+  const dayTasks = tasksOn(calSel).sort(taskSort), openN = dayTasks.filter(x=>!taskDone(x,calSel)).length;
+  return `<div class="pageHead"><div><h2>📅 مهامي</h2><div class="desc">سجّل مهامك المهمة وهتتنبّه بيها في معادها</div></div><button class="btn btn-primary btn-sm" onclick="openTaskForm(null,'${calSel}')">➕ مهمة</button></div>
+    <div class="card"><div class="pageHead" style="margin-bottom:8px;"><div style="display:flex;align-items:center;gap:6px;"><button class="iconBtn" onclick="calGo(-1)">›</button><b>${MONTH_LABELS[m-1]} ${y}</b><button class="iconBtn" onclick="calGo(1)">‹</button></div><button class="btn btn-ghost btn-sm" onclick="calToday()">اليوم</button></div>
+      <div class="calHead">${CAL_DAYS.map(x=>`<div>${x}</div>`).join('')}</div><div class="calGrid">${cells}</div>
+      <div class="smallMuted" style="margin-top:6px;"><span style="color:#f59e0b;">●</span> مهمة مفتوحة · <span style="color:#9ca3af;">●</span> مكتملة · <span style="color:#059669;">✓</span> زيارات اتسجلت</div></div>
+    <div class="card"><div class="pageHead" style="margin-bottom:4px;"><h2 style="font-size:15px;">${escapeHTML(fmtDateArabic(calSel))}${calSel===today?' (النهارده)':''}</h2><span class="badge">${openN} مفتوحة من ${dayTasks.length}</span></div>
+      ${dayTasks.map(t=>taskItemHTML(t,calSel)).join('') || `<div class="emptyState"><div class="t">مفيش مهام في اليوم ده</div><div class="smallMuted">اضغط ➕ مهمة وسجّل أي حاجة مهمة</div></div>`}</div>`;
+}
+function calendarCardHTML(){
+  const today = todayISO(), ts = tasksOn(today).sort(taskSort), open = ts.filter(t=>!taskDone(t,today));
+  return `<div class="card"><div class="pageHead" style="margin-bottom:4px;"><div><h2 style="font-size:15px;">📅 مهامك النهارده</h2><div class="desc">${ts.length ? `${open.length} مفتوحة من ${ts.length}` : 'مفيش مهام مسجلة'}</div></div>
+      <div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="goTo('calendar')">الكليندر</button><button class="btn btn-primary btn-sm" onclick="openTaskForm(null,'${today}')">➕</button></div></div>
+    ${ts.slice(0,4).map(t=>taskItemHTML(t,today)).join('')}${ts.length>4?`<div class="smallMuted" style="text-align:center;">و ${ts.length-4} مهمة تانية...</div>`:''}</div>`;
+}
+
+/* ---------- محرك التنبيهات ---------- */
+const ALERT_KEY = ()=>'crmAlerts:'+((CURRENT_USER&&CURRENT_USER.username)||'');
+function alertStore(){
+  let s = {}; try{ s = JSON.parse(localStorage.getItem(ALERT_KEY())||'{}'); }catch(e){}
+  const td = todayISO(), mo = td.slice(0,7);
+  if(s.d!==td){ const keepM = s.m===mo ? Object.fromEntries(Object.entries(s.k||{}).filter(([k])=>k.startsWith('m:'))) : {}; s = {d:td, m:mo, k:keepM, list:[], sn:{}}; }
+  s.k = s.k||{}; s.list = s.list||[]; s.sn = s.sn||{}; return s;
+}
+function alertSave(s){ try{ localStorage.setItem(ALERT_KEY(), JSON.stringify(s)); }catch(e){} }
+function alertMark(key){ const s = alertStore(); s.k[key] = 1; alertSave(s); }
+function runAlertGo(go){ try{ if(go) new Function(go)(); }catch(e){ console.error(e); } }
+function beep(){
+  try{
+    if(localStorage.getItem('crmAlertSound')==='off') return;
+    const C = window.AudioContext || window.webkitAudioContext; if(!C) return;
+    const c = beep._c || (beep._c = new C()), o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = 880; g.gain.setValueAtTime(.0001,c.currentTime); g.gain.exponentialRampToValueAtTime(.25,c.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.45);
+    o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.5);
+  }catch(e){}
+}
+function deviceNotify(title, body, tag){
+  if(!('Notification' in window) || Notification.permission!=='granted' || !document.hidden) return;   // البانر كفاية والتطبيق مفتوح
+  const opts = {body, tag, dir:'rtl', lang:'ar', vibrate:[120,60,120]};
+  try{ if('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(r=>{ if(r) r.showNotification(title, opts); else new Notification(title, opts); }).catch(()=>{}); else new Notification(title, opts); }catch(e){}
+}
+function enableDeviceNotifications(){
+  if(!('Notification' in window)){ toast('المتصفح ده مش بيدعم الإشعارات','warn'); return; }
+  Notification.requestPermission().then(p=>{ toast(p==='granted' ? '✅ تم تفعيل إشعارات الجهاز' : 'الإشعارات متوقفة من إعدادات المتصفح', p==='granted'?'ok':'warn'); renderAlertsPanel(); }).catch(()=>{});
+}
+function hideAlertBanner(){ const el = document.getElementById('alertBanner'); if(el) el.className = ''; }
+function alertBannerGo(id){ const a = ALERTS.find(x=>x.id===id); hideAlertBanner(); if(a){ a.read = true; renderAlertBadge(); runAlertGo(a.go); } }
+function showAlertBanner(a, actions){
+  let el = document.getElementById('alertBanner'); if(!el){ el = document.createElement('div'); el.id = 'alertBanner'; document.body.appendChild(el); }
+  clearTimeout(el._t);
+  el.innerHTML = `<div class="abIc">${a.ic}</div><div class="abTx" onclick="alertBannerGo('${safeId(a.id)}')"><b>${escapeHTML(a.title)}</b>${a.body?`<div>${escapeHTML(a.body)}</div>`:''}</div>${(actions||[]).map(x=>`<button class="abBtn" onclick="${x.fn};hideAlertBanner()">${x.label}</button>`).join('')}<button class="abX" onclick="hideAlertBanner()">✕</button>`;
+  el.className = 'show'; el._t = setTimeout(hideAlertBanner, (actions&&actions.length) ? 20000 : 8000);
+}
+// key = بيمنع تكرار نفس التنبيه (يومياً، أو شهرياً لو بدأ بـ m:)
+function pushAlert({key, ic='🔔', title, body='', go='', sound=false, actions}){
+  const s = alertStore(); if(key){ if(s.k[key]) return false; s.k[key] = 1; }
+  const a = {id:uid(), text:`${ic} ${title}${body?' - '+body:''}`, ic, title, body, go, time:new Date(), read:false};
+  ALERTS.unshift(a); ALERTS = ALERTS.slice(0,40);
+  s.list.push({ic, title, body, go, t:Date.now()}); s.list = s.list.slice(-30); alertSave(s);
+  renderAlertBadge(); showAlertBanner(a, actions); deviceNotify(title, body, key||a.id);
+  if(sound){ beep(); try{ navigator.vibrate && navigator.vibrate([120,60,120]); }catch(e){} }
+  return true;
+}
+function initAlertsEngine(){
+  const s = alertStore(); ALERTS = s.list.map(x=>({id:uid(), text:`${x.ic} ${x.title}${x.body?' - '+x.body:''}`, ic:x.ic, title:x.title, body:x.body, go:x.go, time:new Date(x.t), read:true})).reverse();
+  renderAlertBadge();
+  if(!window._alertTimer){
+    window._alertTimer = setInterval(alertTick, 30000); setTimeout(alertTick, 6000);
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) alertTick(); });
+  }
+}
+function repStreak(){
+  const dates = new Set(visibleVisits().map(v=>v.date)); let d = new Date(), n = 0;
+  if(!dates.has(localISO(d))) d.setDate(d.getDate()-1);
+  for(let i=0;i<150;i++){ if(d.getDay()===5){ d.setDate(d.getDate()-1); continue; } if(dates.has(localISO(d))){ n++; d.setDate(d.getDate()-1); } else break; }   // الجمعة إجازة ومبتقطعش السلسلة
+  return n;
+}
+function dailyGoalNow(){ const r = currentRep(), mt = Number(r&&r.monthlyVisitTarget)||0; return mt>0 ? Math.max(3, Math.ceil(mt/22)) : 6; }
+function afterVisitAlert(p){
+  if(CURRENT_USER.role!=='rep') return;
+  const today = todayISO(), td = visibleVisits().filter(v=>v.date===today).length + 1, goal = dailyGoalNow();
+  const msg = td===1 ? ['🚀','أول زيارة النهارده! بداية موفقة', p.customerName||''] : td===goal ? ['🎯','حققت هدف اليوم! 👏', `${td} زيارة - كمّل وزوّد`] : td>goal && td%3===0 ? ['🔥',`${td} زيارة النهارده! إنت ماشي زي الصاروخ`, ''] : ['✅',`زيارة رقم ${td} اتسجلت`, td<goal ? `فاضل ${goal-td} على هدف اليوم` : ''];
+  pushAlert({key:`v:${today}:${td}`, ic:msg[0], title:msg[1], body:msg[2], sound:td===goal});
+}
+function taskTick(){
+  const now = new Date(), today = todayISO(), nowMin = now.getHours()*60+now.getMinutes(), s = alertStore();
+  tasksOn(today).forEach(t=>{
+    if(taskDone(t,today) || !t.time) return;
+    const [h,m] = t.time.split(':').map(Number), at = h*60+m, rem = Number(t.remind); if(isNaN(rem) || rem<0) return;
+    if(nowMin>=at-rem && nowMin<=at+120){
+      const late = nowMin>at, sid = safeId(t.id);
+      pushAlert({key:`t:${t.id}:${rem}`, ic:late?'⏰':'📌', title:(late?'فات ميعاد: ':rem>0?`بعد ${rem} دقيقة: `:'دلوقتي: ')+t.title, body:(t.customerName?t.customerName+' · ':'')+t.time, go:"goTo('calendar')", sound:true,
+        actions:[{label:'✅ تم', fn:`completeTask('${sid}','${today}')`},{label:'⏰ +10 د', fn:`snoozeTask('${sid}',10)`}]});
+    }
+  });
+  Object.entries(s.sn).forEach(([id,ts])=>{                      // مهام مؤجلة
+    if(Date.now()<ts) return; const t = REP_TASKS.find(x=>x.id===id); delete s.sn[id]; alertSave(s);
+    if(t && !taskDone(t,today)){ const sid = safeId(id); pushAlert({ic:'⏰', title:'تذكير: '+t.title, body:t.time||'', go:"goTo('calendar')", sound:true, actions:[{label:'✅ تم', fn:`completeTask('${sid}','${today}')`},{label:'⏰ +10 د', fn:`snoozeTask('${sid}',10)`}]}); }
+  });
+}
+function repSmartTick(){
+  if(CURRENT_USER.role!=='rep' || !REPS.length) return;
+  const now = new Date(), h = now.getHours()+now.getMinutes()/60, today = todayISO(), month = today.slice(0,7), me = CURRENT_USER.repId;
+  const mine = visibleVisits(), td = mine.filter(v=>v.date===today).length, goal = dailyGoalNow(), name = String(CURRENT_USER.name||CURRENT_USER.username||'').split(' ')[0];
+  const open = tasksOn(today).filter(t=>!taskDone(t,today)), r = currentRep(), mt = Number(r&&r.monthlyVisitTarget)||0;
+  if(now.getDay()!==5){                                                    // الجمعة إجازة
+    const I = crmIntel();
+    if(h>=8 && h<13){ const plan = I.list.filter(x=>!x.visitedToday && x.score>=25).length; pushAlert({key:'morning', ic:'🌞', title:`صباح الخير يا ${name}!`, body:`عندك ${plan} عميل أولوية و${open.length} مهمة النهارده. يلا نبدأ 💪`, go:"goTo('dashboard')"}); }
+    if(h>=10 && h<16){ const late = I.list.filter(x=>x.abc==='A' && x.gap>=x.interval*1.5 && !x.visitedToday); if(late.length) pushAlert({key:'a-late', ic:'⭐', title:`${late.length} عميل A متأخرين عن الزيارة`, body:late.slice(0,3).map(x=>x.c.name).join('، '), go:"goTo('dashboard')"}); }
+    if(h>=11 && h<17){ const cl = I.list.filter(x=>x.claim>0).sort((a,b)=>b.claim-a.claim); if(cl.length) pushAlert({key:'claims', ic:'💵', title:`${cl.length} عميل عليهم مطالبات`, body:`ابدأ بـ ${cl[0].c.name} (${fmtMoney(cl[0].claim)})`, go:"goTo('claims')"}); }
+    if(h>=12.5 && h<16) pushAlert({key:'noon', ic:td>=goal/2?'👏':'🕛', title:td>=goal/2?'ماشي كويس!':'نص اليوم عدّى', body:`عملت ${td} من ${goal} زيارة النهارده${td<goal/2?' - لسه الوقت قدامك':''}`, go:"goTo('addvisit')"});
+    if(h>=15.5 && h<18.5) pushAlert({key:'afternoon', ic:td>=goal?'🎯':'⏳', title:td>=goal?'حققت هدف اليوم!':`فاضل ${goal-td} زيارة على هدف اليوم`, body:td>=goal?'شغل ممتاز 👏':'لسه ممكن تلحق 💪', go:"goTo('addvisit')"});
+    if(h>=18 && h<23){ const st = repStreak(); pushAlert({key:'evening', ic:td>0?'🌙':'⚠️', title:td>0?`ختام اليوم: ${td} زيارة`:'لسه ما سجلتش أي زيارة النهارده', body:td>0?`سلسلة التزامك ${st} يوم 🔥 ${open.length?`· لسه ${open.length} مهمة مفتوحة`:''}`:(st>0?`سلسلتك (${st} يوم) ممكن تقطع!`:'سجّل زيارة قبل ما اليوم يخلص'), go:td>0?"goTo('dashboard')":"goTo('addvisit')"}); }
+  }
+  if(h>=15 && open.length && open.some(t=>!t.time)) pushAlert({key:'tasks-pm', ic:'📅', title:`لسه عندك ${open.length} مهمة النهارده`, body:open.slice(0,2).map(t=>t.title).join(' · '), go:"goTo('calendar')"});
+  if(mt>0){                                                              // معالم هدف الزيارات الشهري (بنعرض أعلى معلم بس)
+    const mv = mine.filter(v=>(v.date||'').startsWith(month)).length, pct = Math.round(mv/mt*100), ms = [100,75,50].find(p=>pct>=p);
+    if(ms){ [50,75,100].filter(p=>p<ms).forEach(p=>alertMark(`m:${month}:ms${p}`)); pushAlert({key:`m:${month}:ms${ms}`, ic:ms===100?'🏆':'🎉', title:ms===100?'حققت هدف زيارات الشهر كله!':`وصلت ${ms}% من هدف زيارات الشهر`, body:`${mv} من ${mt} زيارة`, go:"goTo('dashboard')", sound:true}); }
+  }
+  if(COMPETITION && me){                                                 // تغيّر الترتيب
+    const rows = (COMPETITION.reps||[]).slice().sort((a,b)=>b.visits-a.visits||b.avg-a.avg), idx = rows.findIndex(x=>x.id===me);
+    if(idx>=0){
+      const RK = 'crmRank:'+CURRENT_USER.username; let prev = null; try{ const v = (localStorage.getItem(RK)||'').split(':'); if(v[0]===month) prev = Number(v[1]); localStorage.setItem(RK, month+':'+(idx+1)); }catch(e){}
+      if(prev && prev!==idx+1){
+        if(idx+1<prev) pushAlert({ic:'🚀', title:`طلعت للمركز ${idx+1} في ترتيب الزيارات!`, body:idx===0?'إنت في الصدارة 🥇':'كمّل وهتوصل للأول', go:"openReport('compete')", sound:true});
+        else pushAlert({ic:'😮', title:`${rows[idx-1]?rows[idx-1].name:'زميلك'} عدّاك! بقيت المركز ${idx+1}`, body:rows[idx-1]?`فاضلك ${Math.max(1,rows[idx-1].visits-rows[idx].visits)} زيارة تلحقه`:'', go:"openReport('compete')"});
+      }
+    }
+  }
+  CONTESTS.filter(k=>k.active!==false && contestStatus(k)==='🟢 شغالة' && daysLeft(k)<=1).forEach(k=>{
+    const mm = (k.standings||[]).find(x=>x.id===me);
+    pushAlert({key:`c:${k.id}`, ic:'🎁', title:`مسابقة "${k.title}" بتخلص ${daysLeft(k)===0?'النهارده':'بكرة'}!`, body:mm?`ترتيبك ${mm.rank} من ${k.standings.length}`:'', go:"openReport('contests')", sound:true});
+  });
+}
+function managerDigestTick(){
+  if(!['admin','manager'].includes(CURRENT_USER.role) || !REPS.length || !VISITS.length) return;
+  const h = new Date().getHours();
+  [['digest-am',10,14],['digest-pm',14,19]].forEach(([key,a,b])=>{ if(h>=a && h<b){ const al = collectAlerts(); if(al.length) pushAlert({key, ic:'🚨', title:`${al.length} تنبيه محتاج متابعة`, body:al.slice(0,2).map(x=>x.t).join(' · '), go:"goTo('dashboard')"}); } });
+}
+function alertTick(){ if(!CURRENT_USER) return; try{ taskTick(); repSmartTick(); managerDigestTick(); }catch(e){ console.error('alertTick', e); } }
+
+function challengeCompeteCardHTML(){
+  const today = todayISO(), td = visibleVisits().filter(v=>v.date===today), I = crmIntel(), me = CURRENT_USER.repId;
+  const important = td.filter(v=>{ const x = I.byCode[v.customerCode]; return x && x.score>=40; }).length;
+  const rated = td.filter(v=>v.rating), avgR = rated.length ? rated.reduce((a,v)=>a+v.rating,0)/rated.length : 0, streak = repStreak();
+  const ch = (ic,t,n,g,extra)=>{ const ok = n>=g; return `<div class="iCh ${ok?'ok':''}"><div>${ok?'✅':ic} ${t}</div><div class="goalBar" style="margin:4px 0;"><div class="goalFill" style="width:${Math.min(100,Math.round(n/g*100))}%"></div></div><div class="smallMuted">${extra||n+' / '+g}</div></div>`; };
+  const C = COMPETITION, rows = C ? (C.reps||[]).slice().sort((a,b)=>b.visits-a.visits || b.avg-a.avg) : [], idx = rows.findIndex(x=>x.id===me);
+  let rank = '<div class="smallMuted">لسه ما اتنشرتش بيانات المنافسة الشهر ده.</div>';
+  if(idx>=0){ const lead = rows[0], gap = lead.visits-rows[idx].visits;
+    rank = `<div style="font-weight:800;">ترتيبك في زيارات الشهر: ${medalOf(idx)} <span class="smallMuted">(${idx+1} من ${rows.length})</span></div><div class="smallMuted">${idx===0 ? 'إنت في الصدارة، حافظ عليها! 🔥' : 'الأول: '+escapeHTML(lead.name)+' - فاضلك '+gap+' زيارة تلحقه'}</div>`; }
+  const active = CONTESTS.filter(k=>k.active!==false && contestStatus(k)==='🟢 شغالة').slice(0,2).map(k=>{ const m = (k.standings||[]).find(x=>x.id===me);
+    return `<span class="iChip">🎁 ${escapeHTML(k.title)}${m?` · ترتيبك ${m.rank}`:''} · باقي ${daysLeft(k)} يوم</span>`; }).join('');
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🔥 تحدياتك ومنافستك</h2><div class="desc">${streak>0?`سلسلة التزامك: <b>${streak}</b> يوم متتالي`:'ابدأ سلسلة التزام جديدة النهارده'}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">${ch('🧭','زور 3 من عملاء الخطة', important, 3)}${ch('⭐','جودة: متوسط تقييم 4+', rated.length>=2 && avgR>=4 ? 1 : 0, 1, rated.length>=2 ? 'متوسطك '+avgR.toFixed(1) : 'محتاج زيارتين متقيّمتين')}</div>
+    ${rank}<div>${active}</div>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="openKpiReport('rating')">⭐ ملخص التقييم</button><button class="btn btn-ghost btn-sm" onclick="openKpiReport('citysales')">💰 مبيعات المدن</button><button class="btn btn-primary btn-sm" onclick="openReport('contests')">🎁 المسابقات</button></div>${compUpdatedLine()}</div>`;
+}
+function homeExtrasHTML(){
+  try{
+    if(CURRENT_USER.role==='rep') return smartPlanHTML() + calendarCardHTML() + targetBonusCardHTML() + challengeCompeteCardHTML();
+    if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager') return calendarCardHTML() + managerAlertsHTML();
+    return calendarCardHTML();
+  }catch(e){ console.error('home extras', e); }
+  return '';
+}
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
-    const RT = [['repmatrix','📊 أدائي'],['compete','🏆 المنافسة'],['contests','🎁 المسابقات'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['stale','⏰ محتاجين زيارة'],['abc','🎯 تصنيف عملائي']];
+    const RT = [['repmatrix','📊 أدائي'],['compete','🏆 المنافسة'],['contests','🎁 المسابقات'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['abc','🎯 تصنيف عملائي']];
     if(!RT.some(x=>x[0]===reportsTab)) reportsTab = 'repmatrix';
-    const bodies = {repmatrix:viewRepMatrixReport, citycompare:viewCityYearCompare, repcustomers:viewRepCustomersTrend, stale:viewStaleCustomersReport, abc:viewAbcRiskReport, compete:viewCompetition, contests:viewContests};
+    const bodies = {repmatrix:viewRepMatrixReport, citycompare:viewCityYearCompare, repcustomers:viewRepCustomersTrend, abc:viewAbcRiskReport, compete:viewCompetition, contests:viewContests};
     return `
       <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">تقاريري</h2><div class="desc">أداؤك، ومبيعات مدنك على مدار السنة، وعملاؤك</div></div></div>
       <div class="segRow">${RT.map(x=>`<button class="seg ${reportsTab===x[0]?'on':''}" onclick="setReportsTab('${x[0]}')">${x[1]}</button>`).join('')}</div>
@@ -6715,11 +6967,9 @@ function viewReportsBody(){
     overview: viewReportsOverview,
     repmatrix: viewRepMatrixReport,
     repssummary: viewRepsSummaryReport,
-    leaderboard: viewLeaderboardReport,
     sales: viewSalesReport,
     citycompare: viewCityYearCompare,
     claims: viewClaimsReport,
-    stale: viewStaleCustomersReport,
     coverage: viewCoverageReport,
     routeadherence: viewRouteAdherenceReport,
     analytics: viewSalesAnalytics,
@@ -8152,73 +8402,6 @@ function showImportPreview(title, columnLabels, rows, onConfirm){
 /* ==========================================================================
    REPORTS: لوحة أداء المناديب (Leaderboard)
    ========================================================================== */
-function viewLeaderboardReport(){
-  const rows = leaderboardRows();
-  const medalFor = i => i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : `${i+1}`;
-  const pctBadge = (pct, hasTarget) => hasTarget ? `<span class="badge ${pct>=100?'badge-teal':pct>=60?'badge-amber':'badge-red'}">${pct.toFixed(0)}%</span>` : `<span class="smallMuted">-</span>`;
-
-  const rowsHTML = rows.map((r,i)=>`
-    <tr>
-      <td style="font-weight:800;text-align:center;">${medalFor(i)}</td>
-      <td><div class="rowFlex"><div class="avatarSm">${escapeHTML((r.rep.name||'?').trim()[0]||'?')}</div><div style="font-weight:700;">${escapeHTML(r.rep.name)}</div></div></td>
-      <td>${r.visitTarget||'-'}</td>
-      <td style="font-weight:800;color:var(--teal-dark);">${r.month}</td>
-      <td>${pctBadge(r.visitPct, r.visitTarget>0)}</td>
-      <td>${r.custTarget||'-'}</td>
-      <td style="font-weight:800;color:var(--teal-dark);">${r.distinctCustomers}</td>
-      <td>${pctBadge(r.custPct, r.custTarget>0)}</td>
-      <td>${starsHTML(Math.round(r.avgRating))} <span class="smallMuted">(${r.avgRating.toFixed(1)})</span></td>
-    </tr>`).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--gray-500);padding:24px;">لا يوجد مناديب</td></tr>`;
-
-  return `
-    <div class="card">
-      <div class="pageHead" style="margin-bottom:8px;">
-        <h2 style="font-size:15px;">تقرير أداء المناديب</h2>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-outline btn-sm" onclick="shareLeaderboardWhatsApp()">📤 واتساب</button>
-          <button class="btn btn-outline btn-sm" onclick="printLeaderboard()">🖨 طباعة</button>
-        </div>
-      </div>
-      <div class="tableWrap"><table><thead><tr>
-        <th>#</th><th>المندوب</th><th>هدف الزيارات</th><th>الزيارات الفعلية</th><th>نسبة الزيارات</th><th>هدف العملاء</th><th>العملاء المُزارة</th><th>نسبة العملاء</th><th>متوسط التقييم</th>
-      </tr></thead><tbody>${rowsHTML}</tbody></table></div>
-      <div class="smallMuted" style="margin-top:10px;">الأهداف بتُحدَّد من صفحة "التعريفات" ← "أهداف المناديب". "العملاء المُزارة" = عدد العملاء المختلفين (غير مكررين) اللي اتزاروا هذا الشهر.</div>
-    </div>
-    <div class="card">
-      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">معدل الإنجاز لكل مندوب</h2></div>
-      <div class="chartBox"><canvas id="chConversion"></canvas></div>
-    </div>
-    <div class="card" id="targetAchievementCard" style="display:none;">
-      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">نسبة تحقيق هدف الزيارات (للمناديب اللي ليهم هدف محدد)</h2></div>
-      <div class="chartBox"><canvas id="chTargetAchievement"></canvas></div>
-    </div>
-  `;
-}
-function drawLeaderboardChart(){
-  destroyCharts(['chConversion','chTargetAchievement']);
-  if(reportsTab!=='leaderboard') return;
-  const labels = REPS.map(r=>r.name);
-  const data = REPS.map(r=>{
-    const repVisits = VISITS.filter(v=>v.repId===r.id);
-    if(!repVisits.length) return 0;
-    const successCount = repVisits.filter(v=>ratingGood(v.rating)).length;
-    return Math.round(successCount/repVisits.length*100);
-  });
-  mkChart('chConversion','bar',{labels,datasets:[{label:'معدل الإنجاز %',data,backgroundColor:'#12A594',borderRadius:6}]},{plugins:{legend:{display:false}},scales:{y:{max:100}}});
-
-  const repsWithTargets = REPS.filter(r=>r.monthlyVisitTarget>0);
-  const targetCard = document.getElementById('targetAchievementCard');
-  if(targetCard) targetCard.style.display = repsWithTargets.length ? 'block' : 'none';
-  if(repsWithTargets.length){
-    const monthPrefix = todayISO().slice(0,7);
-    const tLabels = repsWithTargets.map(r=>r.name);
-    const tData = repsWithTargets.map(r=>{
-      const actual = VISITS.filter(v=>v.repId===r.id && (v.date||'').startsWith(monthPrefix)).length;
-      return Math.round(actual/r.monthlyVisitTarget*100);
-    });
-    mkChart('chTargetAchievement','bar',{labels:tLabels,datasets:[{label:'% تحقيق هدف الزيارات',data:tData,backgroundColor:tData.map(v=>v>=100?'#0F7A6B':v>=60?'#D68910':'#C0392B'),borderRadius:6}]},{plugins:{legend:{display:false}}});
-  }
-}
 
 /* ==========================================================================
    REPORTS: تقارير المبيعات (من بيانات مبيعات العملاء)
@@ -8490,7 +8673,7 @@ function viewFollowupAdminList(){
       <div class="filterBar">
         <select onchange="followupAdminFilters.telesales=this.value; updateFollowupAdminResults();">
           <option value="">كل التلي سيلز</option>
-          ${options.map(o=>`<option value="${o.username}" ${followupAdminFilters.telesales===o.username?'selected':''}>${escapeHTML(o.name)}</option>`).join('')}
+          ${options.map(o=>`<option value="${escapeHTML(o.username)}" ${followupAdminFilters.telesales===o.username?'selected':''}>${escapeHTML(o.name)}</option>`).join('')}
         </select>
         <select onchange="followupAdminFilters.result=this.value; updateFollowupAdminResults();">
           <option value="">كل النتائج</option>
@@ -8686,7 +8869,7 @@ function viewFollowupMatrixReport(){
     ? `<div class="badge badge-teal" style="padding:9px 14px;">${escapeHTML(CURRENT_USER.name||CURRENT_USER.username)}</div>`
     : `<select onchange="followupReportFilters.telesalesUser=this.value; renderView();">
         <option value="ALL" ${isAll?'selected':''}>كل التلي سيلز</option>
-        ${options.map(o=>`<option value="${o.username}" ${telesalesUser===o.username?'selected':''}>${escapeHTML(o.name)}</option>`).join('')}
+        ${options.map(o=>`<option value="${escapeHTML(o.username)}" ${telesalesUser===o.username?'selected':''}>${escapeHTML(o.name)}</option>`).join('')}
       </select>`;
 
   const headerCols = columns.map(c=>`<th>${escapeHTML(c)}</th>`).join('') + (hasOther?`<th>أخرى</th>`:'') + `<th>الإجمالي</th>`;
@@ -9013,37 +9196,6 @@ function staleCustomersList(){
   }).filter(c=>c.gap >= staleThresholdDays)
     .sort((a,b)=>b.gap-a.gap);
   return list;
-}
-function viewStaleCustomersReport(){
-  const list = staleCustomersList();
-  const rows = list.slice(0,300).map(c=>`
-    <tr>
-      <td style="white-space:normal;min-width:150px;">${escapeHTML(c.name)}</td>
-      <td>${escapeHTML(c.code)}</td>
-      <td>${escapeHTML(c.city)}</td>
-      <td>${escapeHTML(c.area||'')}</td>
-      <td>${c.lastVisit ? fmtDate(c.lastVisit) : `<span class="badge badge-red">${noVisitLabel()}</span>`}</td>
-      <td>${c.lastVisit ? `<span class="badge ${c.gap>60?'badge-red':'badge-amber'}">${c.gap} يوم</span>` : '-'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(c.code))})">📝 زيارة</button></td>
-    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:24px;">كل العملاء اتزاروا خلال آخر ${staleThresholdDays} يوم 🎉</td></tr>`;
-
-  return `
-    <div class="card">
-      <div class="pageHead" style="margin-bottom:8px;">
-        <h2 style="font-size:15px;">عملاء بدون زيارة منذ ${staleThresholdDays} يوم أو أكتر</h2>
-        <div class="desc">${list.length} عميل</div>
-      </div>
-      <div class="filterBar">
-        <select onchange="staleThresholdDays=Number(this.value); renderView();">
-          ${[14,30,45,60,90].map(n=>`<option value="${n}" ${staleThresholdDays===n?'selected':''}>${n} يوم</option>`).join('')}
-        </select>
-      </div>
-      <div class="tableWrap"><table><thead><tr>
-        <th>اسم العميل</th><th>الكود</th><th>المدينة</th><th>المنطقة</th><th>آخر زيارة</th><th>عدد الأيام</th><th></th>
-      </tr></thead><tbody>${rows}</tbody></table></div>
-      ${list.length>300?`<div class="smallMuted" style="text-align:center;margin-top:8px;">تم عرض أول 300 نتيجة</div>`:''}
-    </div>
-  `;
 }
 
 /* ==========================================================================
@@ -9600,7 +9752,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.74): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.77): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -9759,6 +9911,18 @@ service cloud.firestore {
     // ===== المنافسة والمسابقات: ملخصات مجمّعة (أرقام إجمالية بس)، الكل يقرا والإدارة تكتب =====
     match /leaderboard/{id}        { allow read: if isStaff(); allow write: if isAdminOrManager(); }
     match /contests/{id}           { allow read: if isStaff(); allow write: if isAdminOrManager(); }
+
+    // ===== مهام الكليندر: خاصة بصاحبها بس (الأدمن يقدر يحذف) =====
+    match /repTasks/{id} {
+      allow read: if isStaff() && resource.data.get('owner', '') == myUsername();
+      allow create: if isStaff() && request.resource.data.owner == myUsername()
+        && request.resource.data.keys().hasOnly(['owner','title','note','date','time','remind','repeat','customerCode','customerName','doneDates','createdAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200;
+      allow update: if isStaff() && resource.data.owner == myUsername() && request.resource.data.owner == myUsername()
+        && request.resource.data.keys().hasOnly(['owner','title','note','date','time','remind','repeat','customerCode','customerName','doneDates','createdAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200;
+      allow delete: if isStaff() && (resource.data.owner == myUsername() || isAdmin());
+    }
 
     // ===== بوابة العملاء =====
     match /catalog/{id} {
