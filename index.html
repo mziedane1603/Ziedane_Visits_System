@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.80)</title>
+<title>Ziedane CRM (v2.84)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -762,13 +762,26 @@ button,.btn,.seg,.navItem,select,input{touch-action:manipulation;}
 .confetti i{position:absolute;top:-14px;width:8px;height:14px;border-radius:2px;animation:cfFall linear forwards;}
 @keyframes cfFall{to{transform:translateY(108vh) rotate(720deg);opacity:.9;}}
 /* ---------- v2.80: خطة المناطق ---------- */
-.planInsight{padding:9px 11px;border-radius:10px;background:var(--teal-light,#e6f4f1);margin:6px 0;font-size:13px;cursor:pointer;}
+.planInsight{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 11px;border-radius:10px;background:var(--teal-light,#e6f4f1);margin:6px 0;font-size:13px;cursor:pointer;}
 .areaRow{border:1px solid var(--gray-200,#e5e7eb);border-radius:12px;padding:10px 12px;margin:8px 0 0;cursor:pointer;background:var(--white,#fff);}
 .areaRow.open{border-color:var(--teal,#0f7a6b);border-bottom-left-radius:0;border-bottom-right-radius:0;}
 .areaTop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px;}.areaCount{margin-inline-start:auto;font-size:12px;color:var(--gray-500,#6b7280);}
 .areaBar{height:6px;border-radius:99px;background:var(--gray-100,#f1f3f5);margin-top:8px;overflow:hidden;}.areaBar i{display:block;height:100%;background:linear-gradient(90deg,#fbbf24,#dc2626);}
 .areaCusts{padding:0 10px 6px;border:1px solid var(--teal,#0f7a6b);border-top:none;border-radius:0 0 12px 12px;}
 .iChip.warn{background:#fee2e2;color:#b91c1c;}
+.icGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}.icField span{display:block;font-size:12.5px;margin-bottom:2px;}
+/* ---------- v2.81: إصلاح عرض الشريط العلوي على الموبايل (كان بيعمل تمرير أفقي) ---------- */
+html,body{overflow-x:clip;}
+.topbar{min-width:0;}.topbar .brand{min-width:0;flex:1 1 auto;overflow:hidden;}.topbar .brand #brandTitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.topbar > div:last-child{flex:0 0 auto;}
+@media(max-width:560px){
+  .topbar{gap:6px;padding-right:calc(10px + env(safe-area-inset-right,0px));padding-left:calc(10px + env(safe-area-inset-left,0px));}
+  .topbar > div:last-child{gap:2px !important;}
+  .topbar .userChip > div:not(.av){display:none;}
+  #brandCo,#verTagTop{display:none;}
+  .topbar .iconBtn{min-width:32px;padding-left:5px;padding-right:5px;}
+}
+@media(max-width:400px){ .topbar .brand #brandTitle{display:none;} }
 </style>
 </head>
 <body>
@@ -938,7 +951,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.80';
+const APP_VERSION = '2.84';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1210,6 +1223,7 @@ const DEF_GROUPS = [
   {label:'🎯 أهداف المناديب', tabs:[['targets','أهداف المناديب']]},
   {label:'⭐ التقييم', tabs:[['rating','مقياس التقييم']]},
   {label:'📢 شريط الأصناف', tabs:[['ticker','شريط الأصناف']]},
+  {label:'🧭 الخطة الذكية', tabs:[['intel','إعدادات الخطة الذكية']]},
   {label:'🏢 بيانات الشركة', tabs:[['company','بيانات الشركة']]}
 ];
 function setDefTab(k){ definitionsTab = k; renderView(); }
@@ -1952,6 +1966,7 @@ function attachListeners(){
   unsubs.push(db.collection('contests').onSnapshot(s=>{ CONTESTS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='dashboard') renderView(); }, e=>console.error('contests', e)));
   if(['admin','manager'].includes(CURRENT_USER.role) && !window._pubTimer){ setTimeout(()=>publishCompetition(false), 20000); window._pubTimer = setInterval(()=>publishCompetition(false), 10*60*1000); }
   unsubs.push(db.collection('repTasks').where('owner','==',CURRENT_USER.username).onSnapshot(s=>{ REP_TASKS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='calendar' || currentView==='dashboard') renderView(); setTimeout(alertTick, 300); }, e=>console.error('repTasks', e)));
+  unsubs.push(db.collection('appConfig').doc('intelCfg').onSnapshot(s=>{ if(applyIntelCfg(s.exists ? s.data() : {}) && ['dashboard','definitions','inventory'].includes(currentView)) renderView(); }, e=>console.error('intelCfg', e)));
 
   attachVisitsListener();
 
@@ -2286,6 +2301,7 @@ function viewDashboard(){
         ${userPermissions(CURRENT_USER).addvisit ? `<button class="btn btn-primary" onclick="goTo('addvisit')">+ تسجيل زيارة جديدة</button>` : ''}
       </div>
     </div>
+    ${CURRENT_USER.role==='rep' ? welcomeBannerHTML() : ''}
     <div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>
     ${homeExtrasHTML()}
@@ -3265,7 +3281,7 @@ let invView = invLoadView();
 function invStockStats(){
   const q = INVENTORY.map(i=>Number(i.quantity)||0).filter(n=>n>0).sort((a,b)=>a-b);
   const maxQ = q.length ? q[Math.min(q.length-1, Math.floor(q.length*0.9))] : 1;
-  return {maxQ:Math.max(maxQ,1), lowAt:Math.max(20, Math.round(maxQ*0.1))};
+  return {maxQ:Math.max(maxQ,1), lowAt:Math.max(INTEL_CFG.lowStockMin, Math.round(maxQ*0.1))};
 }
 const invLevel = (qty, st)=> qty<=0 ? 'out' : qty<=st.lowAt ? 'low' : 'ok';
 function setInvSort(v){ invView.sort = v; updateInventoryResults(); }
@@ -5655,6 +5671,7 @@ function renderBonusTicker(){
 function viewDefinitions(){
   const canEdit = CURRENT_USER.role==='admin';
   const tabs = tabs2HTML(DEF_GROUPS, definitionsTab, 'setDefTab');
+  if(definitionsTab==='intel') return `<div class="pageHead"><div><h2>التعريفات</h2><div class="desc">حدود الخطة الذكية والتصنيف</div></div></div>${tabs}${intelCfgCardHTML(canEdit || CURRENT_USER.role==='manager')}`;
 
   if(definitionsTab==='rating') return `
     <div class="pageHead"><div><h2>التعريفات</h2><div class="desc">عدد نجوم تقييم الزيارات</div></div></div>
@@ -6404,7 +6421,7 @@ function gapDays(iso){ return iso ? Math.max(0, Math.floor((Date.now()-new Date(
 function normName(s){ return String(s||'').replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase(); }
 let _intel = null;
 function crmIntel(){
-  const today = todayISO(), key = [VISITS.length, CUSTOMER_SALES.length, CLAIMS.length, CUSTOMERS.length, today, CURRENT_USER.username, (repCities()||[]).join()].join('|');
+  const today = todayISO(), key = [VISITS.length, CUSTOMER_SALES.length, CLAIMS.length, CUSTOMERS.length, today, CURRENT_USER.username, (repCities()||[]).join(), INTEL_CFG.v].join('|');
   if(_intel && _intel.key===key) return _intel;
   const yr = Number(today.slice(0,4)), cur = 12 + Number(today.slice(5,7)) - 1, series = {};
   CUSTOMER_SALES.forEach(c=>{
@@ -6427,7 +6444,7 @@ function crmIntel(){
     let risk = null; const why = [];
     if(total12>0){
       risk = 0;
-      if(base>0 && recent<base){ const d = 1-recent/base; risk += Math.round(d*50); if(d>=.3) why.push('مبيعاته نازلة '+Math.round(d*100)+'%'); }
+      if(base>0 && recent<base){ const d = 1-recent/base; risk += Math.round(d*50); if(d>=INTEL_CFG.declinePct/100) why.push('مبيعاته نازلة '+Math.round(d*100)+'%'); }
       if(prev>0 && lastFull<=0){ risk += 20; why.push('وقف يشتري'); }
       else if(lastFull>0 && s[cur]<=0 && Number(today.slice(8))>15){ risk += 12; why.push('لسه ما اشتراش الشهر ده'); }
       risk += gap>=45 ? 15 : gap>=30 ? 8 : 0;
@@ -6436,7 +6453,7 @@ function crmIntel(){
     return {c, s, cur, total12, risk, why, gap, lastVisit:lastV[c.code]||null, visitedToday:!!todayN[c.code], visits90:cnt90[c.code]||0, avgRating:cnt90[c.code] ? rsum[c.code]/cnt90[c.code] : 0, claim:claimBy[c.code]||0};
   });
   const sorted = list.filter(x=>x.total12>0).sort((a,b)=>b.total12-a.total12), grand = sorted.reduce((a,x)=>a+x.total12,0);
-  let cum = 0; sorted.forEach(x=>{ x.abc = cum/grand<0.7 ? 'A' : cum/grand<0.9 ? 'B' : 'C'; cum += x.total12; });
+  let cum = 0; sorted.forEach(x=>{ x.abc = cum/grand<INTEL_CFG.cutA/100 ? 'A' : cum/grand<INTEL_CFG.cutB/100 ? 'B' : 'C'; cum += x.total12; });
   list.forEach(x=>{
     if(!x.abc) x.abc = 'D';
     x.interval = ABC_INTERVAL[x.abc];
@@ -6572,7 +6589,7 @@ function viewAbcRiskReport(){
     <div class="kpis" style="margin-bottom:6px;">${['A','B','C','D'].map(k=>`<div class="kpi2"><div class="kbody"><div class="klbl">فئة ${k} ${k==='D'?'(بدون مبيعات)':''}</div><div class="kval" style="font-size:17px;">${cnt[k]} عميل</div><div class="smallMuted">${Math.round(sal[k]/all*100)}% من المبيعات · زيارة كل ${ABC_INTERVAL[k]} يوم</div></div></div>`).join('')}</div>
     <div class="segRow">${seg('all','الكل')}${seg('A','A')}${seg('B','B')}${seg('C','C')}${seg('D','D')}${seg('risk','🔴 خطر عالي ('+riskN+')')}${seg('stopped','🛑 وقفوا الشراء')}${seg('overdue','⏰ متأخرين عن الزيارة')}</div>
     <div class="tableWrap"><table><thead><tr><th>العميل</th><th>الفئة</th><th>الخطر</th><th>آخر زيارة</th><th>مبيعات 12 شهر</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div class="smallMuted" style="margin-top:6px;">A = أعلى عملاء بيحققوا 70% من المبيعات، B = لحد 90%، C = الباقي. الخطر (0-100) من نزول مبيعات آخر 3 شهور عن المتوسط السابق، وتوقف الشراء، وطول فترة عدم الزيارة. مرتبين حسب أولوية الزيارة.</div></div>`;
+    <div class="smallMuted" style="margin-top:6px;">A = أكبر عملاء بيحققوا ${INTEL_CFG.cutA}% من المبيعات، B = لحد ${INTEL_CFG.cutB}%، C = الباقي. الخطر (0-100) من نزول مبيعات آخر 3 شهور عن المتوسط السابق، وتوقف الشراء، وطول فترة عدم الزيارة. مرتبين حسب أولوية الزيارة.</div></div>`;
 }
 
 /* ---------- تقرير جودة بيانات العملاء ---------- */
@@ -6823,7 +6840,7 @@ function calToday(){ calSel = todayISO(); calMonth = calSel.slice(0,7); renderVi
 function taskItemHTML(t, d){
   const done = taskDone(t,d), sid = escapeHTML(t.id);
   return `<div class="tkItem ${done?'done':''}"><button class="tkChk" onclick="toggleTaskDone('${sid}','${d}')">${done?'✓':''}</button>
-    <div style="flex:1;min-width:0;"><div><span class="tkTitle">${escapeHTML(t.title)}</span>${t.time?`<span class="tkTime">${escapeHTML(t.time)}</span>`:''}${t.repeat&&t.repeat!=='none'?' <span class="smallMuted">🔁</span>':''}</div>
+    <div style="flex:1;min-width:0;"><div><span class="tkTitle"><bdi>${escapeHTML(t.title)}</bdi></span>${t.time?`<span class="tkTime">${escapeHTML(t.time)}</span>`:''}${t.repeat&&t.repeat!=='none'?' <span class="smallMuted">🔁</span>':''}</div>
       ${t.customerCode?`<div class="smallMuted">🏥 <a href="#" onclick="openCustomer360(${escapeHTML(JSON.stringify(t.customerCode))});return false;">${escapeHTML(t.customerName||t.customerCode)}</a></div>`:''}
       ${t.note?`<div class="smallMuted">${escapeHTML(t.note)}</div>`:''}</div>
     <div style="display:flex;gap:2px;"><button class="iconBtn" onclick="openTaskForm('${sid}')">✏️</button><button class="iconBtn" onclick="deleteTask('${sid}')">🗑</button></div></div>`;
@@ -6903,7 +6920,7 @@ function pushAlert({key, ic='🔔', title, body='', go='', sound=false, actions,
 function initAlertsEngine(){
   const s = alertStore(); ALERTS = s.list.map(x=>({id:uid(), text:`${x.ic} ${x.title}${x.body?' - '+x.body:''}`, ic:x.ic, title:x.title, body:x.body, go:x.go, time:new Date(x.t), read:true})).reverse();
   renderAlertBadge();
-  ['inventory','bonusOffers'].forEach(n=>{ if(!attachedData.has(n) && DATA_ATTACHERS[n]){ attachedData.add(n); DATA_ATTACHERS[n](); } });   // عشان تنبيه الأصناف المميزة يشتغل من أي صفحة
+  (CURRENT_USER.role==='telesales' ? ['inventory','bonusOffers'] : ['inventory','bonusOffers','customerSales','claims','citySales']).forEach(n=>{ if(!attachedData.has(n) && DATA_ATTACHERS[n]){ attachedData.add(n); DATA_ATTACHERS[n](); } });   // بيانات التنبيهات الذكية لازم تكون جاهزة من أول دخول مش بس لما تفتح الرئيسية
   if(!window._alertTimer){
     window._alertTimer = setInterval(alertTick, 30000); setTimeout(alertTick, 6000);
     document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) alertTick(); });
@@ -7017,7 +7034,7 @@ function challengeCompeteCardHTML(){
 }
 function homeExtrasHTML(){
   try{
-    if(CURRENT_USER.role==='rep') return welcomeBannerHTML() + smartPlanHTML() + calendarCardHTML() + targetBonusCardHTML() + challengeCompeteCardHTML();
+    if(CURRENT_USER.role==='rep') return smartPlanHTML() + calendarCardHTML() + targetBonusCardHTML() + challengeCompeteCardHTML();
     if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager') return calendarCardHTML() + managerAlertsHTML();
     return calendarCardHTML();
   }catch(e){ console.error('home extras', e); }
@@ -7046,7 +7063,7 @@ function planShowAll(){ planAll = true; renderView(); }
 function areaPlanHTML(){
   const S = areaStats(), M = planMetric, seg = (k,l)=>`<button class="seg ${M===k?'on':''}" onclick="setPlanMetric('${k}')">${l}</button>`;
   const insights = [['unvisited','📍','أكبر منطقة فيها عملاء متزارتش', a=>`${a.n.unvisited} عميل`], ['declined','📉','أكتر منطقة مبيعاتها قلت', a=>`${a.n.declined} عميل${a.n.stopped?` (${a.n.stopped} وقفوا)`:''}`], ['claims','💵','أكتر منطقة عليها مطالبات', a=>`${a.n.claims} عميل · ${fmtMoney(a.claimsSum)}`]]
-    .map(([m,ic,t,fmt])=>{ const a = S.top(m); return a ? `<div class="planInsight" onclick="setPlanMetric('${m}');togglePlanArea('${encKey(a.key)}')"><b>${ic} ${t}:</b> ${escapeHTML(a.area)} <span class="smallMuted">(${fmt(a)})</span> ‹</div>` : ''; }).join('');
+    .map(([m,ic,t,fmt])=>{ const a = S.top(m); return a ? `<div class="planInsight" onclick="setPlanMetric('${m}');togglePlanArea('${encKey(a.key)}')"><span><b>${ic} ${t}:</b> ${escapeHTML(a.area)} <span class="smallMuted">(${fmt(a)})</span></span><span class="pArrow">‹</span></div>` : ''; }).join('');
   const areas = S.areas.filter(a=>a.n[M==='all'?'all':M]>0).sort((p,q)=>q.n[M]-p.n[M] || q.total-p.total).slice(0,12);
   const rows = areas.map(a=>{
     const open = planOpen===a.key, chip = (cls,ic,n,l)=>n ? `<span class="iChip ${cls}">${ic} ${n} ${l}</span>` : '';
@@ -7064,11 +7081,48 @@ function areaPlanHTML(){
   }).join('');
   const noArea = S.areas.find(a=>a.area==='بدون منطقة محددة');
   return `<div class="card"><div class="pageHead" style="margin-bottom:4px;"><div><h2 style="font-size:15px;">🧭 خطة يومك حسب المنطقة</h2><div class="desc">المشاكل مجمّعة بالمنطقة/القرية - اضغط على أي منطقة وشوف عملاءها</div></div></div>
-    ${insights}<div class="segRow" style="margin:8px 0;">${seg('all','الكل')}${seg('unvisited','⏰ متزارتش')}${seg('declined','📉 مبيعات قلت')}${seg('claims','💵 مطالبات')}</div>
+    ${insights}<div class="segRow" style="margin:8px 0;">${seg('all','الكل')}${seg('unvisited','⏰ متزارتش')}${seg('declined','📉 قلّت')}${seg('claims','💵 مطالبات')}</div>
     ${rows || '<div class="emptyState"><div class="t">مفيش مشاكل في أي منطقة النهارده 🎉</div></div>'}
     ${noArea && noArea.total>0 ? `<div class="smallMuted" style="margin-top:6px;">⚠️ ${noArea.total} عميل من غير منطقة محددة - كمّل بياناتهم عشان الخطة تبقى أدق.</div>` : ''}</div>`;
 }
 function smartPlanHTML(){ return areaPlanHTML(); }
+/* ---------- إعدادات الخطة الذكية (قابلة للتعديل من التعريفات) ---------- */
+const INTEL_DEFAULTS = {A:14, B:30, C:60, D:90, cutA:70, cutB:90, declinePct:30, lowStockMin:20};
+let INTEL_CFG = {...INTEL_DEFAULTS, v:0};
+function applyIntelCfg(c){
+  c = c || {}; const n = (x,d)=>{ x = Number(x); return Number.isFinite(x) && x>0 ? x : d; };
+  const next = {A:n(c.A,14), B:n(c.B,30), C:n(c.C,60), D:n(c.D,90), cutA:n(c.cutA,70), cutB:n(c.cutB,90), declinePct:n(c.declinePct,30), lowStockMin:n(c.lowStockMin,20)};
+  if(!Object.keys(next).some(k=>next[k]!==INTEL_CFG[k])) return false;
+  INTEL_CFG = {...next, v:INTEL_CFG.v+1}; Object.assign(ABC_INTERVAL, {A:next.A, B:next.B, C:next.C, D:next.D}); _intel = null; return true;
+}
+function intelCfgCardHTML(canEdit){
+  const c = INTEL_CFG, dis = canEdit ? '' : 'disabled';
+  const f = (id,l,v,min,max,u)=>`<label class="icField"><span>${l}</span><div><input class="ctIn" id="${id}" type="number" min="${min}" max="${max}" value="${v}" ${dis}> <small class="smallMuted">${u}</small></div></label>`;
+  return `<div class="card"><div class="pageHead"><div><h2 style="font-size:15px;">🧭 إعدادات الخطة الذكية</h2><div class="desc">بتتحكم في خطة المناطق وتصنيف العملاء والتنبيهات، وبتتطبق على كل المناديب فوراً</div></div></div>
+    <div class="secTitle">⏰ أقصى فترة بين زيارتين (العميل بيتحسب "متزارش" بعدها)</div>
+    <div class="icGrid">${f('icA','فئة A (أهم العملاء)',c.A,1,365,'يوم')}${f('icB','فئة B',c.B,1,365,'يوم')}${f('icC','فئة C',c.C,1,365,'يوم')}${f('icD','فئة D (بدون مبيعات)',c.D,1,365,'يوم')}</div>
+    <div class="secTitle">🎯 تقسيم العملاء لفئات (حسب مبيعات آخر 12 شهر)</div>
+    <div class="icGrid">${f('icCutA','فئة A = أكبر عملاء بيحققوا لحد',c.cutA,10,95,'% من المبيعات')}${f('icCutB','فئة B = لحد',c.cutB,20,99,'% من المبيعات')}</div>
+    <div class="secTitle">📉 "مبيعاته قلّت"</div>
+    <div class="icGrid">${f('icDecl','العميل بتنزل مبيعاته بنسبة',c.declinePct,5,90,'% أو أكتر عن متوسطه')}</div>
+    <div class="secTitle">📦 المخزون</div>
+    <div class="icGrid">${f('icLow','أقل حد لاعتبار الصنف "مخزون منخفض"',c.lowStockMin,1,100000,'وحدة')}</div>
+    ${canEdit ? `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary" onclick="saveIntelCfg()">💾 حفظ وتطبيق</button><button class="btn btn-ghost" onclick="resetIntelCfg()">↩️ رجوع للافتراضي</button></div>` : '<div class="smallMuted" style="margin-top:8px;">التعديل للأدمن والمدير فقط.</div>'}</div>`;
+}
+async function saveIntelCfg(){
+  const g = id=>Number(document.getElementById(id).value);
+  const v = {A:g('icA'), B:g('icB'), C:g('icC'), D:g('icD'), cutA:g('icCutA'), cutB:g('icCutB'), declinePct:g('icDecl'), lowStockMin:g('icLow')};
+  if([v.A,v.B,v.C,v.D].some(n=>!(n>=1 && n<=365))) return toast('فترات الزيارة لازم تكون بين 1 و365 يوم','warn');
+  if(!(v.A<=v.B && v.B<=v.C && v.C<=v.D)) return toast('رتّب الفترات من الأقصر للأطول: A ثم B ثم C ثم D','warn');
+  if(!(v.cutA>=10 && v.cutA<v.cutB && v.cutB<=99)) return toast('نسبة A لازم تكون أقل من نسبة B، وB مش أكتر من 99%','warn');
+  if(!(v.declinePct>=5 && v.declinePct<=90)) return toast('نسبة النزول بين 5% و90%','warn');
+  if(!(v.lowStockMin>=1)) return toast('حد المخزون المنخفض لازم يكون 1 أو أكتر','warn');
+  try{
+    await db.collection('appConfig').doc('intelCfg').set({...v, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:CURRENT_USER.username});
+    applyIntelCfg(v); logAudit('edit','appConfig','تحديث إعدادات الخطة الذكية'); toast('✅ تم الحفظ وبقت شغالة عند كل المناديب','ok'); renderView();
+  }catch(e){ console.error(e); toast('فشل الحفظ: '+(e.code||e.message),'warn'); }
+}
+function resetIntelCfg(){ if(!confirm('الرجوع للقيم الافتراضية؟')) return; Object.entries({icA:14,icB:30,icC:60,icD:90,icCutA:70,icCutB:90,icDecl:30,icLow:20}).forEach(([id,v])=>{ document.getElementById(id).value = v; }); saveIntelCfg(); }
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
     const RT = [['repmatrix','📊 أدائي'],['compete','🏆 المنافسة'],['contests','🎁 المسابقات'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['abc','🎯 تصنيف عملائي']];
@@ -9878,7 +9932,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.80): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.84): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -9932,7 +9986,7 @@ service cloud.firestore {
       // version و branding (اسم الشركة + لوجو صغير) مقروءين قبل تسجيل الدخول، والباقي للموظفين
       allow read: if id == 'version' || id == 'branding' || isStaff();
       // الأدمن يكتب أي إعداد، والمدير يعدّل قواعد الحوافز وحدود المدن بس
-      allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds']);
+      allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds','intelCfg']);
     }
 
     // ===== محادثة الفريق =====
