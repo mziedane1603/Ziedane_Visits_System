@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.77)</title>
+<title>Ziedane CRM (v2.80)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -32,7 +32,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <style>
 :root{
@@ -735,6 +734,41 @@ button,.btn,.seg,.navItem,select,input{touch-action:manipulation;}
 #alertBanner.show{transform:translate(-50%,0);}
 .abIc{font-size:24px;}.abTx{flex:1;cursor:pointer;}.abTx b{display:block;font-size:13.5px;}.abTx div{opacity:.88;font-size:12px;}
 .abBtn{background:#fff;color:#0b3d36;border:none;border-radius:10px;padding:6px 9px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;}.abX{background:none;border:none;color:#fff;opacity:.7;font-size:16px;cursor:pointer;}
+/* ---------- v2.78: المخزون (طرق العرض) + الحماس ---------- */
+.invViewBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
+.invRoot{--fs:14px;font-size:var(--fs);}.invRoot.sz-s{--fs:12.5px;}.invRoot.sz-l{--fs:17px;}
+.invRoot .invName{font-size:1em;}.invRoot .invPrice{font-size:1.05em;}.invRoot .invQty{font-size:.9em;}.invRoot .invQty b{font-size:1.05em;}
+.invRoot .invCo{font-size:.78em;}.invRoot .invDisc{font-size:.75em;}.invRoot .invTier{font-size:.85em;}
+.invHot{display:inline-block;background:#fee2e2;color:#b91c1c;border-radius:999px;padding:1px 9px;font-size:.78em;font-weight:900;animation:bzPulse 1.6s ease-in-out infinite;}
+.invItem.isHot,.invRow.isHot{border-color:#f87171;box-shadow:0 0 0 1px #fecaca;}
+.invKpis .k-hot{border-color:#f87171;background:#fff5f5;}.invKpis .k-hot b{color:#dc2626;}
+.invList{display:flex;flex-direction:column;gap:6px;}
+.invRow{border:1px solid var(--gray-200,#e5e7eb);border-radius:12px;padding:9px 11px;background:var(--white,#fff);}
+.invRowTop{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}.invRowBot{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:5px;}
+.invMini{display:inline-block;width:54px;height:6px;border-radius:99px;background:var(--gray-100,#f1f3f5);overflow:hidden;vertical-align:middle;}
+.invMini i{display:block;height:100%;background:linear-gradient(90deg,#34b79f,#0f7a6b);}.invLow .invMini i{background:#d97706;}.invOut .invMini i{background:#dc2626;}
+.invTbl{width:100%;border-collapse:collapse;font-size:.92em;}.invTbl th{text-align:right;padding:8px;border-bottom:2px solid var(--gray-200,#e5e7eb);white-space:nowrap;}
+.invTbl td{padding:7px 8px;border-bottom:1px solid var(--gray-100,#f1f3f5);vertical-align:middle;}.invTbl tr.isHot td{background:#fff5f5;}.invTbl tr.invOut td{opacity:.6;}
+.invComfort{background:#1f272c;color:#e6ebee;border-radius:14px;padding:10px;}
+.invComfort .invItem,.invComfort .invRow{background:#283239;border-color:#38454d;color:#e6ebee;}
+.invComfort .invCo{background:#2f4a46;color:#bfe8df;}.invComfort .invBarWrap,.invComfort .invMini{background:#3a464e;}
+.invComfort .invQty,.invComfort .invDisc,.invComfort .invPrice small,.invComfort .smallMuted{color:#aab6bd;}
+.invComfort .invTbl th{border-color:#38454d;color:#e6ebee;}.invComfort .invTbl td{border-color:#323e45;}.invComfort .invTbl tr.isHot td{background:#3a2a2c;}
+.invComfort .invLow .invQty{color:#fbbf24;}.invComfort .invOut .invQty{color:#f87171;}
+.welcome{background:linear-gradient(135deg,#0f7a6b,#0b4f45);color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:12px;}
+.wHi{font-size:17px;font-weight:900;}.wQ{margin-top:4px;opacity:.96;font-size:13.5px;line-height:1.6;}
+.wStreak{margin-top:8px;display:inline-block;background:rgba(255,255,255,.18);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:800;}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:3500;overflow:hidden;}
+.confetti i{position:absolute;top:-14px;width:8px;height:14px;border-radius:2px;animation:cfFall linear forwards;}
+@keyframes cfFall{to{transform:translateY(108vh) rotate(720deg);opacity:.9;}}
+/* ---------- v2.80: خطة المناطق ---------- */
+.planInsight{padding:9px 11px;border-radius:10px;background:var(--teal-light,#e6f4f1);margin:6px 0;font-size:13px;cursor:pointer;}
+.areaRow{border:1px solid var(--gray-200,#e5e7eb);border-radius:12px;padding:10px 12px;margin:8px 0 0;cursor:pointer;background:var(--white,#fff);}
+.areaRow.open{border-color:var(--teal,#0f7a6b);border-bottom-left-radius:0;border-bottom-right-radius:0;}
+.areaTop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px;}.areaCount{margin-inline-start:auto;font-size:12px;color:var(--gray-500,#6b7280);}
+.areaBar{height:6px;border-radius:99px;background:var(--gray-100,#f1f3f5);margin-top:8px;overflow:hidden;}.areaBar i{display:block;height:100%;background:linear-gradient(90deg,#fbbf24,#dc2626);}
+.areaCusts{padding:0 10px 6px;border:1px solid var(--teal,#0f7a6b);border-top:none;border-radius:0 0 12px 12px;}
+.iChip.warn{background:#fee2e2;color:#b91c1c;}
 </style>
 </head>
 <body>
@@ -904,7 +938,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.77';
+const APP_VERSION = '2.80';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1157,7 +1191,7 @@ const REPORT_GROUPS = [
   {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['routeadherence','الالتزام بالخطة']]},
   {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['citycompare','مقارنة المدن سنوياً'],['analytics','تحليلات المبيعات']]},
   {label:'🏆 المنافسة', tabs:[['contests','المسابقات والجوايز']]},
-  {label:'🏥 العملاء', tabs:[['coverage','تغطية المدن'],['abc','تصنيف ABC والخطر'],['dataquality','جودة البيانات']]},
+  {label:'🏥 العملاء', tabs:[['coverage','تغطية المدن'],['areas','المشاكل حسب المنطقة'],['abc','تصنيف ABC والخطر'],['dataquality','جودة البيانات']]},
   {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
 ];
 const REPORT_DRAW = {overview:'drawReportCharts', sales:'drawSalesReportCharts', citycompare:'drawCityCompareCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
@@ -1433,6 +1467,7 @@ async function afterLogin(){
   document.getElementById('mobileMenuIcon').classList.remove('hidden');
   document.getElementById('alertsWrap').style.display='block';
   initAlertsEngine();
+  if(CURRENT_USER.role==='admin') setTimeout(()=>loadXLSX().catch(()=>{}), 8000);   // الأدمن بس بيستورد Excel، فبنحمّلها له في الخلفية
   if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager'){
     if(window.Notification && Notification.permission==='default'){
       Notification.requestPermission().catch(()=>{});
@@ -3214,12 +3249,19 @@ function inventoryFilteredList(){
   if(q) list = list.filter(i=>(i.itemName||'').toLowerCase().includes(q) || (i.company||'').toLowerCase().includes(q));
   if(inventoryFilters.bonusOnly) list = list.filter(i=>bonusTiersFor(i.itemName, i.company).length>0);
   if(invView.lowOnly){ const st = invStockStats(); list = list.filter(i=>invLevel(Number(i.quantity)||0, st)!=='ok'); }
+  if(invView.hot){ const st = invStockStats(); list = list.filter(i=>isHotItem(i, st)); }
   const nm = (a,b)=>(a.itemName||'').localeCompare(b.itemName||'','ar'), qn = i=>Number(i.quantity)||0;
   const by = {name:nm, qtyDesc:(a,b)=>qn(b)-qn(a)||nm(a,b), qtyAsc:(a,b)=>qn(a)-qn(b)||nm(a,b), price:(a,b)=>(Number(b.publicPrice)||0)-(Number(a.publicPrice)||0)||nm(a,b),
     bonus:(a,b)=>(bonusTiersFor(b.itemName,b.company).length-bonusTiersFor(a.itemName,a.company).length)||nm(a,b)}[invView.sort] || nm;
   return list.slice().sort(by);
 }
-let invView = {sort:'name', lowOnly:false};
+function invLoadView(){
+  let s = {}; try{ s = JSON.parse(localStorage.getItem('crmInvView')||'{}'); }catch(e){}
+  const w = window.innerWidth;   // الافتراضي حسب حجم الشاشة، وبعدها اختيار المستخدم هو اللي بيتحفظ
+  return {sort:'name', lowOnly:false, hot:false, mode:s.mode || (w<420 ? 'list' : w<900 ? 'cards' : 'table'), size:s.size || 'm', comfort:!!s.comfort};
+}
+function invSaveView(){ try{ localStorage.setItem('crmInvView', JSON.stringify({mode:invView.mode, size:invView.size, comfort:invView.comfort})); }catch(e){} }
+let invView = invLoadView();
 function invStockStats(){
   const q = INVENTORY.map(i=>Number(i.quantity)||0).filter(n=>n>0).sort((a,b)=>a-b);
   const maxQ = q.length ? q[Math.min(q.length-1, Math.floor(q.length*0.9))] : 1;
@@ -3228,47 +3270,53 @@ function invStockStats(){
 const invLevel = (qty, st)=> qty<=0 ? 'out' : qty<=st.lowAt ? 'low' : 'ok';
 function setInvSort(v){ invView.sort = v; updateInventoryResults(); }
 function setInvLow(v){ invView.lowOnly = v; updateInventoryResults(); }
+const hashSeed = s=>{ let h = 0; for(const c of String(s)) h = (h*31 + c.charCodeAt(0))>>>0; return h; };
+const V = (arr, salt)=>arr[hashSeed(todayISO()+((CURRENT_USER&&CURRENT_USER.username)||'')+(salt||''))%arr.length];   // صيغة ثابتة طول اليوم وبتتغير يوم بعد يوم
+// صنف "مميز" = عليه بونص ومخزونه قرب يخلص
+function isHotItem(i, st){ st = st || invStockStats(); const q = Number(i.quantity)||0; return q>0 && q<=st.lowAt && bonusTiersFor(i.itemName, i.company).length>0; }
+function setInvMode(k){ invView.mode = k; invSaveView(); renderView(); }
+function setInvSize(k){ invView.size = k; invSaveView(); renderView(); }
+function toggleInvComfort(){ invView.comfort = !invView.comfort; invSaveView(); renderView(); }
+function setInvHot(v){ invView.hot = v; if(v){ invView.lowOnly = false; inventoryFilters.bonusOnly = false; } renderView(); }
+function openInventoryHot(){ invView.hot = true; invView.lowOnly = false; inventoryFilters.q = ''; inventoryFilters.company = ''; inventoryFilters.bonusOnly = false; if(currentView==='inventory') renderView(); else goTo('inventory'); }
+function invViewBarHTML(){
+  const b = (cur,k,l,fn)=>`<button class="seg ${cur===k?'on':''}" onclick="${fn}('${k}')">${l}</button>`;
+  return `<div class="invViewBar"><span class="smallMuted">العرض:</span><div class="segRow" style="margin:0;">${b(invView.mode,'cards','📇 بطاقات','setInvMode')}${b(invView.mode,'list','☰ قايمة','setInvMode')}${b(invView.mode,'table','🧮 جدول','setInvMode')}</div>
+    <span class="smallMuted">الخط:</span><div class="segRow" style="margin:0;">${b(invView.size,'s','أ-','setInvSize')}${b(invView.size,'m','أ','setInvSize')}${b(invView.size,'l','أ+','setInvSize')}</div>
+    <button class="seg ${invView.comfort?'on':''}" onclick="toggleInvComfort()">🌙 مريح للعين</button></div>`;
+}
+function inventoryTableHTML(list){
+  const st = invStockStats(), fm = n=>Number(n).toLocaleString('en-US'), LV = {ok:['','متاح'], low:['invLow','منخفض'], out:['invOut','نفد']};
+  const rows = list.slice(0,300).map(i=>{ const qty = Number(i.quantity)||0, tiers = bonusTiersFor(i.itemName, i.company);
+    return {i, qty, tiers, lv:invLevel(qty,st), pct:Math.max(qty>0?4:0, Math.min(100, Math.round(qty/st.maxQ*100))), hot:qty>0 && qty<=st.lowAt && tiers.length>0}; });
+  const tiers = (d,max)=>d.tiers.slice(0,max).map(t=>`<span class="invTier">🎁 ${t.qty} + ${t.bonusQty}</span>`).join('');
+  const hot = d=>d.hot ? '<span class="invHot">⚡ الحق</span>' : '', price = d=>d.i.publicPrice!=null ? fm(d.i.publicPrice) : '-', nm = d=>escapeHTML(d.i.itemName||''), co = d=>d.i.company ? `<span class="invCo">${escapeHTML(d.i.company)}</span>` : '';
+  let body;
+  if(!rows.length) body = `<div class="emptyState"><div class="ic">📦</div><div class="t">لا توجد أصناف مطابقة</div></div>`;
+  else if(invView.mode==='table') body = `<div class="tableWrap"><table class="invTbl"><thead><tr><th>الصنف</th><th>الشركة</th><th>السعر</th><th>خصم</th><th>المتاح</th><th>البونص</th></tr></thead><tbody>${rows.map(d=>`<tr class="${LV[d.lv][0]} ${d.hot?'isHot':''}"><td><b>${nm(d)}</b> ${hot(d)}</td><td>${escapeHTML(d.i.company||'')}</td><td>${price(d)}</td><td>${d.i.pharmacyDiscount!=null?d.i.pharmacyDiscount+'%':'-'}</td><td><span class="invMini"><i style="width:${d.pct}%"></i></span> <b>${fm(d.qty)}</b></td><td>${tiers(d,9)}</td></tr>`).join('')}</tbody></table></div>`;
+  else if(invView.mode==='list') body = `<div class="invList">${rows.map(d=>`<div class="invRow ${LV[d.lv][0]} ${d.hot?'isHot':''}"><div class="invRowTop"><span class="invName">${nm(d)} ${hot(d)}</span><span class="invPrice">${price(d)}<small>ج</small></span></div><div class="invRowBot"><span class="invMini"><i style="width:${d.pct}%"></i></span><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span>${tiers(d,3)}${co(d)}</div></div>`).join('')}</div>`;
+  else body = `<div class="invGrid">${rows.map(d=>`<div class="invItem ${LV[d.lv][0]} ${d.hot?'isHot':''}">
+      <div class="invTop"><div><div class="invName">${nm(d)} ${hot(d)}</div>${co(d)}</div><div class="invPrice">${price(d)}<small>ج.م</small>${d.i.pharmacyDiscount!=null?`<span class="invDisc">خصم الصيدلي ${d.i.pharmacyDiscount}%</span>`:''}</div></div>
+      <div class="invStock"><div class="invBarWrap"><div class="invBar" style="width:${d.pct}%"></div></div><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span></div>
+      ${d.tiers.length?`<div class="invBonus">${tiers(d,9)}</div>`:''}</div>`).join('')}</div>`;
+  return `<div class="invRoot sz-${invView.size} mode-${invView.mode} ${invView.comfort?'invComfort':''}">${body}${list.length>300?`<div class="smallMuted" style="text-align:center;margin-top:10px;">تم عرض أول 300 صنف من ${list.length} - استخدم البحث أو الفلاتر</div>`:''}</div>`;
+}
+function stockHotTick(){
+  if(!INVENTORY.length) return;
+  const st = invStockStats(), hot = INVENTORY.filter(i=>isHotItem(i,st)).sort((a,b)=>(Number(a.quantity)||0)-(Number(b.quantity)||0));
+  const SK = 'crmHot:'+CURRENT_USER.username, ik = i=>(i.company||'')+'|'+(i.itemName||''); let seen = [];
+  try{ seen = JSON.parse(localStorage.getItem(SK)||'[]'); localStorage.setItem(SK, JSON.stringify(hot.map(ik))); }catch(e){}
+  if(!hot.length) return;
+  const line = arr=>arr.slice(0,3).map(i=>`${i.itemName} (${Number(i.quantity)||0} متاح)`).join('، '), fresh = hot.filter(i=>!seen.includes(ik(i))), h = new Date().getHours();
+  if(fresh.length){ alertMark('hot-daily'); pushAlert({ic:'⚡', title:`الحق! ${fresh.length} صنف عليه بونص ومخزونه قرب يخلص`, body:line(fresh)+' - اللي يلحقهم الأول يكسب! 🏃‍♂️', go:'openInventoryHot()', sound:true}); }
+  else if(h>=10 && h<19) pushAlert({key:'hot-daily', ic:'⚡', title:`${hot.length} صنف مميز عليه بونص والمخزون بيخلص`, body:'ركّز عليهم قبل ما يخلصوا: '+line(hot), go:'openInventoryHot()'});
+}
 function invKpisHTML(bonusCount){
   if(!INVENTORY.length) return '';
   const st = invStockStats(), qs = INVENTORY.map(i=>Number(i.quantity)||0);
-  const total = qs.reduce((a,b)=>a+b,0), out = qs.filter(q=>q<=0).length, low = qs.filter(q=>q>0 && q<=st.lowAt).length;
+  const total = qs.reduce((a,b)=>a+b,0), out = qs.filter(q=>q<=0).length, low = qs.filter(q=>q>0 && q<=st.lowAt).length, hotN = INVENTORY.filter(i=>isHotItem(i,st)).length;
   const k = (cls,v,l)=>`<div class="${cls}"><b>${v}</b><span>${l}</span></div>`;
-  return `<div class="invKpis">${k('',INVENTORY.length.toLocaleString('en-US'),'صنف')}${k('',total.toLocaleString('en-US'),'إجمالي الكمية')}${k('k-bonus',bonusCount,'🎁 عليه بونص')}${k('k-low',low,'⚠️ مخزون منخفض')}${k('k-out',out,'⛔ نفد')}</div>`;
-}
-function inventoryTableHTML(list){
-  const st = invStockStats(), fm = n=>Number(n).toLocaleString('en-US'), lvl = {ok:['','متاح'], low:['invLow','منخفض'], out:['invOut','نفد']};
-  const cards = list.slice(0,300).map(i=>{
-    const qty = Number(i.quantity)||0, lv = invLevel(qty, st), pct = Math.max(qty>0?4:0, Math.min(100, Math.round(qty/st.maxQ*100))), tiers = bonusTiersFor(i.itemName, i.company);
-    return `<div class="invItem ${lvl[lv][0]}">
-      <div class="invTop"><div><div class="invName">${escapeHTML(i.itemName||'')}</div>${i.company?`<span class="invCo">${escapeHTML(i.company)}</span>`:''}</div>
-        <div class="invPrice">${i.publicPrice!=null ? fm(i.publicPrice) : '-'}<small>ج.م</small>${i.pharmacyDiscount!=null ? `<span class="invDisc">خصم الصيدلي ${i.pharmacyDiscount}%</span>` : ''}</div></div>
-      <div class="invStock"><div class="invBarWrap"><div class="invBar" style="width:${pct}%"></div></div><span class="invQty"><b>${fm(qty)}</b> ${lvl[lv][1]}</span></div>
-      ${tiers.length ? `<div class="invBonus">${tiers.map(t=>`<span class="invTier">🎁 ${t.qty} + ${t.bonusQty}</span>`).join('')}</div>` : ''}
-    </div>`;
-  }).join('');
-  return (cards ? `<div class="invGrid">${cards}</div>` : `<div class="emptyState"><div class="ic">📦</div><div class="t">لا توجد أصناف مطابقة</div></div>`)
-    + (list.length>300 ? `<div class="smallMuted" style="text-align:center;margin-top:10px;">تم عرض أول 300 صنف من ${list.length} - استخدم البحث أو الفلاتر لتضييق النتائج</div>` : '');
-}
-function inventoryTableHTML_OLD(list){
-  const rows = list.slice(0,400).map(i=>{
-    const tiers = bonusTiersFor(i.itemName, i.company);
-    const bonusHTML = tiers.length
-      ? tiers.map(t=>`<span class="badge badge-teal" style="display:inline-block;margin:1px 3px 1px 0;">🎁 ${t.qty} + ${t.bonusQty} هدية</span>`).join('')
-      : `<span class="smallMuted">-</span>`;
-    return `
-    <tr>
-      <td style="white-space:normal;min-width:180px;">${escapeHTML(i.itemName||'')}</td>
-      <td>${escapeHTML(i.company||'')}</td>
-      <td>${i.publicPrice!=null ? Number(i.publicPrice).toLocaleString('en-US') : '-'}</td>
-      <td>${i.pharmacyDiscount!=null ? i.pharmacyDiscount+'%' : '-'}</td>
-      <td>${i.quantity!=null ? Number(i.quantity).toLocaleString('en-US') : '-'}</td>
-      <td>${bonusHTML}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:24px;">لا توجد أصناف مطابقة</td></tr>`;
-  return `<table><thead><tr>
-      <th>الصنف</th><th>الشركة</th><th>سعر الجمهور</th><th>خصم الصيدلي</th><th>الكمية</th><th>البونص</th>
-    </tr></thead><tbody>${rows}</tbody></table>
-    ${list.length>400?`<div class="smallMuted" style="text-align:center;margin-top:8px;">تم عرض أول 400 نتيجة - استخدم البحث لتضييق النتائج</div>`:''}`;
+  return `<div class="invKpis">${k('',INVENTORY.length.toLocaleString('en-US'),'صنف')}${k('',total.toLocaleString('en-US'),'إجمالي الكمية')}${k('k-bonus',bonusCount,'🎁 عليه بونص')}${k('k-low',low,'⚠️ مخزون منخفض')}${k('k-out',out,'⛔ نفد')}${hotN?`<div class="k-hot" onclick="setInvHot(true)" style="cursor:pointer;"><b>${hotN}</b><span>⚡ الحق دول!</span></div>`:''}</div>`;
 }
 function updateInventoryResults(){
   const list = inventoryFilteredList();
@@ -3717,7 +3765,7 @@ async function cdSaveFields(){
 }
 // ---- تصدير Excel: كود العميل - اسم العميل - الحقول المطلوبة ----
 function cdExport(mode){
-  if(typeof XLSX==='undefined'){ toast('مكتبة Excel لسه بتتحمّل، جرّب بعد ثانية','warn'); return; }
+  if(typeof XLSX==='undefined'){ toast('جاري تحميل مكتبة Excel...','warn'); loadXLSX().then(()=>cdExport(mode)).catch(()=>toast('تعذّر تحميل مكتبة Excel - تأكد من الاتصال','warn')); return; }
   const fields = cdFields();
   const head = ['كود العميل','اسم العميل', ...fields.map(f=>f.label)];
   if(cdExtraCols) head.push('المدينة','سجّل البيانات','آخر تحديث');
@@ -4069,10 +4117,14 @@ function viewInventory(){
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
           <input type="checkbox" ${invView.lowOnly?'checked':''} onchange="setInvLow(this.checked)"> ⚠️ منخفض/نافد فقط
         </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" ${invView.hot?'checked':''} onchange="setInvHot(this.checked)"> ⚡ بونص ومخزون قرب يخلص
+        </label>
         <select onchange="setInvSort(this.value)">
           ${[['name','ترتيب: الاسم'],['qtyDesc','الأكبر مخزوناً'],['qtyAsc','الأقل مخزوناً'],['price','الأعلى سعراً'],['bonus','البونص أولاً']].map(([k,l])=>`<option value="${k}" ${invView.sort===k?'selected':''}>${l}</option>`).join('')}
         </select>
       </div>
+      ${invViewBarHTML()}
       <div class="tableWrap" id="inventoryTableWrap">${inventoryTableHTML(list)}</div>
     </div>
   `;
@@ -4531,7 +4583,21 @@ async function replaceCollectionData(collName, rows){
   }
 }
 
-function parseExcelRows(file){
+/* تحميل مكتبة Excel (SheetJS) عند الحاجة بس - المناديب مبيستوردوش Excel فمبيحمّلوهاش */
+let _xlsxP = null;
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  if(_xlsxP) return _xlsxP;
+  _xlsxP = new Promise((res,rej)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'; s.crossOrigin = 'anonymous'; s.referrerPolicy = 'no-referrer';
+    s.onload = ()=>res(); s.onerror = ()=>{ _xlsxP = null; rej(new Error('xlsx load failed')); };
+    document.head.appendChild(s);
+  });
+  return _xlsxP;
+}
+async function parseExcelRows(file){
+  await loadXLSX();
   return new Promise((resolve,reject)=>{
     const reader = new FileReader();
     reader.onload = e=>{
@@ -6421,16 +6487,6 @@ function openCustomer360(code){
 }
 
 /* ---------- خطة اليوم الذكية ---------- */
-function smartPlanHTML(){
-  const I = crmIntel(), done = I.list.filter(x=>x.visitedToday).length;
-  const plan = I.list.filter(x=>!x.visitedToday && x.score>=25).sort((a,b)=>b.score-a.score).slice(0,10);
-  const rows = plan.map(x=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--gray-200,#e5e7eb);">
-      <div style="flex:1;min-width:170px;">${custLink(x.c)} ${abcBadge(x)}<div class="smallMuted">${escapeHTML(x.c.city||'')} ${x.c.area?'- '+escapeHTML(x.c.area):''}</div>
-      <div>${x.reasons.slice(0,3).map(r=>`<span class="iChip">${escapeHTML(r)}</span>`).join('')}</div></div>
-      ${callWhatsAppButtonsHTML(x.c.phone)}${visitBtn2(x.c)}</div>`).join('');
-  return `<div class="card"><div class="pageHead" style="margin-bottom:4px;"><div><h2 style="font-size:15px;">🧭 خطة يومك الذكية</h2><div class="desc">أهم العملاء اللي محتاجين زيارة النهارده (${done} اتزاروا النهارده)</div></div></div>
-    ${rows || '<div class="emptyState"><div class="t">مفيش عملاء ملحّين النهارده 🎉</div></div>'}</div>`;
-}
 
 /* ---------- هدفي وحافزي ---------- */
 function targetBonusCardHTML(){
@@ -6716,7 +6772,7 @@ async function toggleTaskDone(id, d){
   const done = taskDone(t,d), FV = firebase.firestore.FieldValue;
   try{
     await db.collection('repTasks').doc(id).update({doneDates: done ? FV.arrayRemove(d) : FV.arrayUnion(d)});
-    if(!done) toast('👏 تمام، خلصت: '+t.title,'ok');
+    if(!done) toast(V(['👏 تمام، خلصت: ','✅ شغل عالي! خلصت: ','🔥 بطل! خلصت: ','💪 كده إنت ماشي صح: '], t.id)+t.title,'ok');
   }catch(e){ toast('تعذّر التعديل','warn'); }
 }
 function completeTask(id, d){ const t = REP_TASKS.find(x=>x.id===id); if(t && !taskDone(t,d)) toggleTaskDone(id,d); }
@@ -6834,18 +6890,20 @@ function showAlertBanner(a, actions){
   el.className = 'show'; el._t = setTimeout(hideAlertBanner, (actions&&actions.length) ? 20000 : 8000);
 }
 // key = بيمنع تكرار نفس التنبيه (يومياً، أو شهرياً لو بدأ بـ m:)
-function pushAlert({key, ic='🔔', title, body='', go='', sound=false, actions}){
+function pushAlert({key, ic='🔔', title, body='', go='', sound=false, actions, confetti=false}){
   const s = alertStore(); if(key){ if(s.k[key]) return false; s.k[key] = 1; }
   const a = {id:uid(), text:`${ic} ${title}${body?' - '+body:''}`, ic, title, body, go, time:new Date(), read:false};
   ALERTS.unshift(a); ALERTS = ALERTS.slice(0,40);
   s.list.push({ic, title, body, go, t:Date.now()}); s.list = s.list.slice(-30); alertSave(s);
   renderAlertBadge(); showAlertBanner(a, actions); deviceNotify(title, body, key||a.id);
+  if(confetti) celebrate();
   if(sound){ beep(); try{ navigator.vibrate && navigator.vibrate([120,60,120]); }catch(e){} }
   return true;
 }
 function initAlertsEngine(){
   const s = alertStore(); ALERTS = s.list.map(x=>({id:uid(), text:`${x.ic} ${x.title}${x.body?' - '+x.body:''}`, ic:x.ic, title:x.title, body:x.body, go:x.go, time:new Date(x.t), read:true})).reverse();
   renderAlertBadge();
+  ['inventory','bonusOffers'].forEach(n=>{ if(!attachedData.has(n) && DATA_ATTACHERS[n]){ attachedData.add(n); DATA_ATTACHERS[n](); } });   // عشان تنبيه الأصناف المميزة يشتغل من أي صفحة
   if(!window._alertTimer){
     window._alertTimer = setInterval(alertTick, 30000); setTimeout(alertTick, 6000);
     document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) alertTick(); });
@@ -6858,12 +6916,6 @@ function repStreak(){
   return n;
 }
 function dailyGoalNow(){ const r = currentRep(), mt = Number(r&&r.monthlyVisitTarget)||0; return mt>0 ? Math.max(3, Math.ceil(mt/22)) : 6; }
-function afterVisitAlert(p){
-  if(CURRENT_USER.role!=='rep') return;
-  const today = todayISO(), td = visibleVisits().filter(v=>v.date===today).length + 1, goal = dailyGoalNow();
-  const msg = td===1 ? ['🚀','أول زيارة النهارده! بداية موفقة', p.customerName||''] : td===goal ? ['🎯','حققت هدف اليوم! 👏', `${td} زيارة - كمّل وزوّد`] : td>goal && td%3===0 ? ['🔥',`${td} زيارة النهارده! إنت ماشي زي الصاروخ`, ''] : ['✅',`زيارة رقم ${td} اتسجلت`, td<goal ? `فاضل ${goal-td} على هدف اليوم` : ''];
-  pushAlert({key:`v:${today}:${td}`, ic:msg[0], title:msg[1], body:msg[2], sound:td===goal});
-}
 function taskTick(){
   const now = new Date(), today = todayISO(), nowMin = now.getHours()*60+now.getMinutes(), s = alertStore();
   tasksOn(today).forEach(t=>{
@@ -6880,6 +6932,32 @@ function taskTick(){
     if(t && !taskDone(t,today)){ const sid = safeId(id); pushAlert({ic:'⏰', title:'تذكير: '+t.title, body:t.time||'', go:"goTo('calendar')", sound:true, actions:[{label:'✅ تم', fn:`completeTask('${sid}','${today}')`},{label:'⏰ +10 د', fn:`snoozeTask('${sid}',10)`}]}); }
   });
 }
+const streakTier = n => n>=30 ? 'أسطورة خرافية 👑' : n>=14 ? 'أسطورة 🏅' : n>=7 ? 'نار 🔥' : n>=3 ? 'مولّع ⚡' : 'بداية قوية 🌱';
+const DAILY_QUOTES = ['كل زيارة النهارده خطوة لحلم أكبر 💪','إنت اللي بتعمل الفرق، والسوق مستنيك! 🚀','العميل اللي هتزوره النهارده ممكن يبقى أكبر عميل عندك 🌟','النجاح بيحب اللي بينزل الشارع - وإنت نازل يا بطل! 🏆','ابتسامتك أول ما تدخل أقوى من أي عرض سعر 😄','خطوة خطوة... والرقم هيوصل 📈','إنت مش بتبيع منتج، إنت بتبني ثقة ❤️','يوم جديد، فرصة جديدة، وأرقام جديدة تكسّرها! 🔥','اللي بيتعب النهارده هو اللي بيفرح آخر الشهر 🎉','كل "لا" بتقرّبك من "أيوه" كبيرة 💯','ركّز على أول زيارة، والباقي هيمشي لوحده ⚡','إنت أحسن مما تتخيل، والأرقام هتثبت ده 😎','فريقنا بيفتخر بيك، كمّل! 🤝','النهارده يوم حلو لبيع حلو 🌞','السر؟ الاستمرارية. وإنت أستاذها 👑'];
+function welcomeBannerHTML(){
+  const h = new Date().getHours(), name = String(CURRENT_USER.name||CURRENT_USER.username||'').split(' ')[0], hi = h<12 ? 'صباح الفل' : h<18 ? 'نهارك سعيد' : 'مساء الخير', st = repStreak();
+  return `<div class="welcome"><div class="wHi">${hi} يا ${escapeHTML(name)} 👋</div><div class="wQ">${DAILY_QUOTES[hashSeed(todayISO())%DAILY_QUOTES.length]}</div>${st>0?`<div class="wStreak">🔥 ${st} يوم متتالي · ${streakTier(st)}</div>`:''}</div>`;
+}
+function celebrate(){
+  try{
+    if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const box = document.createElement('div'), cols = ['#0f7a6b','#f59e0b','#ef4444','#3b82f6','#a855f7','#22c55e']; box.className = 'confetti';
+    for(let i=0;i<44;i++){ const s = document.createElement('i'); s.style.cssText = `left:${Math.random()*100}%;background:${cols[i%cols.length]};animation-delay:${Math.random()*.4}s;animation-duration:${1.6+Math.random()*1.2}s;`; box.appendChild(s); }
+    document.body.appendChild(box); setTimeout(()=>box.remove(), 3500);
+  }catch(e){}
+}
+function allTasksDoneTick(){
+  const today = todayISO(), ts = tasksOn(today); if(ts.length && ts.every(t=>taskDone(t,today))) pushAlert({key:'tasks-all', ic:'🎉', title:'خلصت كل مهام النهارده!', body:V(['إنت منظّم ومحترف بجد 👏','مفيش حاجة وقفت قدامك النهارده 💪','يوم منجز! تستاهل تفخر بنفسك 🌟']), go:"goTo('calendar')", sound:true, confetti:true});
+}
+function afterVisitAlert(p){
+  if(CURRENT_USER.role!=='rep') return;
+  const today = todayISO(), td = visibleVisits().filter(v=>v.date===today).length + 1, goal = dailyGoalNow();
+  const m = td===1 ? ['🚀','أول زيارة النهارده - بداية موفقة!', (p.customerName||'')+' كده اليوم اتفتح 💪'] :
+    td===goal ? ['🎯','حققت هدف اليوم! إنت بطل 👏','كل زيارة زيادة دلوقتي إنجاز بونص 😉'] :
+    td>goal && td%3===0 ? ['🔥',`${td} زيارة! إنت نار النهارده`,''] :
+    ['✅', V([`زيارة رقم ${td} اتسجلت - عاش!`,`${td} زيارة النهارده - كمّل يا بطل!`,`تمام يا وحش - زيارة رقم ${td}`], td), td<goal ? `فاضل ${goal-td} على هدف اليوم` : ''];
+  pushAlert({key:`v:${today}:${td}`, ic:m[0], title:m[1], body:m[2], sound:td===goal, confetti:td===goal});
+}
 function repSmartTick(){
   if(CURRENT_USER.role!=='rep' || !REPS.length) return;
   const now = new Date(), h = now.getHours()+now.getMinutes()/60, today = todayISO(), month = today.slice(0,7), me = CURRENT_USER.repId;
@@ -6887,31 +6965,31 @@ function repSmartTick(){
   const open = tasksOn(today).filter(t=>!taskDone(t,today)), r = currentRep(), mt = Number(r&&r.monthlyVisitTarget)||0;
   if(now.getDay()!==5){                                                    // الجمعة إجازة
     const I = crmIntel();
-    if(h>=8 && h<13){ const plan = I.list.filter(x=>!x.visitedToday && x.score>=25).length; pushAlert({key:'morning', ic:'🌞', title:`صباح الخير يا ${name}!`, body:`عندك ${plan} عميل أولوية و${open.length} مهمة النهارده. يلا نبدأ 💪`, go:"goTo('dashboard')"}); }
-    if(h>=10 && h<16){ const late = I.list.filter(x=>x.abc==='A' && x.gap>=x.interval*1.5 && !x.visitedToday); if(late.length) pushAlert({key:'a-late', ic:'⭐', title:`${late.length} عميل A متأخرين عن الزيارة`, body:late.slice(0,3).map(x=>x.c.name).join('، '), go:"goTo('dashboard')"}); }
-    if(h>=11 && h<17){ const cl = I.list.filter(x=>x.claim>0).sort((a,b)=>b.claim-a.claim); if(cl.length) pushAlert({key:'claims', ic:'💵', title:`${cl.length} عميل عليهم مطالبات`, body:`ابدأ بـ ${cl[0].c.name} (${fmtMoney(cl[0].claim)})`, go:"goTo('claims')"}); }
-    if(h>=12.5 && h<16) pushAlert({key:'noon', ic:td>=goal/2?'👏':'🕛', title:td>=goal/2?'ماشي كويس!':'نص اليوم عدّى', body:`عملت ${td} من ${goal} زيارة النهارده${td<goal/2?' - لسه الوقت قدامك':''}`, go:"goTo('addvisit')"});
-    if(h>=15.5 && h<18.5) pushAlert({key:'afternoon', ic:td>=goal?'🎯':'⏳', title:td>=goal?'حققت هدف اليوم!':`فاضل ${goal-td} زيارة على هدف اليوم`, body:td>=goal?'شغل ممتاز 👏':'لسه ممكن تلحق 💪', go:"goTo('addvisit')"});
-    if(h>=18 && h<23){ const st = repStreak(); pushAlert({key:'evening', ic:td>0?'🌙':'⚠️', title:td>0?`ختام اليوم: ${td} زيارة`:'لسه ما سجلتش أي زيارة النهارده', body:td>0?`سلسلة التزامك ${st} يوم 🔥 ${open.length?`· لسه ${open.length} مهمة مفتوحة`:''}`:(st>0?`سلسلتك (${st} يوم) ممكن تقطع!`:'سجّل زيارة قبل ما اليوم يخلص'), go:td>0?"goTo('dashboard')":"goTo('addvisit')"}); }
+    if(h>=8 && h<13){ const plan = I.list.filter(x=>!x.visitedToday && x.score>=25).length; pushAlert({key:'morning', ic:'🌞', title:V([`صباح الفل يا ${name}! ☀️`,`صباح الخير يا بطل ${name}! 💪`,`يوم جديد وفرصة جديدة يا ${name}! 🌟`],'m'), body:(()=>{ const ta = areaStats().top('unvisited'); return ta ? `أكتر منطقة محتاجاك: ${ta.area} (${ta.n.unvisited} عميل متزارتش) و${open.length} مهمة. يلا نكسّر الدنيا! 🚀` : `عندك ${plan} عميل أولوية و${open.length} مهمة. يلا نكسّر الدنيا النهارده! 🚀`; })(), go:"goTo('dashboard')"}); }
+    if(h>=10 && h<16){ const late = I.list.filter(x=>x.abc==='A' && x.gap>=x.interval*1.5 && !x.visitedToday); if(late.length) pushAlert({key:'a-late', ic:'⭐', title:`${late.length} عميل مهم مستنيك!`, body:late.slice(0,3).map(x=>x.c.name).join('، ')+' - زيارة منك ممكن تفرق معاهم', go:"goTo('dashboard')"}); }
+    if(h>=11 && h<17){ const cl = I.list.filter(x=>x.claim>0).sort((a,b)=>b.claim-a.claim); if(cl.length) pushAlert({key:'claims', ic:'💵', title:'فرصة تحصيل حلوة!', body:`${cl.length} عميل عليهم مطالبات - ابدأ بـ ${cl[0].c.name} (${fmtMoney(cl[0].claim)})، والتحصيل بيفرّح الكل`, go:"goTo('claims')"}); }
+    if(h>=12.5 && h<16) pushAlert({key:'noon', ic:td>=goal/2?'👏':'🕛', title:td>=goal/2?'إنت ماشي زي الصاروخ!':'نص اليوم عدّى - بس لسه الوقت معاك', body:`${td} من ${goal} زيارة${td>=goal/2?' - كمّل كده!':'. خد نفس وانطلق، إنت تقدر! 💪'}`, go:"goTo('addvisit')"});
+    if(h>=15.5 && h<18.5) pushAlert({key:'afternoon', ic:td>=goal?'🎯':'⏳', title:td>=goal?'حققت هدف اليوم! إنت بطل':`فاضل ${goal-td} زيارة بس!`, body:td>=goal?'كل زيارة زيادة بقى بونص على الإنجاز 😉':'اللحظات الأخيرة هي اللي بتصنع الفرق - يلا! 🔥', go:"goTo('addvisit')"});
+    if(h>=18 && h<23){ const st = repStreak(); pushAlert({key:'evening', ic:td>0?'🌙':'💭', title:td>0?`يوم جامد! ${td} زيارة`:'لسه في وقت تلحق النهارده!', body:td>0?`سلسلة التزامك ${st} يوم 🔥 (${streakTier(st)})${open.length?` · وفاضل ${open.length} مهمة تخلصها`:' · وكل مهامك خلصت 👏'}`:(st>0?`سلسلتك (${st} يوم 🔥) تستاهل تحافظ عليها - زيارة واحدة تكفي!`:'زيارة واحدة دلوقتي تبدأ سلسلة جديدة! 🌱'), go:td>0?"goTo('dashboard')":"goTo('addvisit')"}); }
   }
-  if(h>=15 && open.length && open.some(t=>!t.time)) pushAlert({key:'tasks-pm', ic:'📅', title:`لسه عندك ${open.length} مهمة النهارده`, body:open.slice(0,2).map(t=>t.title).join(' · '), go:"goTo('calendar')"});
+  if(h>=15 && open.length && open.some(t=>!t.time)) pushAlert({key:'tasks-pm', ic:'📅', title:`لسه عندك ${open.length} مهمة النهارده`, body:open.slice(0,2).map(t=>t.title).join(' · ')+' - وقت ممتاز تقفلهم! ✅', go:"goTo('calendar')"});
   if(mt>0){                                                              // معالم هدف الزيارات الشهري (بنعرض أعلى معلم بس)
     const mv = mine.filter(v=>(v.date||'').startsWith(month)).length, pct = Math.round(mv/mt*100), ms = [100,75,50].find(p=>pct>=p);
-    if(ms){ [50,75,100].filter(p=>p<ms).forEach(p=>alertMark(`m:${month}:ms${p}`)); pushAlert({key:`m:${month}:ms${ms}`, ic:ms===100?'🏆':'🎉', title:ms===100?'حققت هدف زيارات الشهر كله!':`وصلت ${ms}% من هدف زيارات الشهر`, body:`${mv} من ${mt} زيارة`, go:"goTo('dashboard')", sound:true}); }
+    if(ms){ [50,75,100].filter(p=>p<ms).forEach(p=>alertMark(`m:${month}:ms${p}`)); pushAlert({key:`m:${month}:ms${ms}`, ic:ms===100?'🏆':ms===75?'🔥':'🎉', title:ms===100?'كسرت هدف زيارات الشهر!! أسطورة':ms===75?'75% من الهدف! الوصول قرّب':'نص الطريق خلص! كمّل يا بطل', body:`${mv} زيارة من ${mt}${ms===100?' - فخورين بيك! 🎉':''}`, go:"goTo('dashboard')", sound:true, confetti:ms===100}); }
   }
   if(COMPETITION && me){                                                 // تغيّر الترتيب
     const rows = (COMPETITION.reps||[]).slice().sort((a,b)=>b.visits-a.visits||b.avg-a.avg), idx = rows.findIndex(x=>x.id===me);
     if(idx>=0){
       const RK = 'crmRank:'+CURRENT_USER.username; let prev = null; try{ const v = (localStorage.getItem(RK)||'').split(':'); if(v[0]===month) prev = Number(v[1]); localStorage.setItem(RK, month+':'+(idx+1)); }catch(e){}
       if(prev && prev!==idx+1){
-        if(idx+1<prev) pushAlert({ic:'🚀', title:`طلعت للمركز ${idx+1} في ترتيب الزيارات!`, body:idx===0?'إنت في الصدارة 🥇':'كمّل وهتوصل للأول', go:"openReport('compete')", sound:true});
-        else pushAlert({ic:'😮', title:`${rows[idx-1]?rows[idx-1].name:'زميلك'} عدّاك! بقيت المركز ${idx+1}`, body:rows[idx-1]?`فاضلك ${Math.max(1,rows[idx-1].visits-rows[idx].visits)} زيارة تلحقه`:'', go:"openReport('compete')"});
+        if(idx+1<prev) pushAlert({ic:'🚀', title:`طلعت للمركز ${idx+1} في ترتيب الزيارات!`, body:idx===0?'إنت في الصدارة 🥇 حافظ عليها!':'كمّل وهتوصل للأول 💪', go:"openReport('compete')", sound:true, confetti:idx===0});
+        else pushAlert({ic:'😮', title:`${rows[idx-1]?rows[idx-1].name:'زميلك'} عدّاك - بس إنت قدها!`, body:rows[idx-1]?`فاضلك ${Math.max(1,rows[idx-1].visits-rows[idx].visits)} زيارة وترجع قدامه 💪`:'', go:"openReport('compete')"});
       }
     }
   }
   CONTESTS.filter(k=>k.active!==false && contestStatus(k)==='🟢 شغالة' && daysLeft(k)<=1).forEach(k=>{
     const mm = (k.standings||[]).find(x=>x.id===me);
-    pushAlert({key:`c:${k.id}`, ic:'🎁', title:`مسابقة "${k.title}" بتخلص ${daysLeft(k)===0?'النهارده':'بكرة'}!`, body:mm?`ترتيبك ${mm.rank} من ${k.standings.length}`:'', go:"openReport('contests')", sound:true});
+    pushAlert({key:`c:${k.id}`, ic:'🎁', title:`مسابقة "${k.title}" بتخلص ${daysLeft(k)===0?'النهارده':'بكرة'}!`, body:mm?`ترتيبك ${mm.rank} من ${k.standings.length} - لسه فيه وقت تكسبها! 🏆`:'', go:"openReport('contests')", sound:true});
   });
 }
 function managerDigestTick(){
@@ -6919,7 +6997,7 @@ function managerDigestTick(){
   const h = new Date().getHours();
   [['digest-am',10,14],['digest-pm',14,19]].forEach(([key,a,b])=>{ if(h>=a && h<b){ const al = collectAlerts(); if(al.length) pushAlert({key, ic:'🚨', title:`${al.length} تنبيه محتاج متابعة`, body:al.slice(0,2).map(x=>x.t).join(' · '), go:"goTo('dashboard')"}); } });
 }
-function alertTick(){ if(!CURRENT_USER) return; try{ taskTick(); repSmartTick(); managerDigestTick(); }catch(e){ console.error('alertTick', e); } }
+function alertTick(){ if(!CURRENT_USER) return; try{ taskTick(); allTasksDoneTick(); repSmartTick(); stockHotTick(); managerDigestTick(); }catch(e){ console.error('alertTick', e); } }
 
 function challengeCompeteCardHTML(){
   const today = todayISO(), td = visibleVisits().filter(v=>v.date===today), I = crmIntel(), me = CURRENT_USER.repId;
@@ -6932,19 +7010,65 @@ function challengeCompeteCardHTML(){
     rank = `<div style="font-weight:800;">ترتيبك في زيارات الشهر: ${medalOf(idx)} <span class="smallMuted">(${idx+1} من ${rows.length})</span></div><div class="smallMuted">${idx===0 ? 'إنت في الصدارة، حافظ عليها! 🔥' : 'الأول: '+escapeHTML(lead.name)+' - فاضلك '+gap+' زيارة تلحقه'}</div>`; }
   const active = CONTESTS.filter(k=>k.active!==false && contestStatus(k)==='🟢 شغالة').slice(0,2).map(k=>{ const m = (k.standings||[]).find(x=>x.id===me);
     return `<span class="iChip">🎁 ${escapeHTML(k.title)}${m?` · ترتيبك ${m.rank}`:''} · باقي ${daysLeft(k)} يوم</span>`; }).join('');
-  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🔥 تحدياتك ومنافستك</h2><div class="desc">${streak>0?`سلسلة التزامك: <b>${streak}</b> يوم متتالي`:'ابدأ سلسلة التزام جديدة النهارده'}</div></div>
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">🔥 تحدياتك ومنافستك</h2><div class="desc">${streak>0?`سلسلة التزامك: <b>${streak}</b> يوم متتالي · ${streakTier(streak)}`:'ابدأ سلسلة جديدة النهارده - أول زيارة بتولّعها! 🔥'}</div></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">${ch('🧭','زور 3 من عملاء الخطة', important, 3)}${ch('⭐','جودة: متوسط تقييم 4+', rated.length>=2 && avgR>=4 ? 1 : 0, 1, rated.length>=2 ? 'متوسطك '+avgR.toFixed(1) : 'محتاج زيارتين متقيّمتين')}</div>
     ${rank}<div>${active}</div>
     <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="openKpiReport('rating')">⭐ ملخص التقييم</button><button class="btn btn-ghost btn-sm" onclick="openKpiReport('citysales')">💰 مبيعات المدن</button><button class="btn btn-primary btn-sm" onclick="openReport('contests')">🎁 المسابقات</button></div>${compUpdatedLine()}</div>`;
 }
 function homeExtrasHTML(){
   try{
-    if(CURRENT_USER.role==='rep') return smartPlanHTML() + calendarCardHTML() + targetBonusCardHTML() + challengeCompeteCardHTML();
+    if(CURRENT_USER.role==='rep') return welcomeBannerHTML() + smartPlanHTML() + calendarCardHTML() + targetBonusCardHTML() + challengeCompeteCardHTML();
     if(CURRENT_USER.role==='admin' || CURRENT_USER.role==='manager') return calendarCardHTML() + managerAlertsHTML();
     return calendarCardHTML();
   }catch(e){ console.error('home extras', e); }
   return '';
 }
+/* ---------- خطة اليوم الذكية حسب المنطقة/القرية: المشاكل بالمنطقة مش باسم العميل ---------- */
+let planMetric = 'all', planOpen = null, planAll = false;
+const encKey = k => encodeURIComponent(k).replace(/'/g,'%27');
+// مشاكل العميل: متزارش (عدّى حد زيارة فئته) / مبيعاته نازلة 30%+ / وقف يشتري / عليه مطالبة
+const planFlags = x=>({unv:!x.visitedToday && x.gap>=x.interval, stop:x.why.includes('وقف يشتري'), dec:x.why.some(w=>w.startsWith('مبيعاته نازلة')), clm:x.claim>0});
+const planIn = (m,f)=> m==='unvisited' ? f.unv : m==='declined' ? (f.dec||f.stop) : m==='claims' ? f.clm : (f.unv||f.dec||f.stop||f.clm);
+function areaStats(){
+  const map = {};
+  crmIntel().list.forEach(x=>{
+    const city = x.c.city||'', area = String(x.c.area||'').trim() || 'بدون منطقة محددة', key = city+'|'+area;
+    const a = map[key] || (map[key] = {key, city, area, total:0, custs:[], claimsSum:0, n:{unvisited:0, declined:0, stopped:0, claims:0, all:0}});
+    const f = planFlags(x); a.total++; a.custs.push(x);
+    if(f.unv) a.n.unvisited++; if(f.dec||f.stop) a.n.declined++; if(f.stop) a.n.stopped++; if(f.clm){ a.n.claims++; a.claimsSum += x.claim; } if(planIn('all',f)) a.n.all++;
+  });
+  const areas = Object.values(map);
+  return {areas, top:m=>areas.filter(a=>(a.n[m==='all'?'all':m]||0)>0).sort((p,q)=>q.n[m]-p.n[m] || q.total-p.total)[0] || null};
+}
+function setPlanMetric(m){ planMetric = m; planOpen = null; planAll = false; renderView(); }
+function togglePlanArea(k){ k = decodeURIComponent(k); planOpen = planOpen===k ? null : k; planAll = false; renderView(); }
+function planShowAll(){ planAll = true; renderView(); }
+function areaPlanHTML(){
+  const S = areaStats(), M = planMetric, seg = (k,l)=>`<button class="seg ${M===k?'on':''}" onclick="setPlanMetric('${k}')">${l}</button>`;
+  const insights = [['unvisited','📍','أكبر منطقة فيها عملاء متزارتش', a=>`${a.n.unvisited} عميل`], ['declined','📉','أكتر منطقة مبيعاتها قلت', a=>`${a.n.declined} عميل${a.n.stopped?` (${a.n.stopped} وقفوا)`:''}`], ['claims','💵','أكتر منطقة عليها مطالبات', a=>`${a.n.claims} عميل · ${fmtMoney(a.claimsSum)}`]]
+    .map(([m,ic,t,fmt])=>{ const a = S.top(m); return a ? `<div class="planInsight" onclick="setPlanMetric('${m}');togglePlanArea('${encKey(a.key)}')"><b>${ic} ${t}:</b> ${escapeHTML(a.area)} <span class="smallMuted">(${fmt(a)})</span> ‹</div>` : ''; }).join('');
+  const areas = S.areas.filter(a=>a.n[M==='all'?'all':M]>0).sort((p,q)=>q.n[M]-p.n[M] || q.total-p.total).slice(0,12);
+  const rows = areas.map(a=>{
+    const open = planOpen===a.key, chip = (cls,ic,n,l)=>n ? `<span class="iChip ${cls}">${ic} ${n} ${l}</span>` : '';
+    let custs = '';
+    if(open){
+      const list = a.custs.filter(x=>planIn(M,planFlags(x))).sort((p,q)=>q.score-p.score), shown = planAll ? list : list.slice(0,12);
+      custs = `<div class="areaCusts">${shown.map(x=>{ const f = planFlags(x), r = []; if(f.unv) r.push(x.gap>=9999 ? 'مفيش زيارة مسجلة' : 'بقاله '+x.gap+' يوم بدون زيارة'); if(f.stop) r.push('وقف يشتري'); else if(f.dec) r.push(x.why.find(w=>w.startsWith('مبيعاته نازلة'))); if(f.clm) r.push('مطالبة '+fmtMoney(x.claim));
+        return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--gray-200,#e5e7eb);"><div style="flex:1;min-width:160px;">${custLink(x.c)} ${abcBadge(x)}<div>${r.map(z=>`<span class="iChip">${escapeHTML(z)}</span>`).join('')}</div></div>${callWhatsAppButtonsHTML(x.c.phone)}${visitBtn2(x.c)}</div>`; }).join('')}
+        ${!planAll && list.length>12 ? `<div style="text-align:center;padding:6px;"><button class="btn btn-ghost btn-sm" onclick="planShowAll()">عرض باقي الـ ${list.length-12} عميل</button></div>` : ''}</div>`;
+    }
+    return `<div><div class="areaRow ${open?'open':''}" onclick="togglePlanArea('${encKey(a.key)}')">
+        <div class="areaTop"><b>📍 ${escapeHTML(a.area)}</b>${a.city?`<small class="smallMuted">${escapeHTML(a.city)}</small>`:''}<span class="areaCount">${a.total} عميل ${open?'▴':'▾'}</span></div>
+        <div>${chip('warn','⏰',a.n.unvisited,'متزارتش')}${chip('','📉',a.n.declined-a.n.stopped,'مبيعاتهم قلت')}${chip('warn','🛑',a.n.stopped,'وقفوا')}${chip('','💵',a.n.claims,'عليهم مطالبات')}</div>
+        <div class="areaBar"><i style="width:${Math.min(100,Math.round(a.n.all/a.total*100))}%"></i></div></div>${custs}</div>`;
+  }).join('');
+  const noArea = S.areas.find(a=>a.area==='بدون منطقة محددة');
+  return `<div class="card"><div class="pageHead" style="margin-bottom:4px;"><div><h2 style="font-size:15px;">🧭 خطة يومك حسب المنطقة</h2><div class="desc">المشاكل مجمّعة بالمنطقة/القرية - اضغط على أي منطقة وشوف عملاءها</div></div></div>
+    ${insights}<div class="segRow" style="margin:8px 0;">${seg('all','الكل')}${seg('unvisited','⏰ متزارتش')}${seg('declined','📉 مبيعات قلت')}${seg('claims','💵 مطالبات')}</div>
+    ${rows || '<div class="emptyState"><div class="t">مفيش مشاكل في أي منطقة النهارده 🎉</div></div>'}
+    ${noArea && noArea.total>0 ? `<div class="smallMuted" style="margin-top:6px;">⚠️ ${noArea.total} عميل من غير منطقة محددة - كمّل بياناتهم عشان الخطة تبقى أدق.</div>` : ''}</div>`;
+}
+function smartPlanHTML(){ return areaPlanHTML(); }
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
     const RT = [['repmatrix','📊 أدائي'],['compete','🏆 المنافسة'],['contests','🎁 المسابقات'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['abc','🎯 تصنيف عملائي']];
@@ -6973,6 +7097,7 @@ function viewReportsBody(){
     coverage: viewCoverageReport,
     routeadherence: viewRouteAdherenceReport,
     analytics: viewSalesAnalytics,
+    areas: areaPlanHTML,
     abc: viewAbcRiskReport,
     dataquality: viewDataQualityReport,
     contests: viewContests
@@ -7653,7 +7778,7 @@ function printInactiveCustomers(){
   printSoon();
 }
 function exportInactiveExcel(){
-  if(typeof XLSX==='undefined'){ toast('مكتبة Excel لسه بتتحمّل، جرّب بعد ثانية','warn'); return; }
+  if(typeof XLSX==='undefined'){ toast('جاري تحميل مكتبة Excel...','warn'); loadXLSX().then(()=>exportInactiveExcel()).catch(()=>toast('تعذّر تحميل مكتبة Excel - تأكد من الاتصال','warn')); return; }
   const list = inactiveFilteredList();
   if(!list.length){ toast('لا توجد بيانات للتصدير','warn'); return; }
   const head = ['#','المنطقة','الكود','اسم العميل','المدينة','حالة الدفع','آخر تعامل','إجمالي السنة'];
@@ -9719,6 +9844,7 @@ async function handleSalesAnalyticsExcelImport(file){
   try{
     toast('جاري قراءة الملف...','warn');
     const buf = await file.arrayBuffer();
+    await loadXLSX();
     const wb = XLSX.read(buf, {type:'array'});
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rawRows = XLSX.utils.sheet_to_json(ws, {defval:0}); // بالاسم مش بالترتيب - أكثر مرونة لو الأعمدة اتبدلت مكانها
@@ -9752,7 +9878,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.77): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.80): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
