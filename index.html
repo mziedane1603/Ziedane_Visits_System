@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.84)</title>
+<title>Ziedane CRM (v2.85)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -951,7 +951,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.84';
+const APP_VERSION = '2.85';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1879,12 +1879,16 @@ function visitsDefaultFrom(){
   const n = new Date(), d = new Date(n.getFullYear(), n.getMonth()-2, 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
 }
+let visitsFallback = false;
 function attachVisitsListener(){
   if(!visitsFromISO) visitsFromISO = visitsDefaultFrom();
   if(visitsUnsub){ try{ visitsUnsub(); }catch(e){} }
   visitsFirstLoad = true;
-  let vq = db.collection('visits'); if(CURRENT_USER.role==='rep') vq = vq.where('repId','==',CURRENT_USER.repId);   // مطلوب لقواعد الأمان (فهرس: repId تصاعدي + date تنازلي)
-  visitsUnsub = vq.where('date','>=',visitsFromISO).orderBy('date','desc').onSnapshot(snap=>{
+  const isRep = CURRENT_USER.role==='rep';
+  let vq = db.collection('visits'); if(isRep) vq = vq.where('repId','==',CURRENT_USER.repId);   // مطلوب لقواعد الأمان
+  // الاستعلام الأساسي محتاج فهرس مركّب (repId + date). لو مش جاهز بنستخدم استعلام بسيط (مفيش فهرس مطلوب) ونفلتر بالتاريخ محلياً
+  const q = (isRep && visitsFallback) ? vq : vq.where('date','>=',visitsFromISO).orderBy('date','desc');
+  visitsUnsub = q.onSnapshot(snap=>{
     if(!visitsFirstLoad && isAdminLike()){
       snap.docChanges().forEach(ch=>{
         if(ch.type==='added'){
@@ -1893,10 +1897,17 @@ function attachVisitsListener(){
         }
       });
     }
-    VISITS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    let list = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(isRep && visitsFallback) list = list.filter(v=>(v.date||'')>=visitsFromISO).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    VISITS = list;
     visitsFirstLoad = false;
     renderNav(); renderView();
-  }, err=>console.error('visits listener', err));
+  }, err=>{
+    console.error('visits listener', err);
+    if(isRep && !visitsFallback && ['failed-precondition','invalid-argument'].includes(err.code)){
+      visitsFallback = true; toast('⚠️ فهرس الزيارات لسه مش جاهز - بنحمّل بطريقة بديلة مؤقتاً','warn'); attachVisitsListener();
+    }else toast('تعذّر تحميل الزيارات ('+(err.code||'خطأ')+') - ابلّغ الأدمن','err');
+  });
   unsubs.push(visitsUnsub);
 }
 function ensureVisitsFrom(isoDate){
@@ -2991,9 +3002,12 @@ async function saveVisit(){
     createdBy: CURRENT_USER.username
   };
   try{
-    const p = db.collection('visits').add(payload);
+    afterVisitAlert(payload);                                   // قبل الإضافة المحلية (بيحسب العدد +1)
+    const ref = db.collection('visits').doc();                  // id معروف قبل الكتابة
+    VISITS = [{id:ref.id, ...payload, createdAt:null}, ...VISITS];   // إضافة محلية فورية: العدادات والتقارير تتحدّث في نفس اللحظة
+    renderNav();
+    const p = ref.set(payload);
     trackWrite(p);
-    afterVisitAlert(payload);
     toast(navigator.onLine ? 'تم حفظ الزيارة بنجاح ✔' : 'تم الحفظ محلياً 📡 - سيتم الرفع تلقائياً عند توفر الاتصال', navigator.onLine?'ok':'warn');
     addVisitState = {customer:null, rating:0, resultId:null};
     if(routePlanInlineCode){
@@ -3003,7 +3017,7 @@ async function saveVisit(){
     }else{
       goTo(CURRENT_USER.role==='rep' ? 'visits' : 'dashboard');
     }
-    p.catch(e=>{ console.error(e); toast('فشل رفع الزيارة نهائياً - راجع الأدمن','err'); });
+    p.catch(e=>{ console.error(e); VISITS = VISITS.filter(v=>v.id!==ref.id); renderNav(); renderView(); toast('فشل رفع الزيارة نهائياً ('+(e.code||'خطأ')+') - الزيارة اتشالت من العدادات، راجع الأدمن','err'); });
   }catch(e){
     console.error(e);
     toast('فشل حفظ الزيارة','err');
@@ -9932,7 +9946,7 @@ async function handleSalesAnalyticsExcelImport(file){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.84): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.85): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
