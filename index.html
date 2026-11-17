@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.85)</title>
+<title>Ziedane CRM (v2.91)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -769,6 +769,7 @@ button,.btn,.seg,.navItem,select,input{touch-action:manipulation;}
 .areaBar{height:6px;border-radius:99px;background:var(--gray-100,#f1f3f5);margin-top:8px;overflow:hidden;}.areaBar i{display:block;height:100%;background:linear-gradient(90deg,#fbbf24,#dc2626);}
 .areaCusts{padding:0 10px 6px;border:1px solid var(--teal,#0f7a6b);border-top:none;border-radius:0 0 12px 12px;}
 .iChip.warn{background:#fee2e2;color:#b91c1c;}
+.tgRow{margin:8px 0 12px;}.tgRow .goalFill{transition:width .4s;}
 .icGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}.icField span{display:block;font-size:12.5px;margin-bottom:2px;}
 /* ---------- v2.81: إصلاح عرض الشريط العلوي على الموبايل (كان بيعمل تمرير أفقي) ---------- */
 html,body{overflow-x:clip;}
@@ -951,7 +952,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.85';
+const APP_VERSION = '2.91';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1202,7 +1203,7 @@ function tabs2HTML(groups, current, setFn, pillMain){
 const REPORT_GROUPS = [
   {label:'📊 نظرة عامة', tabs:[['overview','نظرة عامة']]},
   {label:'🧑‍💼 المناديب', tabs:[['repssummary','إجماليات المناديب'],['repmatrix','التقرير التفصيلي'],['routeadherence','الالتزام بالخطة']]},
-  {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['citycompare','مقارنة المدن سنوياً'],['analytics','تحليلات المبيعات']]},
+  {label:'📈 المبيعات', tabs:[['sales','تقارير المبيعات'],['citycompare','مقارنة المدن سنوياً']]},
   {label:'🏆 المنافسة', tabs:[['contests','المسابقات والجوايز']]},
   {label:'🏥 العملاء', tabs:[['coverage','تغطية المدن'],['areas','المشاكل حسب المنطقة'],['abc','تصنيف ABC والخطر'],['dataquality','جودة البيانات']]},
   {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
@@ -1223,6 +1224,7 @@ const DEF_GROUPS = [
   {label:'🎯 أهداف المناديب', tabs:[['targets','أهداف المناديب']]},
   {label:'⭐ التقييم', tabs:[['rating','مقياس التقييم']]},
   {label:'📢 شريط الأصناف', tabs:[['ticker','شريط الأصناف']]},
+  {label:'🎯 أهداف المدن', tabs:[['cityTargets','أهداف المدن']]},
   {label:'🧭 الخطة الذكية', tabs:[['intel','إعدادات الخطة الذكية']]},
   {label:'🏢 بيانات الشركة', tabs:[['company','بيانات الشركة']]}
 ];
@@ -1231,7 +1233,7 @@ function setDefTab(k){ definitionsTab = k; renderView(); }
 // صفحات متشابهة بتظهر كعنصر واحد في القايمة، وجواها تبويبات للتنقل بينهم (الصلاحيات لسه لكل صفحة لوحدها)
 const NAV_GROUPS = [
   {id:'g_orders', label:'الطلبيات',        ic:'🧾',   members:['suggestedorders','portalorders']},
-  {id:'g_sales',  label:'المبيعات',        ic:'📈',   members:['customersales','citysales','customerstatement']},
+  {id:'g_sales',  label:'المبيعات',        ic:'📈',   members:['citysales','customersales','customerstatement']},
   {id:'g_comm',   label:'التواصل',         ic:'💬',   members:['teamchat','announcements']},
   {id:'g_cust',   label:'العملاء',         ic:'🏥',   members:['customers','custdata']},
   {id:'g_plan',   label:'خطتي ومهامي',     ic:'🗺️',   members:['routeplan','calendar']},
@@ -1685,7 +1687,7 @@ function dataNeededForView(view){
     case 'addvisit': return ['claims'];
     case 'claims': return ['claims'];
     case 'customersales': return ['customerSales'];
-    case 'citysales': return ['citySales'];
+    case 'citysales': return ['citySales'].concat(isAdminLike() ? ['salesAnalytics'] : []);
     case 'customerstatement': return ['claims','customerSales','followups'];
     case 'followup': return ['claims','followups','users'];
     case 'routeplan': return ['plannedVisits'];
@@ -1718,7 +1720,7 @@ function ensureDataForView(view){
 }
 // إعادة رسم الصفحة الحالية بس لو كانت بتعتمد على المجموعة اللي اتحدّثت
 function renderIfNeeds(coll){
-  if(dataNeededForView(currentView).includes(coll) || (coll==='followups' && isAdminLike() && currentView==='dashboard')) renderView();
+  if(dataNeededForView(currentView).includes(coll) || (coll==='followups' && isAdminLike() && currentView==='dashboard')) softRender();
 }
 
 /* ==========================================================================
@@ -1763,7 +1765,7 @@ DATA_ATTACHERS['cdFields'] = ()=>{
 };
 lazyScoped('claims', 'claims', l=>{ CLAIMS = l; });
 lazyScoped('customerSales', 'customerSales', l=>{ CUSTOMER_SALES = l; });
-lazyScoped('citySales', 'citySales', l=>{ CITY_SALES = l; });
+lazyScoped('citySales', 'citySales', l=>{ CITY_SALES_RAW = l; rebuildCitySales(); });
 lazyListen('salesAnalytics', ()=>db.collection('salesAnalytics'), snap=>{ SALES_ANALYTICS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('salesAnalytics'); });
 lazyListen('plannedVisits', ()=>db.collection('plannedVisits'), snap=>{ PLANNED_VISITS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('plannedVisits'); });
 lazyListen('inventory', ()=>db.collection('inventory'), snap=>{ INVENTORY = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('inventory'); });
@@ -1901,7 +1903,7 @@ function attachVisitsListener(){
     if(isRep && visitsFallback) list = list.filter(v=>(v.date||'')>=visitsFromISO).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     VISITS = list;
     visitsFirstLoad = false;
-    renderNav(); renderView();
+    renderNav(); softRender();
   }, err=>{
     console.error('visits listener', err);
     if(isRep && !visitsFallback && ['failed-precondition','invalid-argument'].includes(err.code)){
@@ -1935,17 +1937,17 @@ function attachListeners(){
   // ----- الأساسي: بيتحمّل مع الدخول لكل المستخدمين (مجموعات صغيرة أو مطلوبة في أغلب الصفحات) -----
   unsubs.push(db.collection('reps').onSnapshot(snap=>{
     REPS = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    renderNav(); renderView();
+    renderNav(); softRender();
   }, err=>console.error('reps listener', err)));
 
   unsubs.push(db.collection('visitResults').orderBy('order').onSnapshot(snap=>{
     VISIT_RESULT_DEFS = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(d=>d.active!==false);
-    renderView();
+    softRender();
   }, err=>console.error('visitResults listener', err)));
 
   unsubs.push(db.collection('followupResults').orderBy('order').onSnapshot(snap=>{
     FOLLOWUP_RESULTS = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(d=>d.active!==false);
-    renderView();
+    softRender();
   }, err=>console.error('followupResults listener', err)));
 
   chatUnread = 0;
@@ -1959,30 +1961,36 @@ function attachListeners(){
     CHAT_MESSAGES = snap.docs.map(d=>({id:d.id, ...d.data()})).reverse();
     chatFirstLoad = false;
     renderNav();
-    if(currentView==='teamchat'){ renderView(); setTimeout(scrollChatToBottom,30); }
+    if(currentView==='teamchat'){ softRender(); setTimeout(scrollChatToBottom,30); }
   }, err=>console.error('teamChat listener', err)));
 
   unsubs.push(db.collection('announcements').orderBy('order').onSnapshot(snap=>{
     ANNOUNCEMENTS = snap.docs.map(d=>({id:d.id, ...d.data()}));
     renderTicker();
-    if(currentView==='announcements') renderView();
+    if(currentView==='announcements') softRender();
   }, err=>console.error('announcements listener', err)));
 
   scopedListen('customers', list=>{
     CUSTOMERS = list.sort((a,b)=>String(a.code||'')<String(b.code||'') ? -1 : String(a.code||'')>String(b.code||'') ? 1 : 0);
-    renderView();
+    softRender();
   });
   // المنافسة والمسابقات (ملخصات مجمّعة ينشرها الأدمن/المدير)
-  unsubs.push(db.collection('leaderboard').doc(todayISO().slice(0,7)).onSnapshot(s=>{ COMPETITION = s.exists ? s.data() : null; if(currentView==='dashboard') renderView(); }, e=>console.error('leaderboard', e)));
-  unsubs.push(db.collection('contests').onSnapshot(s=>{ CONTESTS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='dashboard') renderView(); }, e=>console.error('contests', e)));
+  unsubs.push(db.collection('leaderboard').doc(todayISO().slice(0,7)).onSnapshot(s=>{ COMPETITION = s.exists ? s.data() : null; if(currentView==='dashboard') softRender(); }, e=>console.error('leaderboard', e)));
+  unsubs.push(db.collection('contests').onSnapshot(s=>{ CONTESTS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='dashboard') softRender(); }, e=>console.error('contests', e)));
   if(['admin','manager'].includes(CURRENT_USER.role) && !window._pubTimer){ setTimeout(()=>publishCompetition(false), 20000); window._pubTimer = setInterval(()=>publishCompetition(false), 10*60*1000); }
-  unsubs.push(db.collection('repTasks').where('owner','==',CURRENT_USER.username).onSnapshot(s=>{ REP_TASKS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='calendar' || currentView==='dashboard') renderView(); setTimeout(alertTick, 300); }, e=>console.error('repTasks', e)));
-  unsubs.push(db.collection('appConfig').doc('intelCfg').onSnapshot(s=>{ if(applyIntelCfg(s.exists ? s.data() : {}) && ['dashboard','definitions','inventory'].includes(currentView)) renderView(); }, e=>console.error('intelCfg', e)));
+  unsubs.push(db.collection('repTasks').where('owner','==',CURRENT_USER.username).onSnapshot(s=>{ REP_TASKS = s.docs.map(d=>({id:d.id, ...d.data()})); if(currentView==='calendar' || currentView==='dashboard') softRender(); setTimeout(alertTick, 300); }, e=>console.error('repTasks', e)));
+  unsubs.push(db.collection('appConfig').doc('intelCfg').onSnapshot(s=>{ if(applyIntelCfg(s.exists ? s.data() : {}) && ['dashboard','definitions','inventory'].includes(currentView)) softRender(); }, e=>console.error('intelCfg', e)));
+  unsubs.push(db.collection('appConfig').doc('cityTargets').onSnapshot(s=>{
+    CITY_TARGETS_STORE = cityTargetsFromDoc(s.exists ? s.data() : null);
+    rebuildCitySales(); if(['citysales','dashboard'].includes(currentView)) softRender();
+  }, e=>console.error('cityTargets', e)));
+  // بيانات التنبيهات الذكية (مبيعات العملاء/مطالبات/مدن/مخزون) من أول دخول. لازم هنا بعد تصفير attachedData عشان ما تتحمّلش مرتين
+  (CURRENT_USER.role==='telesales' ? ['inventory','bonusOffers'] : ['inventory','bonusOffers','customerSales','claims','citySales']).forEach(n=>{ if(!attachedData.has(n) && DATA_ATTACHERS[n]){ attachedData.add(n); DATA_ATTACHERS[n](); } });
 
   attachVisitsListener();
 
   renderNav();
-  renderView(); // renderView بتحمّل تلقائياً أي بيانات إضافية الصفحة الحالية محتاجاها
+  softRender(); // renderView بتحمّل تلقائياً أي بيانات إضافية الصفحة الحالية محتاجاها
 }
 
 function refreshAll(){ toast('تم تحديث البيانات','ok'); }
@@ -2061,6 +2069,18 @@ function logAudit(action, collName, label){
 /* ==========================================================================
    ROUTER
    ========================================================================== */
+// رسم "ناعم" لتحديثات Firebase: بيجمّع أي تحديثات متتالية في رسمة واحدة، وبيأجّل الرسم طول ما المستخدم بيكتب في خانة
+// (إعادة رسم الصفحة كلها مع كل تحديث كانت بتخلّي الشاشة تهتز وبتقفل لوحة المفاتيح)
+let _softT = null, _softWait = 0;
+function softRender(){
+  clearTimeout(_softT);
+  _softT = setTimeout(function run(){
+    const ae = document.activeElement, main = document.getElementById('mainView');
+    const typing = ae && main && main.contains(ae) && ae.id!=='chatInput' && (ae.tagName==='TEXTAREA' || ae.tagName==='SELECT' || (ae.tagName==='INPUT' && !['checkbox','radio','button','submit','file','range','color'].includes(ae.type||'')));
+    if(typing && _softWait<25){ _softWait++; _softT = setTimeout(run, 400); return; }   // بيكتب: نأجّل (لحد ~10 ثواني)
+    _softWait = 0; renderView();
+  }, 150);
+}
 function renderView(){
   if(typeof visitsGuard==='function' && CURRENT_USER) visitsGuard();
   if(!CURRENT_USER) return;
@@ -2068,6 +2088,8 @@ function renderView(){
   ensureDataForView(currentView);
   // حفظ مكان المؤشر وقيمة مربع الكتابة المفتوح، عشان أي تحديث تلقائي من الخلفية
   // (زيارة جديدة، رسالة، نبضة مستخدم...) متمسحش اللي المستخدم بيكتبه أو تفقده التركيز
+  const sy = window.scrollY || document.documentElement.scrollTop || 0, keepH = main.offsetHeight;   // مكان التمرير: عشان الصفحة متنطش لفوق مع كل تحديث
+  if(keepH>0) main.style.minHeight = keepH+'px';
   let savedField = null;
   const ae = document.activeElement;
   if(ae && ae.id && main.contains(ae) && (ae.tagName==='TEXTAREA' || (ae.tagName==='INPUT' && ['text','search','tel','number',''].includes(ae.type||'')))){
@@ -2101,7 +2123,7 @@ function renderView(){
     { const gt = groupTabsHTML(); if(gt) main.insertAdjacentHTML('afterbegin', gt); }
 
     if(currentView==='dashboard') [drawDashboardCharts,drawReportCharts,drawClaimsChart,drawSalesReportCharts,drawCoverageChart].forEach(f=>setTimeout(f,30));
-    if(currentView==='dashboard' && reportsTab==='analytics') setTimeout(drawSalesAnalyticsCharts, 30);
+    if((currentView==='dashboard' && reportsTab==='analytics') || (currentView==='citysales' && isAdminLike() && salesHubTab!=='cities')) setTimeout(drawSalesAnalyticsCharts, 30);
     if(currentView==='dashboard' && reportsTab==='citycompare') setTimeout(drawCityCompareCharts, 30);
     if(currentView==='customerstatement') setTimeout(drawCustomerStatementChart, 30);
     if(currentView==='citysales') setTimeout(drawCitySalesChart, 30);
@@ -2119,6 +2141,8 @@ function renderView(){
         try{ el.setSelectionRange(savedField.start, savedField.end); }catch(e){}
       }
     }
+    if(sy>0){ const de = document.documentElement, pb = de.style.scrollBehavior; de.style.scrollBehavior = 'auto'; window.scrollTo(0, sy); de.style.scrollBehavior = pb; }   // لحظي (من غير تزحلق)
+    requestAnimationFrame(()=>{ main.style.minHeight = ''; });
   }catch(e){
     console.error(e);
     main.innerHTML = '<div class="emptyState"><div class="ic">⚠️</div><div class="t">حدث خطأ أثناء عرض الصفحة</div></div>';
@@ -3272,17 +3296,63 @@ function bonusTiersFor(itemName, company){
   const key = normalizeArabicKey(itemName) + '|' + normalizeArabicKey(company);
   return getBonusIndex().get(key) || [];
 }
+/* ---------- بحث ذكي في الأصناف: يتجاهل الهمزات والتشكيل، ويلاقي الأسماء المتشابهة (كون ← كونكور/كونكر/Concor) ---------- */
+function normSearch(s){
+  return String(s==null?'':s).toLowerCase()
+    .replace(/[\u064B-\u0652\u0640\u0670]/g,'')                       // تشكيل وتطويل
+    .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))                    // أرقام عربية ← إنجليزي
+    .replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
+    .replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+}
+// "هيكل" الاسم: الحروف الساكنة بس، وحروف إنجليزي بتتحوّل لمقابلها العربي، فـ Concor و كونكور و كونكر كلهم "كنكر"
+const _LAT = {ph:'ف',th:'ت',sh:'ش',ch:'ك',kh:'خ',gh:'غ',ck:'ك',qu:'ك',b:'ب',p:'ب',c:'ك',d:'د',f:'ف',v:'ف',g:'ج',h:'ه',j:'ج',k:'ك',l:'ل',m:'م',n:'ن',q:'ك',r:'ر',s:'س',t:'ت',x:'كس',z:'ز'};
+const _ARB = {ق:'ك',ث:'ت',ذ:'د',ص:'س',ض:'د',ط:'ت',ظ:'د'};
+function skel(s){
+  s = normSearch(s); let out = '';
+  for(let i=0;i<s.length;i++){
+    const c = s[i], two = s.slice(i,i+2);
+    if(_LAT[two]){ out += _LAT[two]; i++; }
+    else if(_LAT[c]) out += _LAT[c];
+    else if(/[aeiouyw]/.test(c)) continue;                              // حروف علة إنجليزي
+    else if(/[اويء]/.test(c)) continue;                                  // حروف علة عربي
+    else out += _ARB[c] || c;
+  }
+  return out;
+}
+const _invIdx = new WeakMap();
+function invIndex(i){
+  let x = _invIdx.get(i);
+  if(!x){ const nm = normSearch(i.itemName), co = normSearch(i.company), words = nm.split(' ');
+    x = {nm, co, words, wsk:words.map(skel), sk:skel(nm)}; _invIdx.set(i,x); }
+  return x;
+}
+// -1 = مش مطابق، وكل ما الرقم أقل كل ما التطابق أحسن
+function invMatch(i, toks){
+  const x = invIndex(i); let total = 0;
+  for(const t of toks){
+    let s = -1;
+    if(x.nm.startsWith(t)) s = 0;
+    else if(x.words.some(w=>w.startsWith(t))) s = 1;
+    else if(x.nm.includes(t)) s = 2;
+    else if(x.co.includes(t)) s = 3;
+    else{ const k = skel(t); if(k.length>=2){ if(x.wsk.some(w=>w.startsWith(k))) s = 4; else if(x.sk.includes(k)) s = 5; } }
+    if(s<0) return -1; total += s;
+  }
+  return total/toks.length;
+}
 function inventoryFilteredList(){
   const q = (inventoryFilters.q||'').trim().toLowerCase();
   let list = INVENTORY;
   if(inventoryFilters.company) list = list.filter(i=>i.company===inventoryFilters.company);
-  if(q) list = list.filter(i=>(i.itemName||'').toLowerCase().includes(q) || (i.company||'').toLowerCase().includes(q));
+  let rel = null;
+  if(q){ const toks = normSearch(q).split(' ').filter(Boolean); rel = new Map(); list = list.filter(i=>{ const s = invMatch(i,toks); if(s<0) return false; rel.set(i,s); return true; }); }
   if(inventoryFilters.bonusOnly) list = list.filter(i=>bonusTiersFor(i.itemName, i.company).length>0);
   if(invView.lowOnly){ const st = invStockStats(); list = list.filter(i=>invLevel(Number(i.quantity)||0, st)!=='ok'); }
   if(invView.hot){ const st = invStockStats(); list = list.filter(i=>isHotItem(i, st)); }
   const nm = (a,b)=>(a.itemName||'').localeCompare(b.itemName||'','ar'), qn = i=>Number(i.quantity)||0;
   const by = {name:nm, qtyDesc:(a,b)=>qn(b)-qn(a)||nm(a,b), qtyAsc:(a,b)=>qn(a)-qn(b)||nm(a,b), price:(a,b)=>(Number(b.publicPrice)||0)-(Number(a.publicPrice)||0)||nm(a,b),
     bonus:(a,b)=>(bonusTiersFor(b.itemName,b.company).length-bonusTiersFor(a.itemName,a.company).length)||nm(a,b)}[invView.sort] || nm;
+  if(rel && invView.sort==='name') return list.slice().sort((a,b)=>(rel.get(a)-rel.get(b)) || nm(a,b));   // لما بتبحث: الأقرب للي كتبته الأول
   return list.slice().sort(by);
 }
 function invLoadView(){
@@ -3329,7 +3399,8 @@ function inventoryTableHTML(list){
       <div class="invTop"><div><div class="invName">${nm(d)} ${hot(d)}</div>${co(d)}</div><div class="invPrice">${price(d)}<small>ج.م</small>${d.i.pharmacyDiscount!=null?`<span class="invDisc">خصم الصيدلي ${d.i.pharmacyDiscount}%</span>`:''}</div></div>
       <div class="invStock"><div class="invBarWrap"><div class="invBar" style="width:${d.pct}%"></div></div><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span></div>
       ${d.tiers.length?`<div class="invBonus">${tiers(d,9)}</div>`:''}</div>`).join('')}</div>`;
-  return `<div class="invRoot sz-${invView.size} mode-${invView.mode} ${invView.comfort?'invComfort':''}">${body}${list.length>300?`<div class="smallMuted" style="text-align:center;margin-top:10px;">تم عرض أول 300 صنف من ${list.length} - استخدم البحث أو الفلاتر</div>`:''}</div>`;
+  const qTxt = (inventoryFilters.q||'').trim();
+  return `<div class="invRoot sz-${invView.size} mode-${invView.mode} ${invView.comfort?'invComfort':''}">${qTxt ? `<div class="smallMuted" style="margin:2px 2px 8px;">🔎 ${list.length} نتيجة لـ "${escapeHTML(qTxt)}"</div>` : ''}${body}${list.length>300?`<div class="smallMuted" style="text-align:center;margin-top:10px;">تم عرض أول 300 صنف من ${list.length} - استخدم البحث أو الفلاتر</div>`:''}</div>`;
 }
 function stockHotTick(){
   if(!INVENTORY.length) return;
@@ -4134,7 +4205,7 @@ function viewInventory(){
     ${importSection}
     <div class="card">
       <div class="filterBar">
-        <input id="inventorySearchInput" type="text" placeholder="ابحث باسم الصنف أو الشركة..." value="${escapeHTML(inventoryFilters.q)}" oninput="inventoryFilters.q=this.value; dbnc('updateInventoryResults',updateInventoryResults)" style="min-width:220px;">
+        <input id="inventorySearchInput" type="text" placeholder="ابحث باسم الصنف أو الشركة..." value="${escapeHTML(inventoryFilters.q)}" oninput="inventoryFilters.q=this.value; dbnc('updateInventoryResults',updateInventoryResults,120)" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" style="min-width:220px;">
         ${micButtonHTML('inventorySearchInput','updateInventoryResults')}
         <select onchange="inventoryFilters.company=this.value; updateInventoryResults();">
           <option value="">كل الشركات</option>
@@ -5685,6 +5756,8 @@ function renderBonusTicker(){
 function viewDefinitions(){
   const canEdit = CURRENT_USER.role==='admin';
   const tabs = tabs2HTML(DEF_GROUPS, definitionsTab, 'setDefTab');
+  if(definitionsTab==='cityTargets' && !tgDraft) tgLoad();
+  if(definitionsTab==='cityTargets') return `<div class="pageHead"><div><h2>التعريفات</h2><div class="desc">أهداف المدن</div></div></div>${tabs}${cityTargetsEditorHTML(canEdit || CURRENT_USER.role==='manager')}`;
   if(definitionsTab==='intel') return `<div class="pageHead"><div><h2>التعريفات</h2><div class="desc">حدود الخطة الذكية والتصنيف</div></div></div>${tabs}${intelCfgCardHTML(canEdit || CURRENT_USER.role==='manager')}`;
 
   if(definitionsTab==='rating') return `
@@ -6523,13 +6596,7 @@ function openCustomer360(code){
 function targetBonusCardHTML(){
   const month = todayISO().slice(0,7), now = new Date(), dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(), daysLeft = Math.max(1, dim-now.getDate()+1);
   const rows = latestCitySalesRows(month), tgt = rows.reduce((a,c)=>a+(Number(c.salesTarget)||0),0), net = rows.reduce((a,c)=>a+(Number(c.netSales)||0),0);
-  let cityPart = '';
-  if(tgt>0){
-    const pct = Math.round(net/tgt*100), rem = Math.max(0, tgt-net), elapsed = Math.round(now.getDate()/dim*100);
-    cityPart = `<div class="goalTop"><span>🏙️ هدف مبيعات مدنك</span><span><b>${pct}%</b> · ${fmtMoney(net)} من ${fmtMoney(tgt)}</span></div>
-      <div class="goalBar"><div class="goalFill" style="width:${Math.min(100,pct)}%"></div><div class="goalTick" style="right:${elapsed}%"></div></div>
-      <div class="goalSub">${rem>0 ? `باقي ${fmtMoney(rem)} ≈ ${fmtMoney(Math.ceil(rem/daysLeft))} في اليوم لمدة ${daysLeft} يوم` : 'تم تحقيق الهدف 🎉'}</div>`;
-  }
+  let cityPart = cityTargetsSummaryHTML();
   let bonusPart = '';
   try{
     const r = repBonusRowsForMonth(month).find(x=>x.repId===CURRENT_USER.repId);
@@ -6934,7 +7001,6 @@ function pushAlert({key, ic='🔔', title, body='', go='', sound=false, actions,
 function initAlertsEngine(){
   const s = alertStore(); ALERTS = s.list.map(x=>({id:uid(), text:`${x.ic} ${x.title}${x.body?' - '+x.body:''}`, ic:x.ic, title:x.title, body:x.body, go:x.go, time:new Date(x.t), read:true})).reverse();
   renderAlertBadge();
-  (CURRENT_USER.role==='telesales' ? ['inventory','bonusOffers'] : ['inventory','bonusOffers','customerSales','claims','citySales']).forEach(n=>{ if(!attachedData.has(n) && DATA_ATTACHERS[n]){ attachedData.add(n); DATA_ATTACHERS[n](); } });   // بيانات التنبيهات الذكية لازم تكون جاهزة من أول دخول مش بس لما تفتح الرئيسية
   if(!window._alertTimer){
     window._alertTimer = setInterval(alertTick, 30000); setTimeout(alertTick, 6000);
     document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) alertTick(); });
@@ -7137,6 +7203,168 @@ async function saveIntelCfg(){
   }catch(e){ console.error(e); toast('فشل الحفظ: '+(e.code||e.message),'warn'); }
 }
 function resetIntelCfg(){ if(!confirm('الرجوع للقيم الافتراضية؟')) return; Object.entries({icA:14,icB:30,icC:60,icD:90,icCutA:70,icCutB:90,icDecl:30,icLow:20}).forEach(([id,v])=>{ document.getElementById(id).value = v; }); saveIntelCfg(); }
+/* ==========================================================================
+   أهداف المدن + شيت المبيعات الموحّد (v2.86)
+   شيت واحد (صف لكل عميل: الفترة الصباحية/المسائية/الفرع + عمود "متعامل" بعد كل واحد) بيغذّي:
+   تحليل المبيعات (على مستوى العميل) + مبيعات المدن (مجمّعة بالمدينة) والنسب بتتحسب من أهداف محفوظة.
+   ========================================================================== */
+const TARGET_DEFAULTS = {
+  am:[['شبين القناطر',1700000,200],['الخانكة',1700000,200],['قليوب',1400000,125],['القناطر الخيرية',2600000,175],['بنها',1700000,100],['طوخ',1200000,175],['مشتول السوق',200000,15]],
+  pm:[['شبين القناطر',1300000,175],['الخانكة',1500000,150],['قليوب',900000,110],['القناطر الخيرية',1200000,125],['بنها',1200000,100],['طوخ',1000000,125],['مشتول السوق',200000,15]],
+  br:[['شبين القناطر',3000000,250],['الخانكة',3200000,250],['قليوب',2300000,150],['القناطر الخيرية',3800000,175],['بنها',2900000,125],['طوخ',2200000,225],['مشتول السوق',400000,25],['كبار العملاء',3200000,0]]
+};
+let CITY_TARGETS_STORE = {base:null, months:{}}, CITY_SALES_RAW = [];   // months: {'2026-11': {am,pm,br}} - الأهداف لكل شهر، والشهر اللي ملهوش أهداف بيورّث من اللي قبله
+const CITY_PERIODS = {
+  br:{label:'الفرع (الإجمالي)', ic:'🏢', s:'netSales', c:'customersActive', ts:'salesTarget', tc:'customerTarget'},
+  am:{label:'الفترة الصباحية', ic:'🌅', s:'amSales', c:'amCustomers', ts:'amTarget', tc:'amCustTarget'},
+  pm:{label:'الفترة المسائية', ic:'🌙', s:'pmSales', c:'pmCustomers', ts:'pmTarget', tc:'pmCustTarget'}
+};
+let cityPeriod = 'br';
+const cleanCity = s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
+const normCity = s=>normName(cleanCity(s));
+function enrichCityRow(r){
+  const mo = String(r.date||'').slice(0,7) || undefined, o = {...r}, b = targetFor('br',r.city,mo), a = targetFor('am',r.city,mo), p = targetFor('pm',r.city,mo);   // كل يوم بأهداف شهره
+  if(b){ o.salesTarget = b.s; o.customerTarget = b.n; }
+  o.amTarget = a ? a.s : 0; o.amCustTarget = a ? a.n : 0; o.pmTarget = p ? p.s : 0; o.pmCustTarget = p ? p.n : 0;
+  o.hasPeriods = r.amSales!=null || r.pmSales!=null;
+  return o;
+}
+function rebuildCitySales(){ CITY_SALES = CITY_SALES_RAW.map(enrichCityRow); }
+// سجل مدينة بقيم الفترة المختارة (فرع/صباحي/مسائي) بنفس أسماء الحقول، فكل دوال النسب الموجودة تشتغل عليه
+const periodRec = (c,k)=>{ const P = CITY_PERIODS[k]||CITY_PERIODS.br; return {...c, netSales:Number(c[P.s])||0, customersActive:Number(c[P.c])||0, salesTarget:Number(c[P.ts])||0, customerTarget:Number(c[P.tc])||0}; };
+function setCityPeriod(k){ cityPeriod = k; renderView(); setTimeout(drawCitySalesChart,30); }
+function cityPeriodTabsHTML(){ return `<div class="segRow" style="margin:0 0 10px;">${Object.entries(CITY_PERIODS).map(([k,P])=>`<button class="seg ${cityPeriod===k?'on':''}" onclick="setCityPeriod('${k}')">${P.ic} ${P.label}</button>`).join('')}</div>`; }
+
+/* ---------- قراءة الشيت ---------- */
+async function sheetHasCustomerColumns(file){
+  await loadXLSX(); const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+  const hdr = ((XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:''})[0])||[]).map(normName);
+  return hdr.includes(normName('كود العميل'));
+}
+function parseSalesSheet(buf){
+  const wb = XLSX.read(buf, {type:'array'}), ws = wb.Sheets[wb.SheetNames[0]], rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  if(!rows.length) throw new Error('الملف فاضي');
+  const hd = rows[0].map(normName), ix = (...names)=>{ for(const n of names){ const j = hd.indexOf(normName(n)); if(j>=0) return j; } return -1; };
+  const iCode = ix('كود العميل'), iName = ix('اسم العميل'), iCity = ix('المدينه','المدينة'), iReg = ix('المنطقه','المنطقة'), iPay = ix('حاله الدفع','حالة الدفع');
+  const iAm = ix('الفتره الصباحية','الفترة الصباحية'), iPm = ix('الفتره المسائية','الفترة المسائية'), iBr = ix('الفرع');
+  if(iCode<0 || iCity<0 || iAm<0 || iPm<0) throw new Error('الأعمدة المطلوبة: كود العميل، المدينة، الفترة الصباحية، الفترة المسائية (والفرع اختياري)');
+  const dealer = (row,j,sales)=> hd[j+1]===normName('متعامل') ? (Number(row[j+1])>0 ? 1 : 0) : (sales>0 ? 1 : 0);
+  const customers = [], byCity = new Map();
+  for(let r=1;r<rows.length;r++){
+    const row = rows[r]; if(!row) continue;
+    const code = String(row[iCode]??'').trim(), name = String(iName>=0 ? row[iName] : '').trim();
+    if(!code || isTotalRowLabel(name) || isTotalRowLabel(code)) continue;
+    const city = cleanCity(row[iCity]), morning = parseNum(row[iAm]), evening = parseNum(row[iPm]);
+    const branch = iBr>=0 ? parseNum(row[iBr]) : morning+evening;
+    const mD = dealer(row,iAm,morning), eD = dealer(row,iPm,evening), bD = iBr>=0 ? dealer(row,iBr,branch) : (mD||eD ? 1 : 0);
+    customers.push({code, name, city, region:cleanCity(iReg>=0 ? row[iReg] : ''), morning, evening, branch, paymentStatus:cleanCity(iPay>=0 ? row[iPay] : ''), morningDealer:mD, eveningDealer:eD, branchDealer:bD});
+    if(!city) continue;
+    const c = byCity.get(city) || {city, amSales:0, amCustomers:0, pmSales:0, pmCustomers:0, netSales:0, customersActive:0, customersTotal:0};
+    c.amSales += morning; c.amCustomers += mD; c.pmSales += evening; c.pmCustomers += eD; c.netSales += branch; c.customersActive += bD; c.customersTotal++;
+    byCity.set(city, c);
+  }
+  const cities = [...byCity.values()].map(c=>({...c, amSales:Math.round(c.amSales*100)/100, pmSales:Math.round(c.pmSales*100)/100, netSales:Math.round(c.netSales*100)/100})).sort((a,b)=>b.netSales-a.netSales);
+  return {customers, cities};
+}
+async function importSalesSheet(file){
+  if(!file) return;
+  try{
+    toast('جاري قراءة الملف...','warn'); await loadXLSX();
+    const P = parseSalesSheet(await file.arrayBuffer());
+    if(!P.customers.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
+    const importDate = todayISO(), noTarget = P.cities.filter(c=>!targetFor('br',c.city) && !targetFor('am',c.city) && !targetFor('pm',c.city)).map(c=>c.city);
+    const pctTxt = c=>{ const b = targetFor('br',c.city); return b && b.s>0 ? Math.round(c.netSales/b.s*100)+'%' : '-'; };
+    showImportPreview(`شيت المبيعات - ${P.customers.length} عميل في ${P.cities.length} مدينة${noTarget.length?' ⚠️ مدن بدون هدف: '+noTarget.join('، '):''}`,
+      ['المدينة','صباحي','عملاء','مسائي','عملاء','الفرع','عملاء','% الهدف'],
+      P.cities.map(c=>[c.city,c.amSales,c.amCustomers,c.pmSales,c.pmCustomers,c.netSales,c.customersActive,pctTxt(c)]),
+      async ()=>{
+        toast(`جاري الحفظ (${P.customers.length} عميل + ${P.cities.length} مدينة)...`,'warn');
+        await replaceCollectionData('salesAnalytics', P.customers);
+        const cityDocs = P.cities.map(c=>{ const b = targetFor('br',c.city); return {...c, salesTarget:b?b.s:0, customerTarget:b?b.n:0}; });
+        await replaceCollectionDataByDate('citySales', cityDocs, importDate);
+        logAudit('import','salesAnalytics', `استيراد شيت المبيعات ${file.name}: ${P.customers.length} عميل، ${P.cities.length} مدينة (تحليل المبيعات + مبيعات المدن ليوم ${importDate})`);
+        toast('تم تحديث تحليل المبيعات ومبيعات المدن من نفس الشيت ✔','ok');
+        setTimeout(()=>pruneCitySalesHistory(true), 3000);
+      });
+  }catch(e){
+    console.error(e); toast('فشل استيراد الملف: '+(e.message||'تأكد من أسماء الأعمدة'),'err');
+  }
+}
+async function handleSalesAnalyticsExcelImport(file){ return importSalesSheet(file); }
+
+/* ---------- ملخص الأهداف (للمندوب في الرئيسية) ---------- */
+function cityTargetsSummaryHTML(){
+  const rows = latestCitySalesRows(todayISO().slice(0,7)); if(!rows.length) return '';
+  const keys = rows.some(c=>c.hasPeriods) ? ['br','am','pm'] : ['br'], minP = CITY_THRESHOLDS.salesMinPct, daysLeft = Math.max(1, remainingWorkDaysInMonth());
+  const col = p=>p>=100 ? 'var(--teal-dark,#0f5d52)' : p>=60 ? '#d97706' : '#dc2626', sum = (arr,f)=>arr.reduce((a,x)=>a+(Number(x[f])||0),0);
+  const blocks = keys.map(k=>{
+    const P = CITY_PERIODS[k], rs = rows.map(c=>periodRec(c,k)), tS = sum(rs,'salesTarget'), s = sum(rs,'netSales'), tC = sum(rs,'customerTarget'), cu = sum(rs,'customersActive');
+    const pct = tS>0 ? s/tS*100 : 0, cp = tC>0 ? cu/tC*100 : 0, rem = Math.max(0, tS*minP/100-s);
+    return `<div class="tgRow"><div class="goalTop"><span>${P.ic} ${P.label}</span><span style="color:${col(pct)};font-weight:900;">${pct.toFixed(0)}%</span></div>
+      <div class="goalBar"><div class="goalFill" style="width:${Math.min(100,pct)}%;background:${col(pct)}"></div><div class="goalTick" style="right:${minP}%"></div></div>
+      <div class="smallMuted">💰 <b>${fmtMoney(s)}</b> من ${fmtMoney(tS)}</div>
+      <div class="smallMuted">${rem>0 ? `⏳ باقي للـ${minP}%: <b>${fmtMoney(rem)}</b> (≈ ${fmtMoney(Math.ceil(rem/daysLeft))} / يوم)` : '✔ عدّيت الحد الأدنى'}</div>
+      <div class="smallMuted">👥 العملاء: ${cu} من ${tC} (<b style="color:${col(cp)}">${cp.toFixed(0)}%</b>)</div></div>`;
+  }).join('');
+  const perCity = rows.length>1 ? qrTable(['المدينة',...keys.map(k=>CITY_PERIODS[k].ic)], rows.map(c=>[escapeHTML(c.city), ...keys.map(k=>{ const r = periodRec(c,k), p = r.salesTarget>0 ? r.netSales/r.salesTarget*100 : 0; return `<b style="color:${col(p)}">${p.toFixed(0)}%</b>`; })])) : '';
+  return `<div class="goalTop" style="margin-bottom:6px;"><b>🎯 تحقيق أهداف ${rows.length>1?'مدنك':'مدينتك'}</b><span class="smallMuted">حتى ${escapeHTML(String(rows[0].date).slice(5).replace('-','/'))}</span></div>${blocks}${perCity}`;
+}
+
+/* ---------- تعديل الأهداف من التعريفات ---------- */
+const cloneT = x=>JSON.parse(JSON.stringify(x));
+const monthKey = m=>'m'+String(m).replace('-','');            // m202611 (اسم حقل صالح في Firestore)
+const monthLabelAr = m=>`${MONTH_LABELS[Number(m.slice(5))-1]} ${m.slice(0,4)}`;
+const shiftMonth = (m,d)=>{ const x = new Date(Number(m.slice(0,4)), Number(m.slice(5))-1+d, 1); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'); };
+function targetsForMonth(month){
+  const ms = CITY_TARGETS_STORE.months;
+  if(ms[month]) return {t:ms[month], from:month};
+  const prev = Object.keys(ms).filter(k=>k<month).sort().pop();     // أقرب شهر قبله
+  if(prev) return {t:ms[prev], from:prev};
+  if(CITY_TARGETS_STORE.base) return {t:CITY_TARGETS_STORE.base, from:'base'};
+  return {t:TARGET_DEFAULTS, from:'default'};
+}
+function targetFor(block, city, month){
+  const tg = targetsForMonth(month || todayISO().slice(0,7)).t, k = normCity(city), r = (tg[block]||[]).find(x=>normCity(x[0])===k);
+  return r ? {s:Number(r[1])||0, n:Number(r[2])||0} : null;
+}
+function cityTargetsFromDoc(d){
+  const conv = a=>Array.isArray(a) ? a.map(x=>[String(x.c||''), Number(x.s)||0, Number(x.n)||0]) : null, full = o=>{ const am = conv(o&&o.am), pm = conv(o&&o.pm), br = conv(o&&o.br); return am&&pm&&br ? {am,pm,br} : null; };
+  const st = {base:d ? full(d) : null, months:{}};
+  Object.entries((d&&d.months)||{}).forEach(([k,v])=>{ const m = k.replace(/^m(\d{4})(\d{2})$/,'$1-$2'), f = full(v); if(m!==k && f) st.months[m] = f; });
+  return st;
+}
+/* محرر الأهداف (لشهر محدد) */
+let tgMonth = null, tgDraft = null, tgFrom = '';
+function tgLoad(){ if(!tgMonth) tgMonth = todayISO().slice(0,7); const r = targetsForMonth(tgMonth); tgDraft = cloneT(r.t); tgFrom = r.from; }
+function tgShift(d){ tgMonth = shiftMonth(tgMonth||todayISO().slice(0,7), d); tgLoad(); renderView(); }
+function tgCopyPrev(){ const r = targetsForMonth(shiftMonth(tgMonth,-1)); tgDraft = cloneT(r.t); toast('اتنسخت أهداف '+(r.from.length===7?monthLabelAr(r.from):'الشهر السابق')+' - اضغط حفظ','ok'); renderView(); }
+function setCityTarget(k,i,f,v){ tgDraft[k][i][f] = Math.max(0, Number(v)||0); }
+function addTargetCity(){
+  const el = document.getElementById('tgNewCity'), c = cleanCity(el && el.value); if(!c){ toast('اكتب اسم المدينة','warn'); return; }
+  if(tgDraft.br.some(r=>normCity(r[0])===normCity(c))){ toast('المدينة دي موجودة','warn'); return; }
+  ['am','pm','br'].forEach(k=>tgDraft[k].push([c,0,0])); renderView();
+}
+async function saveCityTargets(){
+  const conv = a=>a.map(r=>({c:r[0], s:Number(r[1])||0, n:Number(r[2])||0}));   // Firestore مبيدعمش مصفوفات متداخلة
+  try{
+    await db.collection('appConfig').doc('cityTargets').set({months:{[monthKey(tgMonth)]:{am:conv(tgDraft.am), pm:conv(tgDraft.pm), br:conv(tgDraft.br)}}, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:CURRENT_USER.username}, {merge:true});
+    CITY_TARGETS_STORE.months[tgMonth] = cloneT(tgDraft); tgFrom = tgMonth; rebuildCitySales();
+    logAudit('edit','appConfig','تحديث أهداف المدن لشهر '+tgMonth); toast('✅ تم حفظ أهداف '+monthLabelAr(tgMonth),'ok'); renderView();
+  }catch(e){ console.error(e); toast('فشل الحفظ: '+(e.code||e.message),'warn'); }
+}
+function resetCityTargets(){ if(!confirm('الرجوع للأهداف الأصلية لهذا الشهر؟')) return; tgDraft = cloneT(TARGET_DEFAULTS); saveCityTargets(); }
+function cityTargetsEditorHTML(canEdit){
+  if(!tgDraft) tgLoad();
+  const dis = canEdit ? '' : 'disabled', cur = todayISO().slice(0,7);
+  const status = tgFrom===tgMonth ? '✅ محفوظة لهذا الشهر' : tgFrom.length===7 ? `↪️ موروثة من ${monthLabelAr(tgFrom)} (احفظ لتثبيتها لهذا الشهر)` : '↪️ الأهداف الأصلية (لسه ما اتحفظتش لأي شهر)';
+  const block = (k,title)=>`<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">${title}</h2></div><div class="tableWrap"><table><thead><tr><th>المدينة</th><th>هدف المبيعات</th><th>هدف العملاء</th></tr></thead><tbody>
+    ${tgDraft[k].map((r,i)=>`<tr><td><b>${escapeHTML(r[0])}</b></td><td><input class="ctIn" style="width:130px;margin:0;" type="number" min="0" value="${r[1]}" ${dis} onchange="setCityTarget('${k}',${i},1,this.value)"></td><td><input class="ctIn" style="width:90px;margin:0;" type="number" min="0" value="${r[2]}" ${dis} onchange="setCityTarget('${k}',${i},2,this.value)"></td></tr>`).join('')}</tbody></table></div></div>`;
+  return `<div class="card"><div class="pageHead"><div><h2 style="font-size:15px;">🎯 أهداف المدن</h2><div class="desc">أهداف كل شهر محفوظة لوحدها. الشهر اللي ما اتعدّلش بيورّث أهداف اللي قبله، فأرقام الشهور القديمة بتفضل بأهدافها</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><button class="iconBtn" onclick="tgShift(-1)">›</button><b style="font-size:15px;">${monthLabelAr(tgMonth)}${tgMonth===cur?' (الحالي)':''}</b><button class="iconBtn" onclick="tgShift(1)">‹</button></div>
+    <div class="smallMuted" style="margin-bottom:8px;">${status}</div>
+    ${canEdit ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><button class="btn btn-primary" onclick="saveCityTargets()">💾 حفظ أهداف الشهر</button><button class="btn btn-ghost" onclick="tgCopyPrev()">📋 نسخ من الشهر السابق</button><button class="btn btn-ghost" onclick="resetCityTargets()">↩️ الأصلية</button><input class="ctIn" id="tgNewCity" placeholder="مدينة جديدة" style="width:150px;margin:0;"><button class="btn btn-ghost btn-sm" onclick="addTargetCity()">➕ إضافة مدينة</button></div>` : '<div class="smallMuted">التعديل للأدمن والمدير فقط.</div>'}</div>
+    ${block('br','🏢 الفرع (الإجمالي)')}${block('am','🌅 الفترة الصباحية')}${block('pm','🌙 الفترة المسائية')}`;
+}
 function viewReportsBody(){
   if(CURRENT_USER.role==='rep'){
     const RT = [['repmatrix','📊 أدائي'],['compete','🏆 المنافسة'],['contests','🎁 المسابقات'],['citycompare','🏙️ مبيعات مدني'],['repcustomers','🏥 عملائي'],['abc','🎯 تصنيف عملائي']];
@@ -7164,7 +7392,6 @@ function viewReportsBody(){
     claims: viewClaimsReport,
     coverage: viewCoverageReport,
     routeadherence: viewRouteAdherenceReport,
-    analytics: viewSalesAnalytics,
     areas: areaPlanHTML,
     abc: viewAbcRiskReport,
     dataquality: viewDataQualityReport,
@@ -8286,7 +8513,28 @@ async function pruneCitySalesHistory(silent){
 function availableCitySalesDates(){
   return [...new Set(visibleCitySales().map(c=>c.date))].sort().reverse();
 }
+let salesHubTab = 'cities', salesHubCity = '';
+const SALES_HUB = ()=>[['cities','🏙️ المدن والأهداف'],['ov','📊 نظرة عامة'],['regions','🏘️ المناطق'],['customers','👥 العملاء'],['zeros','0️⃣ الصفريات'],['lowvalue','💤 تحت '+SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')],['segments','🧩 الشرائح']];
+const SALES_HUB_SA = {ov:'overview', regions:'regions', customers:'customers', zeros:'zeros', lowvalue:'lowvalue', segments:'segments'};
+function salesHubTabsHTML(){ return isAdminLike() ? `<div class="segRow" style="margin:0 0 10px;">${SALES_HUB().map(([k,l])=>`<button class="seg ${salesHubTab===k?'on':''}" onclick="setSalesHub('${k}')">${l}</button>`).join('')}</div>` : ''; }
+function setSalesHub(k){ salesHubTab = k; if(SALES_HUB_SA[k]) salesAnalyticsTab = SALES_HUB_SA[k]; renderView(); setTimeout(()=>{ if(k==='cities') drawCitySalesChart(); else drawSalesAnalyticsCharts(); }, 30); }
+function setSalesHubCity(c){ salesHubCity = c; renderView(); setTimeout(drawSalesAnalyticsCharts, 30); }
+function drillCity(city){ salesHubCity = cleanCity(city); salesHubTab = 'customers'; salesAnalyticsTab = 'customers'; renderView(); setTimeout(drawSalesAnalyticsCharts, 30); }
+function viewSalesHubAnalytics(){
+  const canEdit = CURRENT_USER.role==='admin', all = visibleSalesAnalytics();
+  const importControls = canEdit ? `<label class="btn btn-outline btn-sm" style="cursor:pointer;">⬆ استيراد شيت المبيعات (${todayISO()})<input type="file" accept=".xlsx,.xls" onchange="handleCitySalesExcelImport(this.files[0])" style="display:none;"></label>` : '';
+  const head = `<div class="pageHead"><div><h2>المبيعات</h2><div class="desc">${all.length} عميل · تحليل العملاء والمناطق والشرائح من نفس شيت مبيعات المدن</div></div>${importControls}</div>${salesHubTabsHTML()}`;
+  if(!all.length) return head + `<div class="card"><div class="emptyState"><div class="ic">🔬</div><div class="t">لا توجد بيانات عملاء مستوردة بعد</div><div class="smallMuted">${canEdit?'استورد شيت المبيعات (نفس شيت مبيعات المدن)':'لسه الأدمن ما استوردش الشيت'}</div></div></div>`;
+  const cities = [...new Set(all.map(c=>cleanCity(c.city)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
+  const sel = `<div style="display:flex;gap:8px;align-items:center;margin:0 0 10px;"><span class="smallMuted">المدينة:</span><select onchange="setSalesHubCity(this.value)"><option value="">كل المدن</option>${cities.map(c=>`<option value="${escapeHTML(c)}" ${salesHubCity===c?'selected':''}>${escapeHTML(c)}</option>`).join('')}</select></div>`;
+  const pages = {ov:viewSAOverview, regions:viewSARegions, customers:viewSACustomers, zeros:viewSAZeros, lowvalue:viewSALowValue, segments:viewSASegments};
+  return head + sel + (pages[salesHubTab]||viewSAOverview)();
+}
 function viewCitySales(){
+  if(isAdminLike() && salesHubTab!=='cities') return viewSalesHubAnalytics();
+  return viewCitySalesMain();
+}
+function viewCitySalesMain(){
   const canEdit = CURRENT_USER.role==='admin';
   const dates = availableCitySalesDates();
   if(!citySalesSelectedDate || !dates.includes(citySalesSelectedDate)) citySalesSelectedDate = dates[0] || null;
@@ -8294,18 +8542,20 @@ function viewCitySales(){
 
   const importControls = canEdit ? `
     <label class="btn btn-outline btn-sm" style="cursor:pointer;">
-      ⬆ استيراد اليوم (${todayISO()})
+      ⬆ استيراد شيت المبيعات (${todayISO()})
       <input type="file" accept=".xlsx,.xls" onchange="handleCitySalesExcelImport(this.files[0])" style="display:none;">
     </label>${(()=>{ const p = canEdit ? citySalesPruneInfo() : {days:0}; return p.days>0 ? `<button class="btn btn-ghost btn-sm" onclick="pruneCitySalesHistory(false)">🧹 تنظيف ${p.days} يوم قديم</button>` : ''; })()}` : '';
 
   if(!rowsForDate.length){
     return `
       <div class="pageHead"><div><h2>مبيعات المدن</h2><div class="desc">أهداف ومبيعات كل مدينة، والنسب بتُحسب تلقائياً</div></div>${importControls}</div>
+      ${salesHubTabsHTML()}
       <div class="card"><div class="emptyState"><div class="ic">🏙️</div><div class="t">لا توجد بيانات مستوردة بعد</div><div class="smallMuted">${canEdit?'استوردي ملف اكسيل اليوم للبدء':'لسه الأدمن ما استوردش بيانات مبيعات المدن'}</div></div></div>
     `;
   }
 
-  const rows = rowsForDate.slice().sort((a,b)=>(b.netSales||0)-(a.netSales||0));
+  const hasPeriods = rowsForDate.some(c=>c.hasPeriods); if(!hasPeriods) cityPeriod = 'br';
+  const rows = rowsForDate.map(c=>periodRec(c,cityPeriod)).sort((a,b)=>(b.netSales||0)-(a.netSales||0));
   const totalTarget = rows.reduce((s,c)=>s+(Number(c.salesTarget)||0),0);
   const totalNet = rows.reduce((s,c)=>s+(Number(c.netSales)||0),0);
   const totalCustTarget = rows.reduce((s,c)=>s+(Number(c.customerTarget)||0),0);
@@ -8329,7 +8579,7 @@ function viewCitySales(){
     const remainToThreshold = cityRemainingToThreshold(c);
     const dailyNeeded = cityDailyTargetNeeded(c);
     return `<tr>
-      <td style="font-weight:700;">${escapeHTML(c.city)} ${!salesOk||!custOk?'⚠️':''}</td>
+      <td style="font-weight:700;">${isAdminLike() ? `<a href="#" onclick="drillCity(${escapeHTML(JSON.stringify(c.city))});return false;">${escapeHTML(c.city)}</a>` : escapeHTML(c.city)} ${!salesOk||!custOk?'⚠️':''}</td>
       <td>${fmtMoney(c.salesTarget)}</td>
       <td>${fmtMoney(c.netSales)}</td>
       <td><span class="badge ${salesOk?'badge-teal':'badge-red'}">${pct.toFixed(0)}%</span></td>
@@ -8358,6 +8608,7 @@ function viewCitySales(){
         <button class="btn btn-outline btn-sm" onclick="shareCitySalesWhatsApp()">📤 مشاركة واتساب</button>
       </div>
     </div>
+    ${salesHubTabsHTML()}${hasPeriods ? cityPeriodTabsHTML() : ''}
     <div class="grid grid-4">
       <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">🎯</div><div class="lbl">نسبة تحقيق هدف المبيعات</div><div class="val" style="font-size:18px;">${overallPct.toFixed(0)}%</div><div class="sub">${fmtMoney(totalNet)} من ${fmtMoney(totalTarget)}</div></div>
       <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">📆</div><div class="lbl">باقي أيام العمل لنهاية الشهر</div><div class="val" style="font-size:18px;">${remainWorkDays}</div><div class="sub">بدون الجمعة</div></div>
@@ -8383,16 +8634,17 @@ function viewCitySales(){
 }
 
 function drawCitySalesChart(){
+  if(isAdminLike() && salesHubTab!=='cities') return;
   destroyCharts(['chCitySalesTrend','chCityTargetVsActual','chCityCustTargetVsActual']);
   if(currentView!=='citysales') return;
   const list = visibleCitySales();
   if(!list.length) return;
 
   const dates = [...new Set(list.map(c=>c.date))].sort();
-  const totals = dates.map(d=>list.filter(c=>c.date===d).reduce((s,c)=>s+(Number(c.netSales)||0),0));
+  const PF = CITY_PERIODS[cityPeriod]||CITY_PERIODS.br, totals = dates.map(d=>list.filter(c=>c.date===d).reduce((s,c)=>s+(Number(c[PF.s])||0),0));
   mkChart('chCitySalesTrend','line',{labels:dates.map(d=>d.slice(5)),datasets:[{label:'صافي المبيعات',data:totals,borderColor:'#0F7A6B',backgroundColor:'rgba(15,122,107,.12)',tension:.3,fill:true}]},{plugins:{legend:{display:false}}});
 
-  const dateRows = citySalesSelectedDate ? list.filter(c=>c.date===citySalesSelectedDate) : [];
+  const dateRows = citySalesSelectedDate ? list.filter(c=>c.date===citySalesSelectedDate).map(c=>periodRec(c,cityPeriod)) : [];
   if(dateRows.length){
     const cityLabels = dateRows.map(c=>c.city);
     mkChart('chCityTargetVsActual','bar',{
@@ -8413,7 +8665,7 @@ function drawCitySalesChart(){
 }
 
 function shareCitySalesWhatsApp(){
-  const rows = citySalesSelectedDate ? visibleCitySales().filter(c=>c.date===citySalesSelectedDate).sort((a,b)=>(b.netSales||0)-(a.netSales||0)) : [];
+  const rows = citySalesSelectedDate ? visibleCitySales().filter(c=>c.date===citySalesSelectedDate).map(c=>periodRec(c,cityPeriod)).sort((a,b)=>(b.netSales||0)-(a.netSales||0)) : [];
   if(!rows.length){ toast('لا توجد بيانات لمشاركتها','warn'); return; }
   const totalTarget = rows.reduce((s,c)=>s+(Number(c.salesTarget)||0),0);
   const totalNet = rows.reduce((s,c)=>s+(Number(c.netSales)||0),0);
@@ -8422,7 +8674,7 @@ function shareCitySalesWhatsApp(){
   const overallPct = totalTarget>0 ? (totalNet/totalTarget*100) : 0;
   const overallCustPct = totalCustTarget>0 ? (totalCustActive/totalCustTarget*100) : 0;
 
-  let text = `📊 *تقرير مبيعات المدن - ${fmtDate(citySalesSelectedDate)}*\n\n`;
+  let text = `📊 *تقرير مبيعات المدن - ${CITY_PERIODS[cityPeriod].label} - ${fmtDate(citySalesSelectedDate)}*\n\n`;
   text += `💰 إجمالي صافي المبيعات: ${fmtMoney(totalNet)} (${overallPct.toFixed(0)}%)\n`;
   text += `👥 إجمالي العملاء المتعاملين: ${totalCustActive} من ${totalCustTarget} (${overallCustPct.toFixed(0)}%)\n\n`;
   text += `*تفصيل المدن:*\n`;
@@ -8445,6 +8697,7 @@ function shareCitySalesWhatsApp(){
 
 async function handleCitySalesExcelImport(file){
   if(!file) return;
+  if(await sheetHasCustomerColumns(file)) return importSalesSheet(file);   // نفس شيت المبيعات اللي بيترفع في تحليل المبيعات
   const importDate = todayISO();
   try{
     toast('جاري قراءة الملف...','warn');
@@ -9617,7 +9870,7 @@ const SA_SEG_DEFS = [
 const SA_LOW_VALUE_THRESHOLD = 2000;
 let salesAnalyticsTab = 'overview';
 
-function saData(){ return visibleSalesAnalytics(); }
+function saData(){ const l = visibleSalesAnalytics(); return salesHubCity ? l.filter(c=>cleanCity(c.city)===salesHubCity) : l; }
 
 function viewSalesAnalytics(){
   const canEdit = CURRENT_USER.role==='admin';
@@ -9866,7 +10119,7 @@ function viewSARegions(){
 
 function drawSalesAnalyticsCharts(){
   destroyCharts(['chSAPay','chSASegments','chSARegions','chSACities']);
-  if(!(currentView==='dashboard' && reportsTab==='analytics')) return;
+  if(!((currentView==='dashboard' && reportsTab==='analytics') || (currentView==='citysales' && salesHubTab!=='cities'))) return;
 
   if(salesAnalyticsTab==='cities'){
     const data = saCityData();
@@ -9907,46 +10160,13 @@ function drawSalesAnalyticsCharts(){
   }
 }
 
-async function handleSalesAnalyticsExcelImport(file){
-  if(!file) return;
-  try{
-    toast('جاري قراءة الملف...','warn');
-    const buf = await file.arrayBuffer();
-    await loadXLSX();
-    const wb = XLSX.read(buf, {type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rawRows = XLSX.utils.sheet_to_json(ws, {defval:0}); // بالاسم مش بالترتيب - أكثر مرونة لو الأعمدة اتبدلت مكانها
-    const rows = rawRows.map(r=>{
-      const code = String(r['كود العميل']??'').trim();
-      const name = String(r['اسم العميل']??'').trim();
-      const city = String(r['المدينه']||r['المدينة']||'').trim();
-      const region = String(r['المنطقه']||r['المنطقة']||'').trim();
-      const morning = parseNum(r['الفتره الصباحية']??r['الفترة الصباحية']);
-      const evening = parseNum(r['الفترة المسائية']);
-      const paymentStatus = String(r['حاله الدفع']||r['حالة الدفع']||'').trim();
-      return {code, name, city, region, morning, evening, branch: morning+evening, paymentStatus};
-    }).filter(r=>r.code && !isTotalRowLabel(r.name));
-    if(!rows.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
-    showImportPreview('تحليلات المبيعات', ['كود','اسم','مدينة','منطقة','صباح','مساء','حالة الدفع'],
-      rows.map(r=>[r.code,r.name,r.city,r.region,r.morning,r.evening,r.paymentStatus]),
-      async ()=>{
-        toast(`جاري استبدال البيانات (${rows.length} عميل)...`,'warn');
-        await replaceCollectionData('salesAnalytics', rows);
-        logAudit('import','salesAnalytics', `استيراد ${rows.length} عميل من ملف ${file.name}`);
-        toast('تم تحديث تحليلات المبيعات بنجاح ✔','ok');
-      });
-  }catch(e){
-    console.error(e);
-    toast('فشل استيراد الملف - تأكد من أسماء الأعمدة (كود العميل، اسم العميل، المدينة، المنطقة، الفترة الصباحية، الفترة المسائية، حالة الدفع)','err');
-  }
-}
 
 </script>
 </body>
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.85): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.91): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -10000,7 +10220,7 @@ service cloud.firestore {
       // version و branding (اسم الشركة + لوجو صغير) مقروءين قبل تسجيل الدخول، والباقي للموظفين
       allow read: if id == 'version' || id == 'branding' || isStaff();
       // الأدمن يكتب أي إعداد، والمدير يعدّل قواعد الحوافز وحدود المدن بس
-      allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds','intelCfg']);
+      allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds','intelCfg','cityTargets']);
     }
 
     // ===== محادثة الفريق =====
