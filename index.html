@@ -760,6 +760,14 @@ button,.btn,.seg,.navItem,select,input{touch-action:manipulation;}
 .invHot{display:inline-block;background:#fee2e2;color:#b91c1c;border-radius:999px;padding:1px 9px;font-size:.78em;font-weight:900;animation:bzPulse 1.6s ease-in-out infinite;}
 .invItem.isHot,.invRow.isHot{border-color:#f87171;box-shadow:0 0 0 1px #fecaca;}
 .invKpis .k-hot{border-color:#f87171;background:#fff5f5;}.invKpis .k-hot b{color:#dc2626;}
+.invFull{display:flex;flex-direction:column;gap:10px;}
+.invFullItem{border:1px solid var(--gray-300,#d6e0e0);border-radius:14px;padding:12px;background:#fff;}
+.invFullItem.invLow{border-color:var(--amber,#d68910);}.invFullItem.invOut{border-color:var(--red,#c0392b);background:#fdf3f2;}
+.ifHead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.ifGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;}
+.ifCell{background:var(--gray-100,#f4f8f7);border-radius:10px;padding:6px 9px;display:flex;flex-direction:column;}
+.ifCell span{font-size:11.5px;color:var(--gray-500,#7a8a90);}.ifCell b{font-size:14.5px;}
+.ifBonus{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;}
 .invList{display:flex;flex-direction:column;gap:6px;}
 .invRow{border:1px solid var(--gray-200,#e5e7eb);border-radius:12px;padding:9px 11px;background:var(--white,#fff);}
 .invRowTop{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}.invRowBot{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:5px;}
@@ -3097,8 +3105,7 @@ function viewAddVisit(){
         ${!defs.length && (CURRENT_USER.role==='admin') ? `<div class="smallMuted" style="margin-top:6px;color:var(--red);">لا توجد نتائج زيارة معرّفة - أضفها من صفحة "التعريفات"</div>` : ''}
       </div>
 
-      ${isRepUser ? `<details class="ratingDet"><summary>⭐ التقييم: ${addVisitState.rating} (تلقائي حسب النتيجة - اضغط للتعديل)</summary>
-        <div class="starRow" style="margin-top:8px;">${stars}</div></details>` : `
+      ${isRepUser ? `<div class="ratingDet">⭐ التقييم: <b>${addVisitState.rating}</b> <span class="smallMuted">(بيتحدد تلقائياً حسب نتيجة الزيارة، وتعديله من اختصاص المدير)</span></div>` : `
       <div class="field">
         <label>التقييم</label>
         <div style="display:flex;align-items:center;gap:10px;">
@@ -3113,7 +3120,7 @@ function viewAddVisit(){
   `;
 }
 
-function setRating(n){ addVisitState.rating=n; renderView(); }
+function setRating(n){ if(CURRENT_USER && CURRENT_USER.role==='rep') return; /* التقييم يتحدد تلقائياً من النتيجة، وتعديله للمدير بس */ addVisitState.rating=n; renderView(); }
 
 /* ---------- تحكم صوتي في باقي حقول الزيارة (حالة الدفع، النتيجة، التقييم) ---------- */
 function matchSpokenOption(transcript, options){
@@ -3179,6 +3186,7 @@ function parseSpokenRating(text){
   return null;
 }
 function startVoiceRating(btn){
+  if(CURRENT_USER && CURRENT_USER.role==='rep'){ toast('تعديل التقييم من اختصاص المدير','warn'); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ toast('البحث الصوتي مش مدعوم في هذا المتصفح - جرب Chrome','warn'); return; }
   let recognition;
@@ -3407,7 +3415,7 @@ function cancelInlineRouteVisit(){
 function routePlanInlineFormHTML(){
   const defs = currentResultDefs();
   const curResultId = addVisitState.resultId;
-  const stars = ratingRange().map(i=>`<span class="star ${i<=(addVisitState.rating||0)?'on':''}" onclick="setRating(${i})">★</span>`).join('');
+  const stars = ratingRange().map(i=>`<span class="star ${i<=(addVisitState.rating||0)?'on':''}" ${CURRENT_USER.role==='rep'?'style="pointer-events:none"':`onclick="setRating(${i})"`}>★</span>`).join('');
   return `
     <div class="card" style="margin-top:8px;padding:12px;background:#fff;border:1px solid var(--gray-300);box-shadow:none;width:100%;">
       <div class="grid grid-2">
@@ -3614,6 +3622,10 @@ function setInvHot(v){ invView.hot = v; if(v){ invView.lowOnly = false; inventor
 function openInventoryHot(){ invView.hot = true; invView.lowOnly = false; inventoryFilters.q = ''; inventoryFilters.company = ''; inventoryFilters.bonusOnly = false; if(currentView==='inventory') renderView(); else goTo('inventory'); }
 function invViewBarHTML(){
   const b = (cur,k,l,fn)=>`<button class="seg ${cur===k?'on':''}" onclick="${fn}('${k}')">${l}</button>`;
+  if(isSimpleUser()){
+    const m = (invView.mode==='full' || invView.mode==='list') ? invView.mode : 'list';
+    return `<div class="invViewBar"><span class="smallMuted">العرض:</span><div class="segRow" style="margin:0;">${b(m,'list','☰ مختصرة','setInvMode')}${b(m,'full','📋 قايمة بكل البيانات','setInvMode')}</div></div>`;
+  }
   return `<div class="invViewBar"><span class="smallMuted">العرض:</span><div class="segRow" style="margin:0;">${b(invView.mode,'cards','📇 بطاقات','setInvMode')}${b(invView.mode,'list','☰ قايمة','setInvMode')}${b(invView.mode,'table','🧮 جدول','setInvMode')}</div>
     <span class="smallMuted">الخط:</span><div class="segRow" style="margin:0;">${b(invView.size,'s','أ-','setInvSize')}${b(invView.size,'m','أ','setInvSize')}${b(invView.size,'l','أ+','setInvSize')}</div>
     <button class="seg ${invView.comfort?'on':''}" onclick="toggleInvComfort()">🌙 مريح للعين</button></div>`;
@@ -3628,7 +3640,14 @@ function inventoryTableHTML(list){
   let body;
   if(!rows.length) body = `<div class="emptyState"><div class="ic">📦</div><div class="t">لا توجد أصناف مطابقة</div></div>`;
   else if(invView.mode==='table' && !isSimpleUser()) body = `<div class="tableWrap"><table class="invTbl"><thead><tr><th>الصنف</th><th>الشركة</th><th>السعر</th><th>خصم</th><th>المتاح</th><th>البونص</th></tr></thead><tbody>${rows.map(d=>`<tr class="${LV[d.lv][0]} ${d.hot?'isHot':''}"><td><b>${nm(d)}</b> ${hot(d)}</td><td>${escapeHTML(d.i.company||'')}</td><td>${price(d)}</td><td>${d.i.pharmacyDiscount!=null?d.i.pharmacyDiscount+'%':'-'}</td><td><span class="invMini"><i style="width:${d.pct}%"></i></span> <b>${fm(d.qty)}</b></td><td>${tiers(d,9)}</td></tr>`).join('')}</tbody></table></div>`;
-  else if(invView.mode==='list') body = `<div class="invList">${rows.map(d=>`<div class="invRow ${LV[d.lv][0]} ${d.hot?'isHot':''}"><div class="invRowTop"><span class="invName">${nm(d)} ${hot(d)}</span><span class="invPrice">${price(d)}<small>ج</small></span></div><div class="invRowBot">${d.i.pharmacyDiscount!=null&&d.i.pharmacyDiscount!==0?`<span class="invDiscChip">خصم ${d.i.pharmacyDiscount}%</span>`:''}<span class="invMini"><i style="width:${d.pct}%"></i></span><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span>${tiers(d,3)}${co(d)}</div></div>`).join('')}</div>`;
+  else if(isSimpleUser() && invView.mode==='full') body = `<div class="invFull">${rows.map(d=>{
+      const pr = Number(d.i.publicPrice), dc = Number(d.i.pharmacyDiscount), net = (pr>0 && dc>0) ? pr*(1-dc/100) : null;
+      const f = (l,v)=>`<div class="ifCell"><span>${l}</span><b>${v}</b></div>`;
+      return `<div class="invFullItem ${LV[d.lv][0]} ${d.hot?'isHot':''}">
+        <div class="ifHead"><span class="invName">${nm(d)} ${hot(d)}</span>${co(d)}</div>
+        <div class="ifGrid">${f('السعر', d.i.publicPrice!=null ? fm(pr)+' ج' : '-')}${f('خصم الصيدلي', d.i.pharmacyDiscount!=null ? dc+'%' : '-')}${net!=null ? f('بعد الخصم', fm(Math.round(net*100)/100)+' ج') : ''}${f('المتاح', fm(d.qty))}${f('الحالة', LV[d.lv][1])}</div>
+        ${d.tiers.length ? `<div class="ifBonus"><span>🎁 البونص:</span> ${tiers(d,50)}</div>` : ''}</div>`; }).join('')}</div>`;
+  else if(invView.mode==='list' || isSimpleUser()) body = `<div class="invList">${rows.map(d=>`<div class="invRow ${LV[d.lv][0]} ${d.hot?'isHot':''}"><div class="invRowTop"><span class="invName">${nm(d)} ${hot(d)}</span><span class="invPrice">${price(d)}<small>ج</small></span></div><div class="invRowBot">${d.i.pharmacyDiscount!=null&&d.i.pharmacyDiscount!==0?`<span class="invDiscChip">خصم ${d.i.pharmacyDiscount}%</span>`:''}<span class="invMini"><i style="width:${d.pct}%"></i></span><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span>${tiers(d,3)}${co(d)}</div></div>`).join('')}</div>`;
   else body = `<div class="invGrid">${rows.map(d=>`<div class="invItem ${LV[d.lv][0]} ${d.hot?'isHot':''}">
       <div class="invTop"><div><div class="invName">${nm(d)} ${hot(d)}</div>${co(d)}</div><div class="invPrice">${price(d)}<small>ج.م</small>${d.i.pharmacyDiscount!=null?`<span class="invDisc">خصم الصيدلي ${d.i.pharmacyDiscount}%</span>`:''}</div></div>
       <div class="invStock"><div class="invBarWrap"><div class="invBar" style="width:${d.pct}%"></div></div><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span></div>
@@ -4483,7 +4502,7 @@ function viewInventory(){
           ${[['name','ترتيب: الاسم'],['qtyDesc','الأكبر مخزوناً'],['qtyAsc','الأقل مخزوناً'],['price','الأعلى سعراً'],['bonus','البونص أولاً']].map(([k,l])=>`<option value="${k}" ${invView.sort===k?'selected':''}>${l}</option>`).join('')}
         </select>
       </div>
-      ${isSimpleUser() ? '' : invViewBarHTML()}
+      ${invViewBarHTML()}
       <div class="tableWrap" id="inventoryTableWrap">${inventoryTableHTML(list)}</div>
     </div>
   `;
@@ -7557,7 +7576,7 @@ function parseSalesSheet(buf){
   const iAm = ix('الفتره الصباحية','الفترة الصباحية'), iPm = ix('الفتره المسائية','الفترة المسائية'), iBr = ix('الفرع');
   if(iCode<0 || iCity<0 || iAm<0 || iPm<0) throw new Error('الأعمدة المطلوبة: كود العميل، المدينة، الفترة الصباحية، الفترة المسائية (والفرع اختياري)');
   const dealer = (row,j,sales)=> hd[j+1]===normName('متعامل') ? (Number(row[j+1])>0 ? 1 : 0) : (sales>0 ? 1 : 0);
-  const customers = [], byCity = new Map();
+  const customers = [];
   for(let r=1;r<rows.length;r++){
     const row = rows[r]; if(!row) continue;
     const code = String(row[iCode]??'').trim(), name = String(iName>=0 ? row[iName] : '').trim();
@@ -7566,13 +7585,35 @@ function parseSalesSheet(buf){
     const branch = iBr>=0 ? parseNum(row[iBr]) : morning+evening;
     const mD = dealer(row,iAm,morning), eD = dealer(row,iPm,evening), bD = iBr>=0 ? dealer(row,iBr,branch) : (mD||eD ? 1 : 0);
     customers.push({code, name, city, region:cleanCity(iReg>=0 ? row[iReg] : ''), morning, evening, branch, paymentStatus:cleanCity(iPay>=0 ? row[iPay] : ''), morningDealer:mD, eveningDealer:eD, branchDealer:bD});
-    if(!city) continue;
-    const c = byCity.get(city) || {city, amSales:0, amCustomers:0, pmSales:0, pmCustomers:0, netSales:0, customersActive:0, customersTotal:0};
-    c.amSales += morning; c.amCustomers += mD; c.pmSales += evening; c.pmCustomers += eD; c.netSales += branch; c.customersActive += bD; c.customersTotal++;
-    byCity.set(city, c);
   }
-  const cities = [...byCity.values()].map(c=>({...c, amSales:Math.round(c.amSales*100)/100, pmSales:Math.round(c.pmSales*100)/100, netSales:Math.round(c.netSales*100)/100})).sort((a,b)=>b.netSales-a.netSales);
-  return {customers, cities};
+  return {customers, cities: aggregateCities(customers)};
+}
+// مبيعات المدن بتتجمّع دايماً من صفوف العملاء (مصدر واحد = شيت تحليل المبيعات)
+function aggregateCities(customers){
+  const byCity = new Map();
+  customers.forEach(x=>{
+    const city = cleanCity(x.city); if(!city) return;
+    const c = byCity.get(city) || {city, amSales:0, amCustomers:0, pmSales:0, pmCustomers:0, netSales:0, customersActive:0, customersTotal:0};
+    c.amSales += Number(x.morning)||0; c.amCustomers += x.morningDealer?1:0; c.pmSales += Number(x.evening)||0; c.pmCustomers += x.eveningDealer?1:0;
+    c.netSales += Number(x.branch)||0; c.customersActive += x.branchDealer?1:0; c.customersTotal++;
+    byCity.set(city, c);
+  });
+  return [...byCity.values()].map(c=>({...c, amSales:Math.round(c.amSales*100)/100, pmSales:Math.round(c.pmSales*100)/100, netSales:Math.round(c.netSales*100)/100})).sort((a,b)=>b.netSales-a.netSales);
+}
+// إعادة بناء مبيعات المدن من آخر شيت تحليل مبيعات متسجّل (من غير رفع ملف)
+async function rebuildCitySalesFromAnalytics(){
+  if(CURRENT_USER.role!=='admin'){ toast('للأدمن بس','warn'); return; }
+  const customers = (typeof SALES_ANALYTICS!=='undefined' && Array.isArray(SALES_ANALYTICS)) ? SALES_ANALYTICS : [];
+  if(!customers.length){ toast('بيانات تحليل المبيعات لسه بتتحمّل أو فاضية - افتح الصفحة تاني بعد لحظات','warn'); return; }
+  const cities = aggregateCities(customers), importDate = todayISO();
+  const total = cities.reduce((a,c)=>a+c.netSales,0);
+  if(!confirm(`هيتم تحديث مبيعات المدن ليوم ${importDate} من تحليل المبيعات: ${cities.length} مدينة، إجمالي الفرع ${fmtMoney(total)}. متابعة؟`)) return;
+  try{
+    const docs = cities.map(c=>{ const b = targetFor('br',c.city); return {...c, salesTarget:b?b.s:0, customerTarget:b?b.n:0}; });
+    await replaceCollectionDataByDate('citySales', docs, importDate);
+    logAudit('import','citySales', `إعادة بناء مبيعات المدن ليوم ${importDate} من تحليل المبيعات (${cities.length} مدينة)`);
+    toast('✔ مبيعات المدن اتحدّثت من تحليل المبيعات','ok');
+  }catch(e){ console.error(e); toast('فشل التحديث: '+(e.code||e.message),'err'); }
 }
 async function importSalesSheet(file){
   if(!file) return;
@@ -8855,7 +8896,7 @@ function viewCitySalesMain(){
     <label class="btn btn-outline btn-sm" style="cursor:pointer;">
       ⬆ استيراد شيت المبيعات (${todayISO()})
       <input type="file" accept=".xlsx,.xls" onchange="handleCitySalesExcelImport(this.files[0])" style="display:none;">
-    </label>${(()=>{ const p = canEdit ? citySalesPruneInfo() : {days:0}; return p.days>0 ? `<button class="btn btn-ghost btn-sm" onclick="pruneCitySalesHistory(false)">🧹 تنظيف ${p.days} يوم قديم</button>` : ''; })()}` : '';
+    </label><button class="btn btn-outline btn-sm" onclick="rebuildCitySalesFromAnalytics()">🔄 تحديث من تحليل المبيعات</button>${(()=>{ const p = canEdit ? citySalesPruneInfo() : {days:0}; return p.days>0 ? `<button class="btn btn-ghost btn-sm" onclick="pruneCitySalesHistory(false)">🧹 تنظيف ${p.days} يوم قديم</button>` : ''; })()}` : '';
 
   if(!rowsForDate.length){
     return `
@@ -9009,31 +9050,8 @@ function shareCitySalesWhatsApp(){
 async function handleCitySalesExcelImport(file){
   if(!file) return;
   if(await sheetHasCustomerColumns(file)) return importSalesSheet(file);   // نفس شيت المبيعات اللي بيترفع في تحليل المبيعات
-  const importDate = todayISO();
-  try{
-    toast('جاري قراءة الملف...','warn');
-    const rawRows = await parseExcelRows(file);
-    const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>({
-      city: String(r[0]??'').trim(),
-      salesTarget: parseNum(r[1]),
-      netSales: parseNum(r[2]),
-      customerTarget: parseNum(r[5]),
-      customersActive: parseNum(r[6])
-    }));
-    if(!rows.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
-    showImportPreview(`مبيعات المدن - ${importDate}`, ['المدينة','هدف المبيعات','صافي المبيعات','هدف العملاء','العملاء المتعاملين'],
-      rows.map(r=>[r.city,r.salesTarget,r.netSales,r.customerTarget,r.customersActive]),
-      async ()=>{
-        toast(`جاري حفظ بيانات ${importDate} (${rows.length} مدينة)...`,'warn');
-        await replaceCollectionDataByDate('citySales', rows, importDate);
-        logAudit('import','citySales', `استيراد مبيعات المدن ليوم ${importDate} - ${rows.length} مدينة من ملف ${file.name}`);
-        toast('تم حفظ بيانات اليوم بنجاح ✔','ok');
-        setTimeout(()=>pruneCitySalesHistory(true), 3000);   // تنظيف تلقائي للأيام القديمة بعد كل استيراد
-      });
-  }catch(e){
-    console.error(e);
-    toast('فشل استيراد الملف - تأكد من ترتيب الأعمدة (المدينة، هدف المبيعات، صافي المبيعات، ..., هدف العملاء، العملاء المتعاملين)','err');
-  }
+  // مبيعات المدن بقت بتتحسب من نفس شيت تحليل المبيعات (مصدر واحد) عشان الأرقام ما تختلفش
+  toast('الملف ده مش شيت المبيعات بتاع العملاء. ارفع نفس شيت تحليل المبيعات (فيه أعمدة: كود العميل، المدينة، الفترة الصباحية، الفترة المسائية)','err');
 }
 
 async function replaceCollectionDataByDate(collName, rows, dateStr){
