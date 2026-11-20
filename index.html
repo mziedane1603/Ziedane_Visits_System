@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.91)</title>
+<title>Ziedane CRM (v2.92)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -701,6 +701,23 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .invName{font-weight:800;font-size:14px;line-height:1.35;}
 .invCo{display:inline-block;margin-top:4px;font-size:11px;color:var(--teal-dark,#0f5d52);background:var(--teal-light,#e6f4f1);border-radius:999px;padding:2px 9px;}
 .invPrice{text-align:left;font-weight:900;font-size:15px;white-space:nowrap;}.invPrice small{font-size:10.5px;color:var(--gray-500,#6b7280);margin-right:3px;font-weight:600;}
+.repToday .rtRow{display:flex;gap:10px;}.repToday .rtBig{flex:1;background:var(--teal-light,#e0f3f0);border-radius:14px;padding:12px;text-align:center;}
+.repToday .rtBig b{display:block;font-size:30px;color:var(--teal-dark,#0f7a6b);}.repToday .rtBig span{font-size:12.5px;color:var(--gray-700,#374151);font-weight:700;}
+.repToday .rtTasks{margin-top:10px;font-size:13.5px;display:flex;flex-direction:column;gap:4px;}
+.repToday .rtBtns{display:flex;gap:8px;margin-top:12px;}.repToday .rtBtns .btn{flex:1;min-height:46px;}
+.rhStats{display:flex;justify-content:space-between;background:var(--teal-light,#e0f3f0);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700;}
+.qzQ{margin-bottom:16px;}.qzQ>b{display:block;margin-bottom:8px;}
+.qzOpt{display:block;width:100%;text-align:right;margin:6px 0;min-height:44px;border:1.5px solid var(--gray-300,#d6e0e0);background:#fff;border-radius:12px;font:inherit;font-weight:700;padding:8px 12px;}
+.qzOpt small{color:var(--gray-500,#7a8a90);font-weight:600;}.qzOpt.ok{border-color:#1e8e5a;background:#e6f6ee;}.qzOpt.bad{border-color:var(--red,#c0392b);background:#fdecea;}
+.qzFb{margin-top:4px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.qzDone{text-align:center;font-weight:800;color:var(--teal-dark,#0b5c51);padding:10px;}
+.asChips{display:flex;flex-wrap:wrap;gap:8px;}.asChip{border:1.5px solid var(--teal,#0f7a6b);background:#fff;color:var(--teal-dark,#0b5c51);border-radius:20px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px;}
+.asAns{background:var(--teal-lighter,#f2faf8);border-radius:12px;padding:12px;margin-top:6px;}.asRow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100,#f4f8f7);}
+.repMore{display:flex;gap:8px;margin:10px 0;}.repMore .btn{flex:1;min-height:46px;}
+.resChips{display:flex;flex-wrap:wrap;gap:8px;}
+.resChip{flex:1 1 44%;min-height:46px;border:1.5px solid var(--gray-200,#e3ecea);background:#fff;border-radius:12px;font:inherit;font-weight:800;font-size:14px;padding:8px 10px;color:var(--gray-700,#374151);}
+.resChip.on{border-color:var(--teal-dark,#0f7a6b);background:var(--teal-light,#e0f3f0);color:var(--teal-dark,#0f7a6b);}
+.ratingDet{margin:4px 0 14px;font-size:13px;color:var(--gray-700,#374151);}.ratingDet summary{cursor:pointer;padding:6px 0;}
+.invDiscChip{display:inline-block;background:#fff4d6;color:#8a5a00;border-radius:10px;padding:2px 9px;font-size:.8em;font-weight:800;}
 .invDisc{display:block;font-size:10.5px;color:var(--gray-500,#6b7280);font-weight:600;}
 .invStock{display:flex;align-items:center;gap:10px;}.invBarWrap{flex:1;height:8px;border-radius:99px;background:var(--gray-100,#f1f3f5);overflow:hidden;}
 .invBar{height:100%;border-radius:99px;background:linear-gradient(90deg,#34b79f,#0f7a6b);transition:width .4s;}
@@ -952,7 +969,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.91';
+const APP_VERSION = '2.92';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -970,13 +987,15 @@ function parseNum(v){
   return isNaN(n) ? 0 : n;
 }
 function isTotalRowLabel(name){
-  // يكتشف صفوف "الإجمالي/المجموع" اللي ممكن تكون موجودة جاهزة في ملف الإكسل، عشان نستبعدها من الاستيراد
-  // ولا نحسبها مرتين (مرة كصف، ومرة تانية جوه إجمالي النظام نفسه)
+  // يكتشف صفوف "الإجمالي/المجموع" الجاهزة في ملف الإكسل عشان نستبعدها من الاستيراد.
+  // بيطابق كلمة كاملة (مش جزء من اسم صنف زي "Totalip") وفي اسم قصير بس (4 كلمات أو أقل)
   if(!name) return false;
-  let n = String(name).trim();
-  n = n.replace(/[إأآا]/g,'ا').replace(/ى/g,'ي').replace(/\s+/g,'');
-  const totalWords = ['الاجمالي','اجمالي','المجموع','مجموع','total','grandtotal'];
-  return totalWords.some(w=>n.includes(w));
+  const n = String(name).trim().toLowerCase().replace(/[إأآ]/g,'ا').replace(/ى/g,'ي');
+  const words = n.split(/[\s:：\-_/\\()\[\].,،]+/).filter(Boolean);
+  if(!words.length || words.length>4) return false;
+  const totalWords = new Set(['الاجمالي','اجمالي','المجموع','مجموع','الكلي','total','totals','grandtotal','subtotal']);
+  if(words.some(w=>totalWords.has(w) && (/^[a-z]+$/.test(w) ? words.length===1 : true))) return true;
+  return words.length===2 && words[0]==='grand' && words[1]==='total';
 }
 function toast(msg,type){
   const box=document.getElementById('toastBox');
@@ -1079,7 +1098,7 @@ function trackWrite(promise){
   PENDING_WRITES++;
   updatePendingBadge();
   promise.then(()=>{ PENDING_WRITES=Math.max(0,PENDING_WRITES-1); updatePendingBadge(); })
-         .catch(()=>{ PENDING_WRITES=Math.max(0,PENDING_WRITES-1); updatePendingBadge(); });
+         .catch(e=>{ PENDING_WRITES=Math.max(0,PENDING_WRITES-1); updatePendingBadge(); if(e && e.code==='permission-denied') toast('عملية اتحفظت محلياً بس السيرفر رفضها (ممكن تكون مكررة)','warn'); });
   return promise;
 }
 function updatePendingBadge(){
@@ -1209,7 +1228,9 @@ const REPORT_GROUPS = [
   {label:'💵 المطالبات', tabs:[['claims','تقارير المطالبات']]}
 ];
 const REPORT_DRAW = {overview:'drawReportCharts', sales:'drawSalesReportCharts', citycompare:'drawCityCompareCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
-function setReportsTab(k){ reportsTab = k; renderView(); const f = REPORT_DRAW[k]; if(f && typeof window[f]==='function') setTimeout(window[f], 30); }
+var repReportsOpen = false;
+function toggleRepReports(){ repReportsOpen = !repReportsOpen; renderView(); if(repReportsOpen) setTimeout(()=>document.getElementById('rptAnchor')?.scrollIntoView({behavior:'smooth',block:'start'}),120); }
+function setReportsTab(k){ reportsTab = k; repReportsOpen = true; renderView(); const f = REPORT_DRAW[k]; if(f && typeof window[f]==='function') setTimeout(window[f], 30); }
 function saGroups(){
   return [
     {label:'نظرة عامة', tabs:[['overview','نظرة عامة']]},
@@ -1312,7 +1333,7 @@ function renderNav(){
     </div>`).join('');
 
   const hasAddVisit = userPermissions(CURRENT_USER).addvisit===true;
-  document.getElementById('fabAdd').classList.toggle('hidden', currentView==='addvisit' || !hasAddVisit);
+  document.getElementById('fabAdd').classList.toggle('hidden', currentView==='addvisit' || !hasAddVisit || CURRENT_USER.role==='rep');
 }
 
 function goTo(view){
@@ -1336,12 +1357,14 @@ function toggleMobileMenu(){
     <div class="mobileMenuSheet">
       <div class="mmHandle"></div>
       ${navSectionsFor(CURRENT_USER).map(sec=>`
+        ${(isSimpleUser() && !['main','daily','sales'].includes(sec.key)) ? `<div class="mmMoreWrap" style="display:none">` : '<div>'}
         ${sec.label ? `<div class="mmSec">${sec.label}</div>` : ''}
         <div class="mmGrid">${sec.items.map(it=>`
           <div class="mmTile ${it.members.includes(currentView)?'active':''}" onclick="goTo('${it.id}'); document.getElementById('mobileMenuBg')?.remove();">
             <span class="ic">${it.ic}</span><span class="lb">${it.label}</span>
             ${navEntryBadge(it)!=null ? `<span class="navBadge">${navEntryBadge(it)}</span>` : ''}
-          </div>`).join('')}</div>`).join('')}
+          </div>`).join('')}</div></div>`).join('')}
+      ${isSimpleUser() && navSectionsFor(CURRENT_USER).some(x=>!['main','daily','sales'].includes(x.key)) ? `<button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="this.parentNode.querySelectorAll('.mmMoreWrap').forEach(e=>e.style.display='block');this.remove()">➕ المزيد</button>` : ''}
     </div>`;
   document.body.appendChild(bg);
 }
@@ -1437,6 +1460,8 @@ function doLogout(){
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('lgUser').value='';
   document.getElementById('lgPass').value='';
+  // تصفير كل الحالة (النطاق/الداتا المحمّلة) عشان مستخدم تاني مايشوفش بيانات السابق
+  setTimeout(()=>location.reload(), 150);
 }
 function sendPresenceHeartbeat(){
   if(!CURRENT_USER || !CURRENT_USER.id) return;
@@ -2242,7 +2267,7 @@ function topRepsCardHTML(){
     {g:'reps',   pub:false, ic:'👥', color:'var(--amber)',     lbl:'أعلى نسبة عملاء في مدنه',     src:rows,     key:'custPct',   fmt:v=>v.toFixed(0)+'%'},
     {g:'reps',   pub:false, ic:'🎯', color:'var(--blue)',      lbl:'أعلى تغطية لعملاء مدنه',      src:rows,     key:'covPct',    fmt:v=>v.toFixed(0)+'%'},
     {g:'cities', pub:true,  ic:'🏙️', color:'var(--blue)',      lbl:'أعلى مدينة في نسبة البيع',    src:cityRows, key:'pct',       fmt:v=>v.toFixed(0)+'%'},
-    {g:'cities', pub:true,  ic:'💰', color:'var(--teal-dark)', lbl:'أعلى مدينة في قيمة المبيعات', src:cityRows, key:'net',       fmt:v=>fmtMoney(v)+' ج.م',  filter:r=>r.net>0},
+    {g:'cities', pub:true,  ic:'💰', color:'var(--teal-dark)', lbl:'أعلى مدينة في قيمة المبيعات', src:cityRows, key:'net',       fmt:v=>fmtMoney(v),  filter:r=>r.net>0},
     {g:'cities', pub:true,  ic:'👥', color:'var(--amber)',     lbl:'أعلى مدينة في عدد العملاء',   src:cityRows, key:'active',    fmt:v=>v+' عميل',           filter:r=>r.active>0}
   ];
   const avail = all.filter(d=>d.pub || showAll);
@@ -2275,6 +2300,177 @@ function topRepsCardHTML(){
     </div>
     <div class="nstars">${tiles}</div>
     <details class="starsNote"><summary>ℹ️ طريقة الحساب</summary><div>${notes.join(' · ')}</div></details>
+  </div>`;
+}
+/* ==========================================================================
+   🎮 تحدي اليوم (3 أسئلة من شغل المندوب) + 🤖 مساعدي (تحليل بيانات المندوب محلياً - مجاني وبدون إرسال بيانات لأي خدمة)
+   ========================================================================== */
+function _hashStr(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function _rng(seed){ let a=seed; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function _shuffle(arr,r){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }
+function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function _nk(s){ return String(s||'').toLowerCase().replace(/[ً-ْـ]/g,'').replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه'); }
+const _jq = v=>escapeHTML(JSON.stringify(v));
+
+let rhTab = 'quiz', rhAnswer = '';
+function openRepHelper(tab){
+  rhTab = tab || 'quiz'; rhAnswer = '';
+  closeRepHelper();
+  const bg = document.createElement('div');
+  bg.id = 'rhOverlay'; bg.className = 'qrBg';
+  bg.onclick = e=>{ if(e.target===bg) closeRepHelper(); };
+  bg.innerHTML = `<div class="qrSheet"><div class="qrHead"><h3>🎯 مساعدك</h3><button class="iconBtn" onclick="closeRepHelper()" title="إغلاق">✕</button></div><div class="qrBody" id="rhBody"></div></div>`;
+  document.body.appendChild(bg);
+  renderRepHelper();
+}
+function closeRepHelper(){ document.getElementById('rhOverlay')?.remove(); }
+function setRhTab(t){ rhTab = t; rhAnswer = ''; renderRepHelper(); }
+function renderRepHelper(){
+  const box = document.getElementById('rhBody'); if(!box) return;
+  const tabs = `<div class="segRow" style="margin-bottom:10px;"><button class="seg ${rhTab==='quiz'?'on':''}" onclick="setRhTab('quiz')">🎮 تحدي اليوم</button><button class="seg ${rhTab==='ask'?'on':''}" onclick="setRhTab('ask')">🤖 مساعدي</button></div>`;
+  let body = '';
+  try{ body = rhTab==='quiz' ? quizHTML() : asstHTML(); }catch(e){ console.error(e); body = '<div class="smallMuted">حصلت مشكلة في تحميل البيانات - جرّب تاني بعد ما الصفحة تحمّل.</div>'; }
+  box.innerHTML = tabs + body;
+}
+
+/* ---------- تحدي اليوم ---------- */
+function quizStatsKey(){ return 'crmQuizStats:'+CURRENT_USER.username; }
+function quizDayKey(){ return 'crmQuiz:'+CURRENT_USER.username+':'+todayISO(); }
+function quizBuild(){
+  const I = crmIntel(), r = _rng(_hashStr(todayISO()+'|'+CURRENT_USER.username));
+  const defs = [
+    {t:'أي عميل من دول مبيعاته أعلى آخر 12 شهر؟', pool:I.list.filter(x=>x.total12>0), val:x=>x.total12, fmt:x=>fmtMoney(x.total12)},
+    {t:'أي عميل من دول بقاله أطول فترة من غير زيارة؟', pool:I.list.filter(x=>x.total12>0 && x.lastVisit), val:x=>x.gap, fmt:x=>x.gap+' يوم'},
+    {t:'أي عميل من دول عليه أكبر مطالبة؟', pool:I.list.filter(x=>x.claim>0), val:x=>x.claim, fmt:x=>fmtMoney(x.claim)},
+    {t:'أي عميل من دول زرته أكتر مرات آخر 90 يوم؟', pool:I.list.filter(x=>x.visits90>0), val:x=>x.visits90, fmt:x=>x.visits90+' زيارة'}
+  ];
+  const qs = [];
+  _shuffle(defs, r).forEach(d=>{
+    if(qs.length>=3) return;
+    const picked = [], seen = new Set();
+    _shuffle(d.pool, r).forEach(x=>{ const v = d.val(x); if(picked.length<4 && !seen.has(v)){ seen.add(v); picked.push(x); } });
+    if(picked.length<4) return;
+    const best = picked.reduce((a,b)=>d.val(b)>d.val(a)?b:a);
+    const info = {}; picked.forEach(x=>{ info[x.c.code] = d.fmt(x); });
+    qs.push({t:d.t, ans:best.c.code, opts:_shuffle(picked, r).map(x=>({code:x.c.code, name:x.c.name||x.c.code})), info});
+  });
+  return qs;
+}
+function quizState(){
+  let st = _lsGet(quizDayKey());
+  if(!st || !Array.isArray(st.qs)){ st = {qs:quizBuild(), picked:{}, done:false}; _lsSet(quizDayKey(), st); }
+  return st;
+}
+function quizPick(qi, code){
+  const st = quizState(); if(st.picked[qi]) return;
+  st.picked[qi] = code;
+  if(!st.done && st.qs.every((q,i)=>st.picked[i])){
+    st.done = true;
+    const right = st.qs.filter((q,i)=>st.picked[i]===q.ans).length;
+    const stats = _lsGet(quizStatsKey()) || {points:0, streak:0, last:''};
+    const y = new Date(); y.setDate(y.getDate()-1);
+    stats.streak = stats.last===localISO(y) ? (stats.streak||0)+1 : 1;
+    stats.points = (stats.points||0) + right*10 + (right===st.qs.length ? 5 : 0);
+    stats.last = todayISO();
+    _lsSet(quizStatsKey(), stats);
+  }
+  _lsSet(quizDayKey(), st);
+  renderRepHelper();
+}
+function quizHTML(){
+  const st = quizState(), stats = _lsGet(quizStatsKey()) || {points:0, streak:0};
+  const head = `<div class="rhStats"><span>⭐ نقاطك: <b>${stats.points||0}</b></span><span>🔥 <b>${stats.streak||0}</b> يوم متتالي</span></div>`;
+  if(!st.qs.length) return head + `<div class="smallMuted" style="padding:14px;">مفيش بيانات كفاية لأسئلة النهارده (محتاجين 4 عملاء على الأقل بمبيعات وزيارات). جرّب بعد ما البيانات تتحمّل.</div>`;
+  const qsHTML = st.qs.map((q,qi)=>{
+    const p = st.picked[qi];
+    return `<div class="qzQ"><b>${qi+1}) ${escapeHTML(q.t)}</b>${q.opts.map(o=>{
+      let cls = 'qzOpt'; if(p){ if(o.code===q.ans) cls += ' ok'; else if(o.code===p) cls += ' bad'; }
+      return `<button class="${cls}" ${p?'disabled':''} onclick="quizPick(${qi},${_jq(o.code)})">${escapeHTML(o.name)}${p?` <small>· ${escapeHTML(q.info[o.code]||'')}</small>`:''}</button>`;
+    }).join('')}${p ? `<div class="qzFb">${p===q.ans ? '✅ صح!' : '❌ الإجابة الصح: '+escapeHTML((q.opts.find(o=>o.code===q.ans)||{}).name||'')} ${asstVisitBtn(q.ans)}</div>` : ''}</div>`;
+  }).join('');
+  const right = st.qs.filter((q,i)=>st.picked[i]===q.ans).length;
+  const fin = st.done ? `<div class="qzDone">${right===st.qs.length ? '🏆 3 من 3! بونص 5 نقاط' : `خلصت النهارده: ${right} من ${st.qs.length}`} · تعالى بكرة لأسئلة جديدة</div>` : '';
+  return head + qsHTML + fin;
+}
+function asstVisitBtn(code){ return `<button class="btn btn-ghost btn-sm" onclick="closeRepHelper();quickVisitFor(${_jq(code)})">📝 زيارة</button>`; }
+
+/* ---------- مساعدي ---------- */
+const ASST_INTENTS = [
+  {k:'today', ic:'🧭', q:'أبدأ بمين النهارده؟', kw:['ابدا','النهارده','اولويه','ازور','زور','اروح']},
+  {k:'claims', ic:'💵', q:'مين عليه مطالبات؟', kw:['مطالب','تحصيل','فلوس','مديون','ديون']},
+  {k:'topA', ic:'⭐', q:'عملاء A مستنيني', kw:['مهم','a ','كبار','مستنيني']},
+  {k:'falling', ic:'📉', q:'مين مبيعاته نازلة أو وقف يشتري؟', kw:['نازل','وقف','خطر','ضعيف','هيروح','قل']},
+  {k:'never', ic:'👀', q:'عملاء عمرهم ما اتزاروا', kw:['عمره','متزار','مازرت','ماتزار','جديد']},
+  {k:'top', ic:'🏆', q:'أكبر 5 عملاء عندي', kw:['اكبر','اعلي','افضل','اكتر مبيع']},
+  {k:'goal', ic:'🎯', q:'أنا ماشي إزاي الشهر ده؟', kw:['هدف','ماشي','تارجت','انجاز','زيارات الشهر']}
+];
+function asstRow(x, extra){
+  return `<div class="asRow"><div style="flex:1;min-width:0;"><a href="#" style="font-weight:700;" onclick="closeRepHelper();openCustomer360(${_jq(x.c.code)});return false;">${escapeHTML(x.c.name||x.c.code)}</a><div class="smallMuted">${extra}</div></div>${asstVisitBtn(x.c.code)}</div>`;
+}
+function asstCompute(k){
+  const I = crmIntel(), L = I.list, rows = (arr,f,empty)=> arr.length ? arr.map(x=>asstRow(x,f(x))).join('') : `<div class="smallMuted">${empty}</div>`;
+  switch(k){
+    case 'today': {
+      const a = L.filter(x=>!x.visitedToday && x.score>0).sort((p,q)=>q.score-p.score).slice(0,5);
+      return `<b>أولوياتك النهارده (حسب الأهمية والمبيعات والتأخير):</b>` + rows(a, x=>escapeHTML((x.reasons||[]).slice(0,3).join(' · ')||'أولوية عادية'), 'مفيش عملاء أولوية دلوقتي 👏');
+    }
+    case 'claims': {
+      const a = L.filter(x=>x.claim>0).sort((p,q)=>q.claim-p.claim).slice(0,6), tot = L.reduce((s,x)=>s+(x.claim||0),0);
+      return `<b>عليهم مطالبات (الإجمالي ${fmtMoney(tot)}):</b>` + rows(a, x=>'مطالبة '+fmtMoney(x.claim), 'مفيش مطالبات على عملائك');
+    }
+    case 'topA': {
+      const a = L.filter(x=>x.abc==='A' && x.gap>=x.interval && !x.visitedToday).sort((p,q)=>q.total12-p.total12).slice(0,6);
+      return `<b>عملاء A متأخرين عن زيارتهم:</b>` + rows(a, x=>(x.gap>=9999?'عمره ما اتزار':'بقاله '+x.gap+' يوم بدون زيارة')+' · مبيعاته '+fmtMoney(x.total12), 'كل عملاء A متزارين في ميعادهم 👏');
+    }
+    case 'falling': {
+      const a = L.filter(x=>x.risk!=null && x.risk>=35).sort((p,q)=>q.risk-p.risk).slice(0,6);
+      return `<b>عملاء محتاجين تدخل (مبيعاتهم بتقل):</b>` + rows(a, x=>escapeHTML((x.why||[]).join(' · ')||'مبيعات أقل من المعتاد'), 'مفيش عملاء في خطر دلوقتي 👏');
+    }
+    case 'never': {
+      const a = L.filter(x=>x.total12>0 && x.gap>=9999).sort((p,q)=>q.total12-p.total12).slice(0,6);
+      return `<b>عملاء بيشتروا وعمرهم ما اتسجّلت ليهم زيارة:</b>` + rows(a, x=>'مبيعاته '+fmtMoney(x.total12), 'كل عملائك المشترين اتزاروا مرة على الأقل');
+    }
+    case 'top': {
+      const a = L.filter(x=>x.total12>0).sort((p,q)=>q.total12-p.total12).slice(0,5);
+      return `<b>أكبر 5 عملاء (آخر 12 شهر):</b>` + rows(a, x=>fmtMoney(x.total12), 'مفيش بيانات مبيعات');
+    }
+    case 'goal': {
+      const rep = REPS.find(r=>r.id===CURRENT_USER.repId), target = Number(rep && rep.monthlyVisitTarget)||0, now = new Date(), month = todayISO().slice(0,7);
+      const done = visibleVisits().filter(v=>(v.date||'').startsWith(month)).length;
+      if(!target) return `عملت <b>${done}</b> زيارة الشهر ده. لسه مفيش هدف شهري متحدد ليك - اطلب من المدير يحدده.`;
+      const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(), left = Math.max(1, dim-now.getDate()+1), rem = Math.max(0, target-done);
+      return `عملت <b>${done}</b> من <b>${target}</b> زيارة (${Math.min(100,Math.round(done/target*100))}%). ` + (rem>0 ? `باقي <b>${rem}</b> زيارة، يعني حوالي <b>${Math.ceil(rem/left)}</b> في اليوم لمدة ${left} يوم.` : 'حققت الهدف 🎉');
+    }
+  }
+  return '';
+}
+function asstAsk(k){ rhAnswer = asstCompute(k); renderRepHelper(); }
+function asstFree(){
+  const q = _nk(document.getElementById('asstInput')?.value||'');
+  if(!q.trim()) return;
+  const hit = ASST_INTENTS.find(i=>i.kw.some(w=>q.includes(_nk(w))));
+  rhAnswer = hit ? asstCompute(hit.k) : `<div class="smallMuted">مش فاهم سؤالك بالظبط 😅 - جرّب واحد من الأسئلة السريعة اللي فوق.</div>`;
+  renderRepHelper();
+}
+function asstHTML(){
+  return `<div class="smallMuted" style="margin-bottom:8px;">مساعد بيحلل بيانات عملائك اللي في النظام بس، ومن غير ما يبعت حاجة لأي خدمة خارجية.</div>
+    <div class="asChips">${ASST_INTENTS.map(i=>`<button class="asChip" onclick="asstAsk('${i.k}')">${i.ic} ${escapeHTML(i.q)}</button>`).join('')}</div>
+    <div style="display:flex;gap:6px;margin:10px 0;"><input id="asstInput" type="text" style="flex:1;" placeholder="اكتب سؤالك... مثلًا: مين عليه مطالبات؟" onkeydown="if(event.key==='Enter')asstFree()"><button class="btn btn-primary btn-sm" onclick="asstFree()">اسأل</button></div>
+    ${rhAnswer ? `<div class="asAns">${rhAnswer}</div>` : ''}`;
+}
+
+function repTodayCardHTML(visitsToday){
+  let tasks = [];
+  try{ const t = todayISO(); tasks = tasksOn(t).filter(x=>!taskDone(x,t)); }catch(e){}
+  return `<div class="card repToday">
+    <div class="rtRow"><div class="rtBig"><b>${visitsToday}</b><span>زيارة النهارده</span></div>
+      <div class="rtBig"><b>${tasks.length}</b><span>مهمة مفتوحة</span></div></div>
+    ${tasks.length ? `<div class="rtTasks">${tasks.slice(0,3).map(x=>`<div>📌 ${escapeHTML(x.title||'')}${x.time?` · ${escapeHTML(x.time)}`:''}</div>`).join('')}${tasks.length>3?`<div class="smallMuted">+${tasks.length-3} مهمة كمان</div>`:''}</div>` : ''}
+    <div class="rtBtns"><button class="btn btn-primary" onclick="goTo('addvisit')">+ زيارة جديدة</button>
+      <button class="btn btn-outline" onclick="goTo('calendar')">📅 مهامي</button></div>
+    <div class="rtBtns"><button class="btn btn-outline" onclick="openRepHelper('quiz')">🎮 تحدي اليوم</button>
+      <button class="btn btn-outline" onclick="openRepHelper('ask')">🤖 مساعدي</button></div>
   </div>`;
 }
 function viewDashboard(){
@@ -2337,21 +2533,22 @@ function viewDashboard(){
       </div>
     </div>
     ${CURRENT_USER.role==='rep' ? welcomeBannerHTML() : ''}
-    <div class="secTitle">📊 نظرة سريعة</div>
-    <div class="kpis">${kpiCards}</div>
-    ${homeExtrasHTML()}
+    ${CURRENT_USER.role==='rep' ? repTodayCardHTML(visitsToday) : ''}
+    ${CURRENT_USER.role==='rep' ? '' : `<div class="secTitle">📊 نظرة سريعة</div>
+    <div class="kpis">${kpiCards}</div>`}
+    ${CURRENT_USER.role==='rep' ? '' : homeExtrasHTML()}
     ${dashboardAttentionHTML(list)}
     ${CURRENT_USER.role==='rep' ? repStaleCustomersWidgetHTML() : ''}
     ${topRepsCardHTML()}
     ${repBlock}
-    <div class="card">
+    ${CURRENT_USER.role==='rep' ? `<div class="repMore"><button class="btn btn-ghost" onclick="goTo('visits')">📋 كل زياراتي</button><button class="btn ${repReportsOpen?'btn-primary':'btn-outline'}" onclick="toggleRepReports()">🏆 إنجازي وتقاريري ${repReportsOpen?'▲':'▼'}</button></div>` : `<div class="card">
       <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">آخر الزيارات</h2><button class="btn btn-ghost btn-sm" onclick="goTo('visits')">عرض الكل ←</button></div>
       <div class="tableWrap"><table><thead><tr>
         <th>التاريخ</th><th>المندوب</th><th>العميل</th><th>المدينة</th><th>النتيجة</th><th>التقييم</th>
       </tr></thead><tbody>${recentRows}</tbody></table></div>
-    </div>
+    </div>`}
     <div id="rptAnchor"></div>
-    ${viewReportsBody()}
+    ${CURRENT_USER.role==='rep' ? (repReportsOpen ? viewReportsBody() : '') : viewReportsBody()}
   `;
 }
 // عدد العملاء المتأخرين عن الزيارة بسرعة (خريطة آخر زيارة بدل البحث لكل عميل)
@@ -2859,7 +3056,8 @@ function viewAddVisit(){
       </div>
 
       <div class="field"><label>نتيجة الزيارة</label>
-        <div style="display:flex;gap:6px;">
+        ${isRepUser && defs.length ? `<div class="resChips">${defs.map(d=>`<button type="button" class="resChip ${curResultId===d.id?'on':''}" onclick="onResultChange('${d.id}')">${escapeHTML(d.name)}</button>`).join('')}</div>` : ''}
+        <div style="display:${isRepUser && defs.length?'none':'flex'};gap:6px;">
           <select id="fResult" style="flex:1;" onchange="onResultChange(this.value)">
             ${defs.length ? defs.map(d=>`<option value="${d.id}" ${curResultId===d.id?'selected':''}>${escapeHTML(d.name)}</option>`).join('') : '<option value="">لا توجد نتائج معرّفة بعد</option>'}
           </select>
@@ -2868,6 +3066,8 @@ function viewAddVisit(){
         ${!defs.length && (CURRENT_USER.role==='admin') ? `<div class="smallMuted" style="margin-top:6px;color:var(--red);">لا توجد نتائج زيارة معرّفة - أضفها من صفحة "التعريفات"</div>` : ''}
       </div>
 
+      ${isRepUser ? `<details class="ratingDet"><summary>⭐ التقييم: ${addVisitState.rating} (تلقائي حسب النتيجة - اضغط للتعديل)</summary>
+        <div class="starRow" style="margin-top:8px;">${stars}</div></details>` : `
       <div class="field">
         <label>التقييم</label>
         <div style="display:flex;align-items:center;gap:10px;">
@@ -2875,7 +3075,7 @@ function viewAddVisit(){
           <button type="button" class="btn btn-outline btn-sm micBtn" onclick="startVoiceRating(this)" title="قول رقم من 1 لـ ${RATING_MAX}">🎤</button>
         </div>
         <div class="smallMuted" style="margin-top:6px;">⚙ يتحدد تلقائياً حسب نتيجة الزيارة، ويمكنك تعديله يدوياً لو رغبت.</div>
-      </div>
+      </div>`}
 
       <button class="btn btn-primary btn-block" onclick="saveVisit()">💾 حفظ الزيارة</button>
     </div>
@@ -3027,7 +3227,9 @@ async function saveVisit(){
   };
   try{
     afterVisitAlert(payload);                                   // قبل الإضافة المحلية (بيحسب العدد +1)
-    const ref = db.collection('visits').doc();                  // id معروف قبل الكتابة
+    // id ثابت (مندوب_تاريخ_كود عميل): السيرفر يرفض زيارة مكررة لنفس العميل في نفس اليوم حتى لو اتسجلت من جهازين
+    const _code = String(payload.customerCode||'');
+    const ref = /[\/]/.test(_code) || /[\/]/.test(String(repId)) ? db.collection('visits').doc() : db.collection('visits').doc(`${repId}_${today}_${_code}`);
     VISITS = [{id:ref.id, ...payload, createdAt:null}, ...VISITS];   // إضافة محلية فورية: العدادات والتقارير تتحدّث في نفس اللحظة
     renderNav();
     const p = ref.set(payload);
@@ -3385,6 +3587,7 @@ function invViewBarHTML(){
     <span class="smallMuted">الخط:</span><div class="segRow" style="margin:0;">${b(invView.size,'s','أ-','setInvSize')}${b(invView.size,'m','أ','setInvSize')}${b(invView.size,'l','أ+','setInvSize')}</div>
     <button class="seg ${invView.comfort?'on':''}" onclick="toggleInvComfort()">🌙 مريح للعين</button></div>`;
 }
+function isSimpleUser(){ return !!(CURRENT_USER && (CURRENT_USER.role==='rep' || CURRENT_USER.role==='telesales')); }
 function inventoryTableHTML(list){
   const st = invStockStats(), fm = n=>Number(n).toLocaleString('en-US'), LV = {ok:['','متاح'], low:['invLow','منخفض'], out:['invOut','نفد']};
   const rows = list.slice(0,300).map(i=>{ const qty = Number(i.quantity)||0, tiers = bonusTiersFor(i.itemName, i.company);
@@ -3393,8 +3596,8 @@ function inventoryTableHTML(list){
   const hot = d=>d.hot ? '<span class="invHot">⚡ الحق</span>' : '', price = d=>d.i.publicPrice!=null ? fm(d.i.publicPrice) : '-', nm = d=>escapeHTML(d.i.itemName||''), co = d=>d.i.company ? `<span class="invCo">${escapeHTML(d.i.company)}</span>` : '';
   let body;
   if(!rows.length) body = `<div class="emptyState"><div class="ic">📦</div><div class="t">لا توجد أصناف مطابقة</div></div>`;
-  else if(invView.mode==='table') body = `<div class="tableWrap"><table class="invTbl"><thead><tr><th>الصنف</th><th>الشركة</th><th>السعر</th><th>خصم</th><th>المتاح</th><th>البونص</th></tr></thead><tbody>${rows.map(d=>`<tr class="${LV[d.lv][0]} ${d.hot?'isHot':''}"><td><b>${nm(d)}</b> ${hot(d)}</td><td>${escapeHTML(d.i.company||'')}</td><td>${price(d)}</td><td>${d.i.pharmacyDiscount!=null?d.i.pharmacyDiscount+'%':'-'}</td><td><span class="invMini"><i style="width:${d.pct}%"></i></span> <b>${fm(d.qty)}</b></td><td>${tiers(d,9)}</td></tr>`).join('')}</tbody></table></div>`;
-  else if(invView.mode==='list') body = `<div class="invList">${rows.map(d=>`<div class="invRow ${LV[d.lv][0]} ${d.hot?'isHot':''}"><div class="invRowTop"><span class="invName">${nm(d)} ${hot(d)}</span><span class="invPrice">${price(d)}<small>ج</small></span></div><div class="invRowBot"><span class="invMini"><i style="width:${d.pct}%"></i></span><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span>${tiers(d,3)}${co(d)}</div></div>`).join('')}</div>`;
+  else if(invView.mode==='table' && !isSimpleUser()) body = `<div class="tableWrap"><table class="invTbl"><thead><tr><th>الصنف</th><th>الشركة</th><th>السعر</th><th>خصم</th><th>المتاح</th><th>البونص</th></tr></thead><tbody>${rows.map(d=>`<tr class="${LV[d.lv][0]} ${d.hot?'isHot':''}"><td><b>${nm(d)}</b> ${hot(d)}</td><td>${escapeHTML(d.i.company||'')}</td><td>${price(d)}</td><td>${d.i.pharmacyDiscount!=null?d.i.pharmacyDiscount+'%':'-'}</td><td><span class="invMini"><i style="width:${d.pct}%"></i></span> <b>${fm(d.qty)}</b></td><td>${tiers(d,9)}</td></tr>`).join('')}</tbody></table></div>`;
+  else if(invView.mode==='list') body = `<div class="invList">${rows.map(d=>`<div class="invRow ${LV[d.lv][0]} ${d.hot?'isHot':''}"><div class="invRowTop"><span class="invName">${nm(d)} ${hot(d)}</span><span class="invPrice">${price(d)}<small>ج</small></span></div><div class="invRowBot">${d.i.pharmacyDiscount!=null&&d.i.pharmacyDiscount!==0?`<span class="invDiscChip">خصم ${d.i.pharmacyDiscount}%</span>`:''}<span class="invMini"><i style="width:${d.pct}%"></i></span><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span>${tiers(d,3)}${co(d)}</div></div>`).join('')}</div>`;
   else body = `<div class="invGrid">${rows.map(d=>`<div class="invItem ${LV[d.lv][0]} ${d.hot?'isHot':''}">
       <div class="invTop"><div><div class="invName">${nm(d)} ${hot(d)}</div>${co(d)}</div><div class="invPrice">${price(d)}<small>ج.م</small>${d.i.pharmacyDiscount!=null?`<span class="invDisc">خصم الصيدلي ${d.i.pharmacyDiscount}%</span>`:''}</div></div>
       <div class="invStock"><div class="invBarWrap"><div class="invBar" style="width:${d.pct}%"></div></div><span class="invQty"><b>${fm(d.qty)}</b> ${LV[d.lv][1]}</span></div>
@@ -3576,7 +3779,7 @@ function portalFmtTs(ts){ try{ const d = ts && ts.toDate ? ts.toDate() : (ts ? n
 function notifyPortalOrder(o){
   const map = new Map(); CUSTOMERS.forEach(c=>{ const k=portalKey(c.code); if(k && !map.has(k)) map.set(k,c); });
   const c = portalCustomerOf(o, map);
-  const msg = `🛒 طلبية جديدة ${o.orderNo||''} من ${c.name} - ${o.itemsCount||0} صنف (${fmtMoney(o.total||0)} ج.م)`;
+  const msg = `🛒 طلبية جديدة ${o.orderNo||''} من ${c.name} - ${o.itemsCount||0} صنف (${fmtMoney(o.total||0)})`;
   toast(msg,'ok'); renderNav();
   try{
     if('Notification' in window && Notification.permission==='granted'){
@@ -3606,7 +3809,7 @@ function copyPortalOrder(id){
   const map = new Map(); CUSTOMERS.forEach(c=>{ const k=portalKey(c.code); if(k && !map.has(k)) map.set(k,c); });
   const c = portalCustomerOf(o, map);
   const lines = (o.items||[]).map(it=>`• ${it.n} × ${it.q}${it.b?` (🎁 ${it.b})`:''}`);
-  const txt = `🛒 طلبية بوابة ${o.orderNo||''}\nالعميل: ${c.name} (${c.code})${c.city?' - '+c.city:''}\n${lines.join('\n')}\nالإجمالي: ${fmtMoney(o.total||0)} ج.م${o.note?'\nملاحظات: '+o.note:''}`;
+  const txt = `🛒 طلبية بوابة ${o.orderNo||''}\nالعميل: ${c.name} (${c.code})${c.city?' - '+c.city:''}\n${lines.join('\n')}\nالإجمالي: ${fmtMoney(o.total||0)}${o.note?'\nملاحظات: '+o.note:''}`;
   (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>toast('تم نسخ الطلبية ✔','ok')).catch(()=>{ prompt('انسخ الطلبية:', txt); });
 }
 function copyPortalLink(){
@@ -3964,7 +4167,7 @@ function viewPortalOrders(){
         <div><b>${escapeHTML(o.orderNo||'')}</b> · ${escapeHTML(c.name)}</div>
         <span style="background:${st[1]};color:${st[2]};padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;">${st[0]}</span>
       </div>
-      <div class="smallMuted" style="margin:3px 0;">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''} · ${portalFmtTs(o.createdAt||o.createdAtClient)} · ${o.itemsCount||(o.items||[]).length} صنف · <b>${fmtMoney(o.total||0)} ج.م</b></div>
+      <div class="smallMuted" style="margin:3px 0;">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''} · ${portalFmtTs(o.createdAt||o.createdAtClient)} · ${o.itemsCount||(o.items||[]).length} صنف · <b>${fmtMoney(o.total||0)}</b></div>
       <details style="margin:6px 0;"><summary style="cursor:pointer;color:var(--teal-dark);font-weight:700;font-size:13px;">تفاصيل الأصناف</summary>
         <div class="tableWrap"><table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الصافي</th><th>بونص</th></tr></thead><tbody>
         ${(o.items||[]).map(it=>`<tr><td style="white-space:normal;min-width:160px;">${escapeHTML(it.n)}<div class="smallMuted">${escapeHTML(it.c||'')}</div></td><td>${it.q}</td><td>${fmtMoney(it.p||0)}</td><td>${it.d?it.d+'%':'-'}</td><td>${fmtMoney((it.net||0)*(it.q||0))}</td><td>${it.b?'🎁 '+escapeHTML(it.b):'-'}</td></tr>`).join('')}
@@ -4201,7 +4404,7 @@ function viewInventory(){
       <div><h2>المخزون</h2><div class="desc">${INVENTORY.length} صنف · ${bonusCount} صنف عليه بونص حالياً</div></div>
       ${bonusCount ? `<button class="btn btn-primary btn-sm" onclick="shareBonusOffersWhatsApp()">📤 مشاركة عروض البونص</button>` : ''}
     </div>
-    ${invKpisHTML(bonusCount)}
+    ${isSimpleUser() ? '' : invKpisHTML(bonusCount)}
     ${importSection}
     <div class="card">
       <div class="filterBar">
@@ -4215,17 +4418,17 @@ function viewInventory(){
           <input type="checkbox" ${inventoryFilters.bonusOnly?'checked':''} onchange="inventoryFilters.bonusOnly=this.checked; updateInventoryResults();">
           🎁 عليه بونص فقط
         </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+        ${isSimpleUser() ? '' : `<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
           <input type="checkbox" ${invView.lowOnly?'checked':''} onchange="setInvLow(this.checked)"> ⚠️ منخفض/نافد فقط
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
           <input type="checkbox" ${invView.hot?'checked':''} onchange="setInvHot(this.checked)"> ⚡ بونص ومخزون قرب يخلص
-        </label>
-        <select onchange="setInvSort(this.value)">
+        </label>`}
+        <select ${isSimpleUser()?'style="display:none"':''} onchange="setInvSort(this.value)">
           ${[['name','ترتيب: الاسم'],['qtyDesc','الأكبر مخزوناً'],['qtyAsc','الأقل مخزوناً'],['price','الأعلى سعراً'],['bonus','البونص أولاً']].map(([k,l])=>`<option value="${k}" ${invView.sort===k?'selected':''}>${l}</option>`).join('')}
         </select>
       </div>
-      ${invViewBarHTML()}
+      ${isSimpleUser() ? '' : invViewBarHTML()}
       <div class="tableWrap" id="inventoryTableWrap">${inventoryTableHTML(list)}</div>
     </div>
   `;
@@ -4238,10 +4441,11 @@ async function handleInventoryExcelImport(file){
     const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>({
       itemName: String(r[0]??'').trim(),
       company: String(r[1]??'').trim(),
-      publicPrice: Number(r[2])||0,
-      pharmacyDiscount: Number(r[3])||0,
-      quantity: Number(r[4])||0
+      publicPrice: parseNum(r[2])||0,
+      pharmacyDiscount: parseNum(r[3])||0,
+      quantity: parseNum(r[4])||0
     }));
+    { const z = rows.filter(r=>!r.publicPrice || !r.quantity).length; if(rows.length && z/rows.length>0.3) toast(`تنبيه: ${z} صف من ${rows.length} سعرهم أو كميتهم صفر - راجع الأعمدة`,'warn'); }
     if(!rows.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
     showImportPreview('المخزون', ['اسم الصنف','اسم الشركة','سعر الجمهور','خصم الصيدلي','الكمية'],
       rows.map(r=>[r.itemName,r.company,r.publicPrice,r.pharmacyDiscount,r.quantity]),
@@ -4265,9 +4469,10 @@ async function handleBonusExcelImport(file){
     const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>({
       itemName: String(r[0]??'').trim(),
       company: String(r[1]??'').trim(),
-      qty: Number(r[2])||0,
-      bonusQty: Number(r[3])||0
+      qty: parseNum(r[2])||0,
+      bonusQty: parseNum(r[3])||0
     }));
+    { const z = rows.filter(r=>!r.qty || !r.bonusQty).length; if(rows.length && z/rows.length>0.3) toast(`تنبيه: ${z} صف من ${rows.length} كميتهم أو البونص صفر - راجع الأعمدة`,'warn'); }
     if(!rows.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
     showImportPreview('عروض البونص', ['اسم الصنف','اسم الشركة','الكمية','البونص'],
       rows.map(r=>[r.itemName,r.company,r.qty,r.bonusQty]),
@@ -4507,7 +4712,7 @@ function openEditVisitModal(id){
         <select id="eVPayment">${PAYMENT_STATUSES.map(p=>`<option value="${p}" ${v.paymentStatus===p?'selected':''}>${p}</option>`).join('')}</select>
       </div>
       <div class="field"><label>نتيجة الزيارة</label>
-        <select id="eVResult" onchange="document.getElementById('eVRatingDisplay').textContent = (${escapeHTML(JSON.stringify(defs))}.find(d=>d.name===this.value)||{}).rating || v.rating;">
+        <select id="eVResult" onchange="editVisitResultChanged(this.value)">
           ${defs.map(d=>`<option value="${escapeHTML(d.name)}" ${v.visitResult===d.name?'selected':''}>${escapeHTML(d.name)}</option>`).join('')}
         </select>
       </div>
@@ -4521,6 +4726,10 @@ function openEditVisitModal(id){
     </div>`;
   modal.dataset.rating = v.rating || 0;
   document.body.appendChild(modal);
+}
+function editVisitResultChanged(name){
+  const d = currentResultDefs().find(x=>x.name===name);
+  if(d && d.rating) setEditVisitRating(Number(d.rating)||0);
 }
 function setEditVisitRating(n){
   const modal = document.querySelector('.modalBg');
@@ -5560,7 +5769,13 @@ async function saveUser(id){
       const cred = await secondaryAuth.createUserWithEmailAndPassword(usernameToEmail(username), pass);
       await secondaryAuth.signOut();
       payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection('users').doc(cred.user.uid).set(payload);
+      payload.mustChangePassword = true;
+      try{
+        await db.collection('users').doc(cred.user.uid).set(payload);
+      }catch(werr){
+        try{ await cred.user.delete(); }catch(_){}
+        throw werr;
+      }
     }
     toast('تم الحفظ بنجاح','ok');
     logAudit(id?'edit':'add','users', `${username} (${roleLabel(role)})`);
@@ -5577,6 +5792,19 @@ async function saveUser(id){
    ========================================================================== */
 const BACKUP_COLLECTIONS = ['reps','customers','visits','claims','visitResults','users','announcements','customerData','portalOrders','customerSales','citySales','followups','followupResults','appConfig','salesAnalytics','teamChat','plannedVisits','inventory','bonusOffers','suggestedOrders','orderTemplates'];
 
+// يرجّع نصوص التاريخ (ISO) و{seconds,nanoseconds} لـ Timestamp عشان الاستعادة ما تبوّظش الترتيب والفلاتر بالتاريخ
+function reviveBackupValue(v){
+  if(typeof v==='string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(v)){
+    const d = new Date(v); if(!isNaN(d)) return firebase.firestore.Timestamp.fromDate(d);
+  }
+  if(Array.isArray(v)) return v.map(reviveBackupValue);
+  if(v && typeof v==='object'){
+    const ks = Object.keys(v);
+    if(ks.length===2 && typeof v.seconds==='number' && typeof v.nanoseconds==='number') return new firebase.firestore.Timestamp(v.seconds, v.nanoseconds);
+    const o = {}; ks.forEach(k=>{ o[k] = reviveBackupValue(v[k]); }); return o;
+  }
+  return v;
+}
 function serializeDoc(d){
   const out = {};
   Object.keys(d).forEach(k=>{
@@ -5622,7 +5850,7 @@ async function restoreBackupFile(file){
         const batch = db.batch();
         chunk.forEach(item=>{
           const ref = db.collection(coll).doc(item.id);
-          batch.set(ref, item.data, {merge:true});
+          batch.set(ref, reviveBackupValue(item.data), {merge:true});
         });
         await batch.commit();
       }
@@ -6645,7 +6873,7 @@ let abcFilter = 'all';
 // فتح تقرير معيّن من أي مكان (من التنبيهات مثلاً): بيروح للرئيسية، يختار التبويب والفلتر، وينزل للتقرير
 function openReport(tab, filter){
   if(filter) abcFilter = filter;
-  reportsTab = tab;
+  reportsTab = tab; repReportsOpen = true;
   if(currentView!=='dashboard') goTo('dashboard'); else renderView();
   setTimeout(()=>{
     const f = REPORT_DRAW[tab]; if(f && typeof window[f]==='function') window[f]();
@@ -6960,7 +7188,20 @@ function alertStore(){
 }
 function alertSave(s){ try{ localStorage.setItem(ALERT_KEY(), JSON.stringify(s)); }catch(e){} }
 function alertMark(key){ const s = alertStore(); s.k[key] = 1; alertSave(s); }
-function runAlertGo(go){ try{ if(go) new Function(go)(); }catch(e){ console.error(e); } }
+const ALERT_GO_WHITELIST = {
+  goTo:()=>window.goTo, openReport:()=>window.openReport, openInventoryHot:()=>window.openInventoryHot
+};
+function runAlertGo(go){
+  // بدل new Function (ممنوعة بالـ CSP وخطر): بنحلل "fn('a','b')" ونشغّل دوال معروفة بس
+  try{
+    if(!go) return;
+    const m = String(go).trim().match(/^([A-Za-z_]\w*)\s*\(([^()]*)\)\s*;?$/);
+    if(!m || !ALERT_GO_WHITELIST[m[1]]) { console.warn('alert go blocked:', go); return; }
+    const args = m[2].trim() ? m[2].split(',').map(x=>x.trim().replace(/^['"]|['"]$/g,'')) : [];
+    const fn = ALERT_GO_WHITELIST[m[1]]();
+    if(typeof fn==='function') fn(...args);
+  }catch(e){ console.error(e); }
+}
 function beep(){
   try{
     if(localStorage.getItem('crmAlertSound')==='off') return;
@@ -8460,7 +8701,10 @@ function cityDailyTargetNeeded(rec){
 let CITY_THRESHOLDS = {salesMinPct:70, customerMinPct:80};
 let citySalesSelectedDate = null;
 
+let _thLoadedAt = 0;
 async function loadCityThresholds(){
+  if(Date.now()-_thLoadedAt < 60000) return;   // مفيش داعي نقرا نفس الإعداد كل مرة الصفحة تترسم
+  _thLoadedAt = Date.now();
   try{
     const snap = await db.collection('appConfig').doc('cityThresholds').get();
     if(snap.exists){
@@ -10166,7 +10410,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.91): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.92): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
