@@ -713,6 +713,11 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .asChips{display:flex;flex-wrap:wrap;gap:8px;}.asChip{border:1.5px solid var(--teal,#0f7a6b);background:#fff;color:var(--teal-dark,#0b5c51);border-radius:20px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px;}
 .asAns{background:var(--teal-lighter,#f2faf8);border-radius:12px;padding:12px;margin-top:6px;}.asRow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100,#f4f8f7);}
 .repTip{margin-top:12px;background:#fff8e6;border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.7;display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
+.rrCard{border:1px solid var(--gray-300,#d6e0e0);border-radius:14px;padding:12px;margin-bottom:10px;background:#fff;}
+.rrCard.pend{border-color:var(--amber,#d68910);background:#fffaf0;}.rrCard.late{border-color:var(--red,#c0392b);}
+.rrTop{display:flex;justify-content:space-between;gap:8px;}.rrSt{font-weight:800;font-size:13px;}
+.rrText{margin:6px 0;white-space:pre-wrap;line-height:1.7;}.rrReply{background:var(--teal-light,#e0f3f0);border-radius:10px;padding:8px 10px;margin-top:6px;}
+.rrBtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}.rrBtns .btn{flex:1 1 40%;min-height:42px;}
 .repMore{display:flex;gap:8px;margin:10px 0;}.repMore .btn{flex:1;min-height:46px;}
 .resChips{display:flex;flex-wrap:wrap;gap:8px;}
 .resChip{flex:1 1 44%;min-height:46px;border:1.5px solid var(--gray-200,#e3ecea);background:#fff;border-radius:12px;font:inherit;font-weight:800;font-size:14px;padding:8px 10px;color:var(--gray-700,#374151);}
@@ -1740,6 +1745,7 @@ function ensureDataForView(view){
   // الأدمن والمشرف محتاجين المتابعات والطلبيات المقترحة دايماً عشان تنبيهات العناصر الجديدة
   if(isAdminLike()){ needed.push('followups'); needed.push('suggestedOrders'); }
   needed.push('portalCfg');
+  needed.push('repRequests');   // طلبات المناديب للإدارة (المندوب بيشوف طلباته، والمدير/الأدمن بيشوفوا الكل)
   needed.push('companyCfg');   // اسم الشركة ولوجو الشريط العلوي
   needed.push('ratingCfg');    // مقياس التقييم (عدد النجوم)
   needed.push('cdFields');     // الحقول المطلوبة من المناديب (بيانات العملاء)
@@ -2498,6 +2504,131 @@ function repTipHTML(){
   return `<div class="repTip">${dataTip}<div>💡 ${escapeHTML(REP_TIPS[idx])}</div><button class="btn btn-ghost btn-sm" onclick="repTipShift++;renderView()">نصيحة تانية ↻</button></div>`;
 }
 
+/* ==========================================================================
+   📨 طلبات المناديب للإدارة (خصم/استثناء، موافقة على طلبية، تحصيل، عميل زعلان...) - المندوب يطلب والمدير أو الأدمن يرد بضغطة
+   ========================================================================== */
+let REP_REQUESTS = [];
+const RR_TYPES = [['exception','🏷️ خصم / استثناء'],['order','🧾 موافقة على طلبية'],['collect','💵 مشكلة تحصيل'],['angry','😟 عميل زعلان'],['other','📝 أخرى']];
+const RR_STATUS = {pending:['⏳','في الانتظار'], approved:['✅','موافق'], rejected:['❌','مرفوض'], call:['📞','كلمني'], wait:['🕐','استنى شوية']};
+const rrTypeLabel = k=>(RR_TYPES.find(t=>t[0]===k)||['',k||''])[1];
+let rrDraft = {type:'exception', customer:null, text:''}, rrTab = 'new';
+function rrTime(ts){ try{ const d = ts && ts.toDate ? ts.toDate() : null; return d ? d.toLocaleString('ar-EG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'دلوقتي'; }catch(e){ return ''; } }
+function rrAgeHours(ts){ try{ return ts && ts.toDate ? (Date.now()-ts.toDate().getTime())/3600000 : 0; }catch(e){ return 0; } }
+function rrPendingCount(){ return REP_REQUESTS.filter(r=>r.status==='pending').length; }
+function rrMine(){ return REP_REQUESTS.filter(r=>r.createdBy===CURRENT_USER.username).sort((a,b)=>((b.createdAt&&b.createdAt.seconds)||9e12)-((a.createdAt&&a.createdAt.seconds)||9e12)); }
+
+DATA_ATTACHERS['repRequests'] = ()=>{
+  let first = true;
+  const q = isAdminLike() ? db.collection('repRequests').orderBy('createdAt','desc').limit(150) : db.collection('repRequests').where('createdBy','==',CURRENT_USER.username).limit(100);
+  unsubs.push(q.onSnapshot(snap=>{
+    if(!first){
+      snap.docChanges().forEach(ch=>{
+        const r = {id:ch.doc.id, ...ch.doc.data()};
+        if(ch.type==='added' && isAdminLike() && r.createdBy!==CURRENT_USER.username && r.status==='pending'){
+          pushAlert({key:'rr-'+r.id, ic:'📨', title:`طلب جديد من ${r.repName||r.createdBy}`, body:`${rrTypeLabel(r.type)}${r.customerName?' · '+r.customerName:''}`, go:'openRepRequests()', sound:true});
+        }
+        if(ch.type==='modified' && r.createdBy===CURRENT_USER.username && r.status!=='pending'){
+          const prev = REP_REQUESTS.find(x=>x.id===r.id);
+          if(prev && prev.status==='pending'){
+            const st = RR_STATUS[r.status]||['🔔',r.status];
+            pushAlert({key:'rrr-'+r.id, ic:st[0], title:`رد الإدارة على طلبك: ${st[1]}`, body:(r.reply||'')+(r.customerName?' ('+r.customerName+')':''), go:'openRepRequests()', sound:true});
+          }
+        }
+      });
+    }
+    REP_REQUESTS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    first = false;
+    if(document.getElementById('rrOverlay')) renderRepRequests();
+    if(currentView==='dashboard' && !document.activeElement?.closest?.('input,textarea,select')) softRender();
+  }, err=>console.error('repRequests listener', err)));
+};
+
+function openRepRequests(){
+  closeRepRequests();
+  rrTab = isAdminLike() ? 'inbox' : (rrTab==='mine' ? 'mine' : 'new');
+  const bg = document.createElement('div');
+  bg.id = 'rrOverlay'; bg.className = 'qrBg';
+  bg.onclick = e=>{ if(e.target===bg) closeRepRequests(); };
+  bg.innerHTML = `<div class="qrSheet"><div class="qrHead"><h3>📨 ${isAdminLike()?'طلبات المناديب':'طلب من الإدارة'}</h3><button class="iconBtn" onclick="closeRepRequests()" title="إغلاق">✕</button></div><div class="qrBody" id="rrBody"></div></div>`;
+  document.body.appendChild(bg);
+  renderRepRequests();
+}
+function closeRepRequests(){ document.getElementById('rrOverlay')?.remove(); }
+function setRrTab(t){ rrTab = t; renderRepRequests(); }
+function renderRepRequests(){
+  const box = document.getElementById('rrBody'); if(!box) return;
+  if(box.contains(document.activeElement) && document.activeElement.tagName==='TEXTAREA' && isAdminLike()) return;   // ما نقاطعش المدير وهو بيكتب رد
+  box.innerHTML = isAdminLike() ? rrInboxHTML() : rrRepHTML();
+}
+
+/* ---------- المندوب ---------- */
+function rrRepHTML(){
+  const mine = rrMine(), tabs = `<div class="segRow" style="margin-bottom:10px;"><button class="seg ${rrTab==='new'?'on':''}" onclick="setRrTab('new')">✍️ طلب جديد</button><button class="seg ${rrTab==='mine'?'on':''}" onclick="setRrTab('mine')">📋 طلباتي (${mine.length})</button></div>`;
+  if(rrTab==='mine') return tabs + (mine.length ? mine.map(rrCardHTML).join('') : '<div class="smallMuted" style="padding:12px;">لسه ما بعتّش أي طلب.</div>');
+  const c = rrDraft.customer;
+  return tabs + `
+    <div class="field"><label>نوع الطلب</label><div class="resChips">${RR_TYPES.map(t=>`<button type="button" class="resChip ${rrDraft.type===t[0]?'on':''}" onclick="rrDraft.type='${t[0]}';renderRepRequests()">${t[1]}</button>`).join('')}</div></div>
+    <div class="field"><label>العميل (اختياري)</label>
+      ${c ? `<div class="asRow"><div style="flex:1;"><b>${escapeHTML(c.name||c.code)}</b><div class="smallMuted">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''}</div></div><button class="btn btn-ghost btn-sm" onclick="rrDraft.customer=null;renderRepRequests()">تغيير</button></div>`
+        : `<input id="rrCustQ" type="text" placeholder="ابحث باسم العميل أو كوده..." oninput="rrCustSearch(this.value)"><div id="rrCustRes"></div>`}
+    </div>
+    <div class="field"><label>التفاصيل</label><textarea id="rrText" rows="4" maxlength="600" placeholder="اكتب طلبك باختصار..." oninput="rrDraft.text=this.value">${escapeHTML(rrDraft.text)}</textarea></div>
+    <button class="btn btn-primary btn-block" style="min-height:46px;" onclick="sendRepRequest()">📨 إرسال للإدارة</button>`;
+}
+function rrCustSearch(q){
+  const box = document.getElementById('rrCustRes'); if(!box) return;
+  q = _nk(q).trim(); if(!q){ box.innerHTML=''; return; }
+  const res = visibleCustomers().filter(c=>_nk(c.name).includes(q) || String(c.code||'').includes(q)).slice(0,6);
+  box.innerHTML = res.length ? `<div class="custResults">${res.map(c=>`<div class="row" onclick="rrPickCustomer(${_jq(c.code)})"><div class="nm">${escapeHTML(c.name)}</div><div class="meta">كود ${escapeHTML(c.code)} · ${escapeHTML(c.city||'')}</div></div>`).join('')}</div>` : '<div class="smallMuted">مفيش نتايج</div>';
+}
+function rrPickCustomer(code){ const c = visibleCustomers().find(x=>String(x.code)===String(code)); if(c){ rrDraft.customer = {code:c.code, name:c.name, city:c.city||''}; renderRepRequests(); } }
+async function sendRepRequest(){
+  const text = (rrDraft.text||'').trim();
+  if(text.length<3){ toast('اكتب تفاصيل الطلب','warn'); return; }
+  const c = rrDraft.customer, rep = (typeof REPS!=='undefined' ? REPS.find(r=>r.id===CURRENT_USER.repId) : null);
+  const payload = {createdBy:CURRENT_USER.username, repId:CURRENT_USER.repId||'', repName:(rep&&rep.name)||CURRENT_USER.name||CURRENT_USER.username, type:rrDraft.type, text, status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  if(c){ payload.customerCode = String(c.code); payload.customerName = c.name||''; payload.city = c.city||''; }
+  try{
+    db.collection('repRequests').add(payload).catch(e=>{ console.error(e); toast('الطلب ما اتبعتش: '+(e.code||e.message),'err'); });
+    rrDraft = {type:'exception', customer:null, text:''}; rrTab = 'mine';
+    toast('✔ الطلب اتبعت للإدارة','ok'); renderRepRequests();
+  }catch(e){ console.error(e); toast('فشل الإرسال','err'); }
+}
+
+/* ---------- المدير / الأدمن ---------- */
+function rrCardHTML(r){
+  const st = RR_STATUS[r.status]||['',r.status||''], late = r.status==='pending' && rrAgeHours(r.createdAt)>=2;
+  return `<div class="rrCard ${r.status==='pending'?'pend':''} ${late?'late':''}">
+    <div class="rrTop"><b>${escapeHTML(rrTypeLabel(r.type))}</b><span class="rrSt">${st[0]} ${st[1]}</span></div>
+    ${isAdminLike() ? `<div class="smallMuted">👤 ${escapeHTML(r.repName||r.createdBy||'')} · ${rrTime(r.createdAt)}${late?' · ⚠️ متأخر':''}</div>` : `<div class="smallMuted">${rrTime(r.createdAt)}</div>`}
+    ${r.customerCode ? `<div style="margin:4px 0;">🏥 <a href="#" style="font-weight:700;" onclick="closeRepRequests();openCustomer360(${_jq(r.customerCode)});return false;">${escapeHTML(r.customerName||r.customerCode)}</a></div>` : ''}
+    <div class="rrText">${escapeHTML(r.text||'')}</div>
+    ${r.reply ? `<div class="rrReply">💬 ${escapeHTML(r.reply)}${r.repliedByName?` <span class="smallMuted">- ${escapeHTML(r.repliedByName)}</span>`:''}</div>` : ''}
+    ${isAdminLike() && r.status==='pending' ? `<textarea id="rrReply_${r.id}" rows="2" maxlength="300" placeholder="تعليق (اختياري)..."></textarea>
+      <div class="rrBtns">${['approved','rejected','call','wait'].map(k=>`<button class="btn ${k==='approved'?'btn-primary':'btn-outline'} btn-sm" onclick="rrRespond('${r.id}','${k}')">${RR_STATUS[k][0]} ${RR_STATUS[k][1]}</button>`).join('')}</div>` : ''}
+  </div>`;
+}
+function rrInboxHTML(){
+  const pend = REP_REQUESTS.filter(r=>r.status==='pending').sort((a,b)=>((a.createdAt&&a.createdAt.seconds)||9e12)-((b.createdAt&&b.createdAt.seconds)||9e12));
+  const done = REP_REQUESTS.filter(r=>r.status!=='pending').slice(0,20);
+  return `<div class="rhStats"><span>⏳ معلّقة: <b>${pend.length}</b></span><span>آخر ${done.length} رد</span></div>
+    ${pend.length ? pend.map(rrCardHTML).join('') : '<div class="smallMuted" style="padding:12px;text-align:center;">مفيش طلبات معلّقة 👏</div>'}
+    ${done.length ? `<div class="secTitle" style="margin-top:14px;">اللي اتردّ عليه</div>${done.map(rrCardHTML).join('')}` : ''}`;
+}
+async function rrRespond(id, status){
+  if(!isAdminLike()) return;
+  const reply = (document.getElementById('rrReply_'+id)?.value||'').trim();
+  try{
+    await db.collection('repRequests').doc(id).update({status, reply, repliedBy:CURRENT_USER.username, repliedByName:CURRENT_USER.name||CURRENT_USER.username, repliedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    logAudit('edit','repRequests', `رد على طلب مندوب (${status})`);
+    toast('✔ تم الرد','ok');
+  }catch(e){ console.error(e); toast('فشل الرد: '+(e.code||e.message),'err'); }
+}
+function repReqCardHTML(){
+  const n = rrPendingCount();
+  return `<div class="card" style="display:flex;align-items:center;gap:10px;"><div style="flex:1;"><b>📨 طلبات المناديب</b><div class="smallMuted">${n ? `<span style="color:var(--red,#c0392b);font-weight:800;">${n} طلب معلّق</span> مستني ردك` : 'مفيش طلبات معلّقة'}</div></div><button class="btn ${n?'btn-primary':'btn-outline'} btn-sm" onclick="openRepRequests()">فتح</button></div>`;
+}
+
 function repTodayCardHTML(visitsToday){
   let tasks = [];
   try{ const t = todayISO(); tasks = tasksOn(t).filter(x=>!taskDone(x,t)); }catch(e){}
@@ -2509,6 +2640,8 @@ function repTodayCardHTML(visitsToday){
       <button class="btn btn-outline" onclick="goTo('calendar')">📅 مهامي</button></div>
     <div class="rtBtns"><button class="btn btn-outline" onclick="openRepHelper('quiz')">🎮 تحدي اليوم</button>
       <button class="btn btn-outline" onclick="openRepHelper('ask')">🤖 مساعدي</button></div>
+    <div class="rtBtns"><button class="btn btn-outline" onclick="rrTab='new';openRepRequests()">📨 طلب من الإدارة</button>
+      <button class="btn btn-outline" onclick="rrTab='mine';openRepRequests()">📋 طلباتي${rrMine().filter(r=>r.status==='pending').length?` (${rrMine().filter(r=>r.status==='pending').length} معلّق)`:''}</button></div>
     ${repTipHTML()}
   </div>`;
 }
@@ -2572,6 +2705,7 @@ function viewDashboard(){
       </div>
     </div>
     ${CURRENT_USER.role==='rep' ? welcomeBannerHTML() : ''}
+    ${isAdminLike() ? repReqCardHTML() : ''}
     ${CURRENT_USER.role==='rep' ? repTodayCardHTML(visitsToday) : ''}
     ${CURRENT_USER.role==='rep' ? '' : `<div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>`}
@@ -7275,7 +7409,7 @@ function alertStore(){
 function alertSave(s){ try{ localStorage.setItem(ALERT_KEY(), JSON.stringify(s)); }catch(e){} }
 function alertMark(key){ const s = alertStore(); s.k[key] = 1; alertSave(s); }
 const ALERT_GO_WHITELIST = {
-  goTo:()=>window.goTo, openReport:()=>window.openReport, openInventoryHot:()=>window.openInventoryHot
+  goTo:()=>window.goTo, openReport:()=>window.openReport, openInventoryHot:()=>window.openInventoryHot, openRepRequests:()=>window.openRepRequests
 };
 function runAlertGo(go){
   // بدل new Function (ممنوعة بالـ CSP وخطر): بنحلل "fn('a','b')" ونشغّل دوال معروفة بس
@@ -10603,6 +10737,21 @@ service cloud.firestore {
       allow create: if isAdminOrManager()
         || (isStaff() && myRole() == 'telesales' && request.resource.data.telesalesUsername == myUsername());
       allow update, delete: if isAdmin();
+    }
+
+    // ===== طلبات المناديب للإدارة (خصم/استثناء، موافقة، تحصيل...) =====
+    match /repRequests/{id} {
+      allow read: if isAdminOrManager() || (isStaff() && resource.data.createdBy == myUsername());
+      allow create: if isStaff()
+        && request.resource.data.createdBy == myUsername()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasOnly(['createdBy','repId','repName','type','text','status','createdAt','customerCode','customerName','city'])
+        && request.resource.data.text is string && request.resource.data.text.size() > 2 && request.resource.data.text.size() <= 600;
+      allow update: if isAdminOrManager()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reply','repliedBy','repliedByName','repliedAt'])
+        && request.resource.data.status in ['approved','rejected','call','wait'];
+      allow delete: if isAdmin();
     }
 
     // ===== الطلبيات المقترحة من المناديب =====
