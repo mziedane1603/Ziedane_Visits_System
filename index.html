@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.94)</title>
+<title>Ziedane CRM (v2.96)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -701,6 +701,7 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .invName{font-weight:800;font-size:14px;line-height:1.35;}
 .invCo{display:inline-block;margin-top:4px;font-size:11px;color:var(--teal-dark,#0f5d52);background:var(--teal-light,#e6f4f1);border-radius:999px;padding:2px 9px;}
 .invPrice{text-align:left;font-weight:900;font-size:15px;white-space:nowrap;}.invPrice small{font-size:10.5px;color:var(--gray-500,#6b7280);margin-right:3px;font-weight:600;}
+.repToday .rtMotiv{font-weight:800;font-size:14.5px;margin-bottom:10px;color:var(--teal-dark,#0b5c51);}
 .repToday .rtRow{display:flex;gap:10px;}.repToday .rtBig{flex:1;background:var(--teal-light,#e0f3f0);border-radius:14px;padding:12px;text-align:center;}
 .repToday .rtBig b{display:block;font-size:30px;color:var(--teal-dark,#0f7a6b);}.repToday .rtBig span{font-size:12.5px;color:var(--gray-700,#374151);font-weight:700;}
 .repToday .rtTasks{margin-top:10px;font-size:13.5px;display:flex;flex-direction:column;gap:4px;}
@@ -983,7 +984,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.94';
+const APP_VERSION = '2.96';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -2328,14 +2329,15 @@ function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e)
 function _nk(s){ return String(s||'').toLowerCase().replace(/[ً-ْـ]/g,'').replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه'); }
 const _jq = v=>escapeHTML(JSON.stringify(v));
 
-let rhTab = 'quiz', rhAnswer = '';
-function openRepHelper(tab){
-  rhTab = tab || 'quiz'; rhAnswer = '';
+let rhTab = 'quiz', rhAnswer = '', rhQuery = '';
+function openRepHelper(tab, prefill){
+  rhTab = tab || 'quiz'; rhAnswer = ''; rhQuery = prefill || '';
+  if(typeof asEnsureData==='function' && asEnsureData()) setTimeout(()=>{ if(document.getElementById('rhOverlay') && rhTab==='ask' && !document.activeElement?.closest?.('#rhOverlay input')) renderRepHelper(); }, 1800);
   closeRepHelper();
   const bg = document.createElement('div');
   bg.id = 'rhOverlay'; bg.className = 'qrBg';
   bg.onclick = e=>{ if(e.target===bg) closeRepHelper(); };
-  bg.innerHTML = `<div class="qrSheet"><div class="qrHead"><h3>🎯 مساعدك</h3><button class="iconBtn" onclick="closeRepHelper()" title="إغلاق">✕</button></div><div class="qrBody" id="rhBody"></div></div>`;
+  bg.innerHTML = `<div class="qrSheet"><div class="qrHead"><h3>🚀 يلا نكسب النهارده</h3><button class="iconBtn" onclick="closeRepHelper()" title="إغلاق">✕</button></div><div class="qrBody" id="rhBody"></div></div>`;
   document.body.appendChild(bg);
   renderRepHelper();
 }
@@ -2402,10 +2404,10 @@ function quizHTML(){
     return `<div class="qzQ"><b>${qi+1}) ${escapeHTML(q.t)}</b>${q.opts.map(o=>{
       let cls = 'qzOpt'; if(p){ if(o.code===q.ans) cls += ' ok'; else if(o.code===p) cls += ' bad'; }
       return `<button class="${cls}" ${p?'disabled':''} onclick="quizPick(${qi},${_jq(o.code)})">${escapeHTML(o.name)}${p?` <small>· ${escapeHTML(q.info[o.code]||'')}</small>`:''}</button>`;
-    }).join('')}${p ? `<div class="qzFb">${p===q.ans ? '✅ صح!' : '❌ الإجابة الصح: '+escapeHTML((q.opts.find(o=>o.code===q.ans)||{}).name||'')} ${asstVisitBtn(q.ans)}</div>` : ''}</div>`;
+    }).join('')}${p ? `<div class="qzFb">${p===q.ans ? '✅ برافو عليك! 🎉' : '❌ قربت! الإجابة: '+escapeHTML((q.opts.find(o=>o.code===q.ans)||{}).name||'')} ${asstVisitBtn(q.ans)}</div>` : ''}</div>`;
   }).join('');
   const right = st.qs.filter((q,i)=>st.picked[i]===q.ans).length;
-  const fin = st.done ? `<div class="qzDone">${right===st.qs.length ? '🏆 3 من 3! بونص 5 نقاط' : `خلصت النهارده: ${right} من ${st.qs.length}`} · تعالى بكرة لأسئلة جديدة</div>` : '';
+  const fin = st.done ? `<div class="qzDone">${right===st.qs.length ? '🏆 3 من 3! أسطورة! +5 نقاط بونص' : `خلصت النهارده: ${right} من ${st.qs.length} - تحدي حلو! 💪`} · تعالى بكرة لأسئلة جديدة</div>` : '';
   return head + qsHTML + fin;
 }
 function asstVisitBtn(code){ return `<button class="btn btn-ghost btn-sm" onclick="closeRepHelper();quickVisitFor(${_jq(code)})">📝 زيارة</button>`; }
@@ -2428,70 +2430,91 @@ function asstCompute(k){
   switch(k){
     case 'today': {
       const a = L.filter(x=>!x.visitedToday && x.score>0).sort((p,q)=>q.score-p.score).slice(0,5);
-      return `<b>أولوياتك النهارده (حسب الأهمية والمبيعات والتأخير):</b>` + rows(a, x=>escapeHTML((x.reasons||[]).slice(0,3).join(' · ')||'أولوية عادية'), 'مفيش عملاء أولوية دلوقتي 👏');
+      return `<b>🔥 أولوياتك النهارده، ابدأ بيهم وهتفرق:</b>` + rows(a, x=>escapeHTML((x.reasons||[]).slice(0,3).join(' · ')||'أولوية عادية'), 'كل عملائك المهمين متزارين، شغل ممتاز 👏 كمّل على الباقي');
     }
     case 'claims': {
       const a = L.filter(x=>x.claim>0).sort((p,q)=>q.claim-p.claim).slice(0,6), tot = L.reduce((s,x)=>s+(x.claim||0),0);
-      return `<b>عليهم مطالبات (الإجمالي ${fmtMoney(tot)}):</b>` + rows(a, x=>'مطالبة '+fmtMoney(x.claim), 'مفيش مطالبات على عملائك');
+      return `<b>💪 فلوس في السكة (الإجمالي ${fmtMoney(tot)})، كل تحصيل بيفرق:</b>` + rows(a, x=>'مطالبة '+fmtMoney(x.claim), 'مفيش مطالبات على عملائك، ممتاز! 🎉');
     }
     case 'topA': {
       const a = L.filter(x=>x.abc==='A' && x.gap>=x.interval && !x.visitedToday).sort((p,q)=>q.total12-p.total12).slice(0,6);
-      return `<b>عملاء A متأخرين عن زيارتهم:</b>` + rows(a, x=>(x.gap>=9999?'عمره ما اتزار':'بقاله '+x.gap+' يوم بدون زيارة')+' · مبيعاته '+fmtMoney(x.total12), 'كل عملاء A متزارين في ميعادهم 👏');
+      return `<b>⭐ عملاء A مستنيينك، زيارة واحدة ممكن تفرق معاهم:</b>` + rows(a, x=>(x.gap>=9999?'عمره ما اتزار':'بقاله '+x.gap+' يوم بدون زيارة')+' · مبيعاته '+fmtMoney(x.total12), 'كل عملاء A متزارين في ميعادهم، برافو! 👏');
     }
     case 'falling': {
       const a = L.filter(x=>x.risk!=null && x.risk>=35).sort((p,q)=>q.risk-p.risk).slice(0,6);
-      return `<b>عملاء محتاجين تدخل (مبيعاتهم بتقل):</b>` + rows(a, x=>escapeHTML((x.why||[]).join(' · ')||'مبيعات أقل من المعتاد'), 'مفيش عملاء في خطر دلوقتي 👏');
+      return `<b>📈 فرصة تطلّعهم تاني (مبيعاتهم بتقل):</b>` + rows(a, x=>escapeHTML((x.why||[]).join(' · ')||'مبيعات أقل من المعتاد'), 'مفيش عملاء في خطر دلوقتي، كمّل كده 👏');
     }
     case 'never': {
       const a = L.filter(x=>x.total12>0 && x.gap>=9999).sort((p,q)=>q.total12-p.total12).slice(0,6);
-      return `<b>عملاء بيشتروا وعمرهم ما اتسجّلت ليهم زيارة:</b>` + rows(a, x=>'مبيعاته '+fmtMoney(x.total12), 'كل عملائك المشترين اتزاروا مرة على الأقل');
+      return `<b>👀 عملاء بيشتروا ومحتاجين اهتمامك:</b>` + rows(a, x=>'مبيعاته '+fmtMoney(x.total12), 'كل عملائك المشترين اتزاروا مرة على الأقل');
     }
     case 'top': {
       const a = L.filter(x=>x.total12>0).sort((p,q)=>q.total12-p.total12).slice(0,5);
-      return `<b>أكبر 5 عملاء (آخر 12 شهر):</b>` + rows(a, x=>fmtMoney(x.total12), 'مفيش بيانات مبيعات');
+      return `<b>🏆 نجومك (أكبر 5 عملاء آخر 12 شهر):</b>` + rows(a, x=>fmtMoney(x.total12), 'مفيش بيانات مبيعات');
     }
     case 'goal': {
       const rep = REPS.find(r=>r.id===CURRENT_USER.repId), target = Number(rep && rep.monthlyVisitTarget)||0, now = new Date(), month = todayISO().slice(0,7);
       const done = visibleVisits().filter(v=>(v.date||'').startsWith(month)).length;
       if(!target) return `عملت <b>${done}</b> زيارة الشهر ده. لسه مفيش هدف شهري متحدد ليك - اطلب من المدير يحدده.`;
       const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(), left = Math.max(1, dim-now.getDate()+1), rem = Math.max(0, target-done);
-      return `عملت <b>${done}</b> من <b>${target}</b> زيارة (${Math.min(100,Math.round(done/target*100))}%). ` + (rem>0 ? `باقي <b>${rem}</b> زيارة، يعني حوالي <b>${Math.ceil(rem/left)}</b> في اليوم لمدة ${left} يوم.` : 'حققت الهدف 🎉');
+      return `عملت <b>${done}</b> من <b>${target}</b> زيارة (${Math.min(100,Math.round(done/target*100))}%). ` + (rem>0 ? `باقي <b>${rem}</b> زيارة بس! يعني حوالي <b>${Math.ceil(rem/left)}</b> في اليوم لمدة ${left} يوم، وإنت تقدر 💪` : 'حققت الهدف! 🎉🏆 برافو عليك');
     }
   }
   return '';
 }
 function asstAsk(k){ rhAnswer = asstCompute(k); renderRepHelper(); }
+function asstSearch(raw){
+  const q = _nk(raw).trim(); if(!q) return '';
+  const custs = visibleCustomers().filter(c=>_nk(c.name).includes(q) || String(c.code||'').includes(raw.trim())).slice(0,6);
+  const inv = (typeof INVENTORY!=='undefined' && Array.isArray(INVENTORY) ? INVENTORY : []).filter(i=>_nk(i.itemName).includes(q) || _nk(i.company).includes(q)).slice(0,6);
+  let h = '';
+  if(custs.length) h += `<b>🏥 عملاء (${custs.length}):</b>` + custs.map(c=>asstRow({c}, `كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''}`)).join('');
+  if(inv.length) h += `<b style="display:block;margin-top:10px;">💊 أصناف (${inv.length}):</b>` + inv.map(i=>{
+    const tiers = bonusTiersFor(i.itemName, i.company).map(t=>`${t.qty}+${t.bonusQty}`).join(' | ');
+    return `<div class="rhRow"><div style="flex:1;min-width:0;"><b>${escapeHTML(i.itemName||'')}</b><div class="smallMuted">${escapeHTML(i.company||'')} · السعر ${i.publicPrice!=null?Number(i.publicPrice).toLocaleString('en-US'):'-'}${i.pharmacyDiscount?` · خصم ${i.pharmacyDiscount}%`:''} · المتاح ${Number(i.quantity||0).toLocaleString('en-US')}${tiers?` · 🎁 ${tiers}`:''}</div></div></div>`; }).join('');
+  return h;
+}
 function asstFree(){
-  const q = _nk(document.getElementById('asstInput')?.value||'');
-  if(!q.trim()) return;
+  const raw = document.getElementById('asstInput')?.value || rhQuery || ''; rhQuery = raw;
+  const q = _nk(raw); if(!q.trim()) return;
   const hit = ASST_INTENTS.find(i=>i.kw.some(w=>q.includes(_nk(w))));
-  rhAnswer = hit ? asstCompute(hit.k) : `<div class="smallMuted">مش فاهم سؤالك بالظبط 😅 - جرّب واحد من الأسئلة السريعة اللي فوق.</div>`;
+  rhAnswer = hit ? asstCompute(hit.k) : (asstSearch(raw) || `<div class="smallMuted">ما لقيتش حاجة بالاسم ده 🤔 - جرّب جزء تاني من الاسم أو واحد من الأسئلة السريعة.</div>`);
   renderRepHelper();
 }
+function asstVoice(btn){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast('الصوت مش مدعوم في المتصفح ده - جرّب Chrome','warn'); return; }
+  const r = new SR(); r.lang = 'ar-EG'; r.interimResults = false; btn.classList.add('listening');
+  r.onresult = e=>{ const el = document.getElementById('asstInput'); const t = e.results[0][0].transcript; if(el) el.value = t; rhQuery = t; asstFree(); };
+  r.onend = ()=>btn.classList.remove('listening'); r.onerror = ()=>{ btn.classList.remove('listening'); toast('ما سمعتش كويس، جرّب تاني','warn'); };
+  try{ r.start(); }catch(e){ btn.classList.remove('listening'); }
+}
 function asstHTML(){
-  return `<div class="smallMuted" style="margin-bottom:8px;">مساعد بيحلل بيانات عملائك اللي في النظام بس، ومن غير ما يبعت حاجة لأي خدمة خارجية.</div>
+  return `<div class="smallMuted" style="margin-bottom:8px;">اسألني عن شغلك، أو دوّر على عميل أو صنف بالاسم أو بالصوت 🎤. كله من بياناتك إنت وبس.</div>
     <div class="rhChips">${ASST_INTENTS.map(i=>`<button class="rhChip" onclick="asstAsk('${i.k}')">${i.ic} ${escapeHTML(i.q)}</button>`).join('')}</div>
-    <div style="display:flex;gap:6px;margin:10px 0;"><input id="asstInput" type="text" style="flex:1;" placeholder="اكتب سؤالك... مثلًا: مين عليه مطالبات؟" onkeydown="if(event.key==='Enter')asstFree()"><button class="btn btn-primary btn-sm" onclick="asstFree()">اسأل</button></div>
+    <div style="display:flex;gap:6px;margin:10px 0;"><input id="asstInput" type="text" style="flex:1;" value="${escapeHTML(rhQuery)}" placeholder="اسأل أو دوّر على عميل / صنف..." onkeydown="if(event.key==='Enter')asstFree()"><button class="btn btn-ghost btn-sm micBtn" onclick="asstVoice(this)" title="بالصوت">🎤</button><button class="btn btn-primary btn-sm" onclick="asstFree()">يلا</button></div>
     ${rhAnswer ? `<div class="rhAns">${rhAnswer}</div>` : ''}`;
 }
 
 
 /* ---------- 💡 نصايح مستمرة للمندوب: واحدة من بياناته + واحدة من أساسيات البيع، وبتتغيّر كل يوم ---------- */
 const REP_TIPS = [
-  'ابدأ الزيارة بسؤال عن حال الصيدلية ومبيعاتها، مش بعرض الأصناف على طول.',
-  'قبل ما تدخل: راجع آخر زيارة للعميل وإيه اللي اتفقتوا عليه، وافتتح بيها.',
-  'العميل اللي بيشتري كتير زيّه زي العميل الجديد: زوره في ميعاده حتى لو مش محتاج حاجة.',
-  'اعرض صنف أو صنفين بس في الزيارة وركّز عليهم، أحسن من قايمة طويلة.',
-  'لو العميل قال "مش دلوقتي"، اسأل: إمتى أنسب وقت أرجعلك؟ وسجّله.',
-  'سجّل الزيارة وإنت لسه واقف قدام الصيدلية، بعد ساعة هتنسى التفاصيل.',
-  'المطالبة أسهل لما تتطلب بهدوء وفي أول الزيارة، مش آخرها.',
-  'اسأل العميل عن الأصناف اللي بتخلص عنده بسرعة، وقترح عليه كمية تكفيه.',
-  'ابتسامة وسلام على كل اللي في الصيدلية، مش صاحبها بس. الموظفين بيأثّروا على الطلب.',
-  'لو عميل زعلان من حاجة، اسمعه للآخر قبل ما ترد، وسجّل اللي قاله.',
-  'عملاء A والمتأخرين أولًا، وبعدين الباقي. الأولويات في صفحتك الرئيسية.',
-  'قبل ما تمشي: اتفق على الزيارة الجاية. "إن شاء الله الأسبوع الجاي" أحسن من "هعدّي".',
-  'البونص مش ورقة تتقال، وضّح للعميل يوفّر كام لو طلب الكمية اللي فيها العرض.',
-  'خلّي تقييمك للزيارة صادق، ده اللي بيخلّي النظام يرتّب لك الأولويات صح.'
+  'ابدأ الزيارة بسؤال عن حال الصيدلية ومبيعاتها 😊 العميل اللي بتهتم بيه بتكسبه قبل ما تعرض أي صنف!',
+  'راجع آخر زيارة قبل ما تدخل وافتتح بيها 🎯 العميل بيحس إنك فاكره وده نص الطريق للبيع.',
+  'العميل الكبير زيّه زي الجديد: زوره في ميعاده حتى لو مش محتاج حاجة، الاستمرارية هي اللي بتبني الثقة 🤝',
+  'ركّز على صنف أو اتنين في الزيارة 💊 صنف تقنع بيه أحسن من قايمة طويلة ما حدش بيفتكرها.',
+  'لو العميل قال "مش دلوقتي" متزعلش 💪 اسأله: إمتى أنسب وقت أرجعلك؟ وسجّله، الرجوع في الميعاد بيكسب.',
+  'سجّل الزيارة وإنت لسه واقف قدام الصيدلية ⚡ دقيقة دلوقتي بتوفّر عليك ساعة بعدين.',
+  'اطلب المطالبة بهدوء وفي أول الزيارة 💵 اللي بيتطلب بابتسامة بيدفع أسرع.',
+  'اسأل العميل: إيه أكتر صنف بيخلص عندك بسرعة؟ 🔥 وقترح عليه كمية تكفيه، ده بيع بيخدم الطرفين.',
+  'سلّم على كل اللي في الصيدلية مش صاحبها بس 😄 الموظفين بيأثّروا على الطلب أكتر ما تتخيل.',
+  'عميل زعلان؟ دي فرصة مش مشكلة! اسمعه للآخر وسجّل اللي قاله، وبعد ما يتحل هيبقى أوفى عميل 🙌',
+  'عملاء A والمتأخرين أولًا 🎯 الأولويات في شاشتك الرئيسية، وكل زيارة منهم بتفرق في هدفك.',
+  'قبل ما تمشي، اتفق على الزيارة الجاية 📅 "الأسبوع الجاي إن شاء الله" أحسن بكتير من "هعدّي".',
+  'وضّح للعميل البونص يوفّر له كام لو طلب الكمية 🎁 الرقم بيقنع أكتر من الكلام.',
+  'خلّي تقييمك للزيارة صادق ⭐ ده اللي بيخلّي النظام يرتّب لك الأولويات صح ويوفر وقتك.',
+  'كل "لأ" بتقربك من "أيوه" 🚀 المندوب الشاطر هو اللي بيرجع تاني.',
+  'ابدأ يومك بأصعب زيارة ☀️ وبعدها اليوم كله بيبقى أسهل وإنت مرتاح.'
 ];
 let repTipShift = 0;
 function repTipHTML(){
@@ -2629,10 +2652,18 @@ function repReqCardHTML(){
   return `<div class="card" style="display:flex;align-items:center;gap:10px;"><div style="flex:1;"><b>📨 طلبات المناديب</b><div class="smallMuted">${n ? `<span style="color:var(--red,#c0392b);font-weight:800;">${n} طلب معلّق</span> مستني ردك` : 'مفيش طلبات معلّقة'}</div></div><button class="btn ${n?'btn-primary':'btn-outline'} btn-sm" onclick="openRepRequests()">فتح</button></div>`;
 }
 
+function repMotivationLine(visitsToday){
+  const h = new Date().getHours();
+  if(visitsToday<=0) return h<12 ? '☀️ صباح الخير! أول زيارة النهارده هي اللي بتفتح اليوم، يلا نبدأ 💪' : '🚀 لسه فيه وقت! زيارة واحدة دلوقتي تغيّر يومك';
+  if(visitsToday<3) return `🔥 عملت ${visitsToday} زيارة النهارده، كمّل!`;
+  if(visitsToday<6) return `⚡ ${visitsToday} زيارات! إنت ماشي كويس جدًا`;
+  return `🏆 ${visitsToday} زيارة النهارده! يوم رهيب، تسلم إيدك`;
+}
 function repTodayCardHTML(visitsToday){
   let tasks = [];
   try{ const t = todayISO(); tasks = tasksOn(t).filter(x=>!taskDone(x,t)); }catch(e){}
   return `<div class="card repToday">
+    <div class="rtMotiv">${repMotivationLine(visitsToday)}</div>
     <div class="rtRow"><div class="rtBig"><b>${visitsToday}</b><span>زيارة النهارده</span></div>
       <div class="rtBig"><b>${tasks.length}</b><span>مهمة مفتوحة</span></div></div>
     ${tasks.length ? `<div class="rtTasks">${tasks.slice(0,3).map(x=>`<div>📌 ${escapeHTML(x.title||'')}${x.time?` · ${escapeHTML(x.time)}`:''}</div>`).join('')}${tasks.length>3?`<div class="smallMuted">+${tasks.length-3} مهمة كمان</div>`:''}</div>` : ''}
@@ -2906,6 +2937,7 @@ function asEnsureData(){
   return started;
 }
 function openAssistant(prefill){
+  if(isSimpleUser()){ openRepHelper('ask', prefill); return; }   // للمندوب: مساعد واحد (تحليل + بحث)
   if(AS.open){ document.getElementById('asInput')?.focus(); return; }
   AS.open = true; AS.expanded = ''; AS.q = prefill || '';
   const started = asEnsureData();
@@ -10629,7 +10661,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.94): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.96): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
