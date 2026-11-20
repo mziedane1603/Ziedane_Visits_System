@@ -712,6 +712,7 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .qzFb{margin-top:4px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.qzDone{text-align:center;font-weight:800;color:var(--teal-dark,#0b5c51);padding:10px;}
 .asChips{display:flex;flex-wrap:wrap;gap:8px;}.asChip{border:1.5px solid var(--teal,#0f7a6b);background:#fff;color:var(--teal-dark,#0b5c51);border-radius:20px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px;}
 .asAns{background:var(--teal-lighter,#f2faf8);border-radius:12px;padding:12px;margin-top:6px;}.asRow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100,#f4f8f7);}
+.repTip{margin-top:12px;background:#fff8e6;border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.7;display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
 .repMore{display:flex;gap:8px;margin:10px 0;}.repMore .btn{flex:1;min-height:46px;}
 .resChips{display:flex;flex-wrap:wrap;gap:8px;}
 .resChip{flex:1 1 44%;min-height:46px;border:1.5px solid var(--gray-200,#e3ecea);background:#fff;border-radius:12px;font:inherit;font-weight:800;font-size:14px;padding:8px 10px;color:var(--gray-700,#374151);}
@@ -2460,6 +2461,35 @@ function asstHTML(){
     ${rhAnswer ? `<div class="asAns">${rhAnswer}</div>` : ''}`;
 }
 
+
+/* ---------- 💡 نصايح مستمرة للمندوب: واحدة من بياناته + واحدة من أساسيات البيع، وبتتغيّر كل يوم ---------- */
+const REP_TIPS = [
+  'ابدأ الزيارة بسؤال عن حال الصيدلية ومبيعاتها، مش بعرض الأصناف على طول.',
+  'قبل ما تدخل: راجع آخر زيارة للعميل وإيه اللي اتفقتوا عليه، وافتتح بيها.',
+  'العميل اللي بيشتري كتير زيّه زي العميل الجديد: زوره في ميعاده حتى لو مش محتاج حاجة.',
+  'اعرض صنف أو صنفين بس في الزيارة وركّز عليهم، أحسن من قايمة طويلة.',
+  'لو العميل قال "مش دلوقتي"، اسأل: إمتى أنسب وقت أرجعلك؟ وسجّله.',
+  'سجّل الزيارة وإنت لسه واقف قدام الصيدلية، بعد ساعة هتنسى التفاصيل.',
+  'المطالبة أسهل لما تتطلب بهدوء وفي أول الزيارة، مش آخرها.',
+  'اسأل العميل عن الأصناف اللي بتخلص عنده بسرعة، وقترح عليه كمية تكفيه.',
+  'ابتسامة وسلام على كل اللي في الصيدلية، مش صاحبها بس. الموظفين بيأثّروا على الطلب.',
+  'لو عميل زعلان من حاجة، اسمعه للآخر قبل ما ترد، وسجّل اللي قاله.',
+  'عملاء A والمتأخرين أولًا، وبعدين الباقي. الأولويات في صفحتك الرئيسية.',
+  'قبل ما تمشي: اتفق على الزيارة الجاية. "إن شاء الله الأسبوع الجاي" أحسن من "هعدّي".',
+  'البونص مش ورقة تتقال، وضّح للعميل يوفّر كام لو طلب الكمية اللي فيها العرض.',
+  'خلّي تقييمك للزيارة صادق، ده اللي بيخلّي النظام يرتّب لك الأولويات صح.'
+];
+let repTipShift = 0;
+function repTipHTML(){
+  let dataTip = '';
+  try{
+    const I = crmIntel(), top = I.list.filter(x=>!x.visitedToday && x.score>0).sort((a,b)=>b.score-a.score)[0];
+    if(top) dataTip = `<div>🎯 النهارده: فكّر تزور <a href="#" style="font-weight:700;" onclick="openCustomer360(${_jq(top.c.code)});return false;">${escapeHTML(top.c.name||top.c.code)}</a>${top.reasons && top.reasons.length ? ' - '+escapeHTML(top.reasons.slice(0,2).join(' · ')) : ''}</div>`;
+  }catch(e){}
+  const idx = (_hashStr(todayISO()+'|'+(CURRENT_USER.username||'')) + repTipShift) % REP_TIPS.length;
+  return `<div class="repTip">${dataTip}<div>💡 ${escapeHTML(REP_TIPS[idx])}</div><button class="btn btn-ghost btn-sm" onclick="repTipShift++;renderView()">نصيحة تانية ↻</button></div>`;
+}
+
 function repTodayCardHTML(visitsToday){
   let tasks = [];
   try{ const t = todayISO(); tasks = tasksOn(t).filter(x=>!taskDone(x,t)); }catch(e){}
@@ -2471,6 +2501,7 @@ function repTodayCardHTML(visitsToday){
       <button class="btn btn-outline" onclick="goTo('calendar')">📅 مهامي</button></div>
     <div class="rtBtns"><button class="btn btn-outline" onclick="openRepHelper('quiz')">🎮 تحدي اليوم</button>
       <button class="btn btn-outline" onclick="openRepHelper('ask')">🤖 مساعدي</button></div>
+    ${repTipHTML()}
   </div>`;
 }
 function viewDashboard(){
@@ -3976,6 +4007,29 @@ const CD_DEFAULT_FIELDS = [{key:'license', label:'رقم الرخصة'}, {key:'s
 let CD_CFG = {active:true, fields:CD_DEFAULT_FIELDS};
 let cdPanelOpen = false, cdQuery = '', cdFilter = 'all', cdShown = 30, cdOpen = '', cdDraft = {}, cdFieldsDraft = null, cdExtraCols = false, cdSaving = false;
 function cdFields(){ return Array.isArray(CD_CFG.fields) ? CD_CFG.fields : []; }
+async function cdDeleteAll(){
+  if(!CURRENT_USER || CURRENT_USER.role!=='admin'){ toast('الحذف للأدمن بس','warn'); return; }
+  try{
+    const snap = await db.collection('customerData').get();
+    if(snap.empty){ toast('مفيش بيانات عملاء للحذف','warn'); return; }
+    if(!confirm(`هتحذف ${snap.size} مستند من بيانات العملاء (رقم الرخصة والكود المكاني...). هيتنزّل ملف نسخة احتياطية الأول. متابعة؟`)) return;
+    const typed = prompt('للتأكيد اكتب كلمة: حذف');
+    if((typed||'').trim()!=='حذف'){ toast('اتلغى الحذف','warn'); return; }
+    // نسخة احتياطية محلية قبل أي مسح
+    const data = snap.docs.map(d=>({id:d.id, data:serializeDoc(d.data())}));
+    const blob = new Blob([JSON.stringify({collection:'customerData', exportedAt:new Date().toISOString(), docs:data}, null, 1)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `customerData-backup-${todayISO()}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    const ids = snap.docs.map(d=>d.id);
+    for(let i=0;i<ids.length;i+=400){
+      const batch = db.batch();
+      ids.slice(i,i+400).forEach(id=>batch.delete(db.collection('customerData').doc(id)));
+      await batch.commit();
+    }
+    logAudit('delete','customerData', `حذف كل بيانات العملاء (${ids.length} مستند)`);
+    toast(`اتحذف ${ids.length} مستند. ملف النسخة الاحتياطية اتنزّل على جهازك`,'ok');
+  }catch(e){ console.error(e); toast('فشل الحذف: '+(e.message||e),'err'); }
+}
 function cdDocId(code){ return String(code).trim().replace(/[\/\s]+/g,'_'); }
 function cdEntry(code){ return CUST_DATA_MAP.get(cdDocId(code)); }
 function cdVal(e, key){ return String((e && e.values && e.values[key]) || '').trim(); }
@@ -4117,6 +4171,7 @@ function viewCustData(){
   const exportBar = canExport ? `<div class="cdExport">
       <button class="btn btn-primary btn-sm" onclick="cdExport('filled')">📥 تصدير Excel (المسجّل فقط)</button>
       <button class="btn btn-ghost btn-sm" onclick="cdExport('all')">📥 تصدير كل العملاء</button>
+      ${CURRENT_USER.role==='admin' ? `<button class="btn btn-danger btn-sm" onclick="cdDeleteAll()">🗑 حذف كل بيانات العملاء</button>` : ''}
       <label class="rbChip ${cdExtraCols?'on':''}"><input type="checkbox" ${cdExtraCols?'checked':''} onchange="cdExtraCols=this.checked;renderView();">+ المدينة ومين سجّل</label>
     </div>` : '';
   return `
@@ -4874,23 +4929,35 @@ function quickVisitFor(code){
   goTo('addvisit');
 }
 
+function _rowSig(o){
+  const keys = Object.keys(o).filter(k=>k!=='createdAt' && k!=='id' && o[k]!==undefined).sort();
+  return JSON.stringify(keys.map(k=>[k, o[k]]));
+}
 async function replaceCollectionData(collName, rows){
-  // يحذف كل المستندات الحالية في المجموعة ثم يضيف الصفوف الجديدة - يُستخدم للتحديث اليومي من ملف اكسيل
+  // مزامنة ذكية بدل "امسح الكل واكتب الكل": بنقارن محتوى كل صف بالمستندات الموجودة، فنكتب الجديد والمتغيّر بس ونمسح اللي اختفى.
+  // ده بيقلل القراءات والكتابات (وتكلفة Firebase) بشكل كبير، لأن كل جهاز متصل كان بيستلم كل المستندات من جديد مع كل استيراد.
   const existing = await db.collection(collName).get();
-  const existingIds = existing.docs.map(d=>d.id);
-  for(let i=0;i<existingIds.length;i+=400){
+  const pool = new Map();                                   // توقيع المحتوى -> مستندات موجودة لسه ماتطابقتش
+  existing.docs.forEach(d=>{ const sg = _rowSig(d.data()); (pool.get(sg) || pool.set(sg, []).get(sg)).push(d.id); });
+  const toAdd = [];
+  rows.forEach(r=>{
+    const sg = _rowSig(r), arr = pool.get(sg);
+    if(arr && arr.length) arr.pop(); else toAdd.push(r);   // موجود ومتطابق: سيبه زي ما هو
+  });
+  const toDelete = []; pool.forEach(arr=>arr.forEach(id=>toDelete.push(id)));
+  for(let i=0;i<toDelete.length;i+=400){
     const batch = db.batch();
-    existingIds.slice(i,i+400).forEach(id=>batch.delete(db.collection(collName).doc(id)));
+    toDelete.slice(i,i+400).forEach(id=>batch.delete(db.collection(collName).doc(id)));
     await batch.commit();
   }
-  for(let i=0;i<rows.length;i+=400){
+  for(let i=0;i<toAdd.length;i+=400){
     const batch = db.batch();
-    rows.slice(i,i+400).forEach(r=>{
-      const ref = db.collection(collName).doc();
-      batch.set(ref, {...r, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    toAdd.slice(i,i+400).forEach(r=>{
+      batch.set(db.collection(collName).doc(), {...r, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
     });
     await batch.commit();
   }
+  return {kept: rows.length - toAdd.length, added: toAdd.length, deleted: toDelete.length};
 }
 
 /* تحميل مكتبة Excel (SheetJS) عند الحاجة بس - المناديب مبيستوردوش Excel فمبيحمّلوهاش */
