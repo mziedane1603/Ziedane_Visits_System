@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v2.92)</title>
+<title>Ziedane CRM (v2.94)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -710,8 +710,8 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .qzOpt{display:block;width:100%;text-align:right;margin:6px 0;min-height:44px;border:1.5px solid var(--gray-300,#d6e0e0);background:#fff;border-radius:12px;font:inherit;font-weight:700;padding:8px 12px;}
 .qzOpt small{color:var(--gray-500,#7a8a90);font-weight:600;}.qzOpt.ok{border-color:#1e8e5a;background:#e6f6ee;}.qzOpt.bad{border-color:var(--red,#c0392b);background:#fdecea;}
 .qzFb{margin-top:4px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.qzDone{text-align:center;font-weight:800;color:var(--teal-dark,#0b5c51);padding:10px;}
-.asChips{display:flex;flex-wrap:wrap;gap:8px;}.asChip{border:1.5px solid var(--teal,#0f7a6b);background:#fff;color:var(--teal-dark,#0b5c51);border-radius:20px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px;}
-.asAns{background:var(--teal-lighter,#f2faf8);border-radius:12px;padding:12px;margin-top:6px;}.asRow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100,#f4f8f7);}
+.rhChips{display:flex;flex-wrap:wrap;gap:8px;}.rhChip{border:1.5px solid var(--teal,#0f7a6b);background:#fff;color:var(--teal-dark,#0b5c51);border-radius:20px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px;}
+.rhAns{background:var(--teal-lighter,#f2faf8);border-radius:12px;padding:12px;margin-top:6px;}.rhRow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100,#f4f8f7);}
 .repTip{margin-top:12px;background:#fff8e6;border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.7;display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
 .rrCard{border:1px solid var(--gray-300,#d6e0e0);border-radius:14px;padding:12px;margin-bottom:10px;background:#fff;}
 .rrCard.pend{border-color:var(--amber,#d68910);background:#fffaf0;}.rrCard.late{border-color:var(--red,#c0392b);}
@@ -983,7 +983,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '2.92';
+const APP_VERSION = '2.94';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -2421,7 +2421,7 @@ const ASST_INTENTS = [
   {k:'goal', ic:'🎯', q:'أنا ماشي إزاي الشهر ده؟', kw:['هدف','ماشي','تارجت','انجاز','زيارات الشهر']}
 ];
 function asstRow(x, extra){
-  return `<div class="asRow"><div style="flex:1;min-width:0;"><a href="#" style="font-weight:700;" onclick="closeRepHelper();openCustomer360(${_jq(x.c.code)});return false;">${escapeHTML(x.c.name||x.c.code)}</a><div class="smallMuted">${extra}</div></div>${asstVisitBtn(x.c.code)}</div>`;
+  return `<div class="rhRow"><div style="flex:1;min-width:0;"><a href="#" style="font-weight:700;" onclick="closeRepHelper();openCustomer360(${_jq(x.c.code)});return false;">${escapeHTML(x.c.name||x.c.code)}</a><div class="smallMuted">${extra}</div></div>${asstVisitBtn(x.c.code)}</div>`;
 }
 function asstCompute(k){
   const I = crmIntel(), L = I.list, rows = (arr,f,empty)=> arr.length ? arr.map(x=>asstRow(x,f(x))).join('') : `<div class="smallMuted">${empty}</div>`;
@@ -2470,9 +2470,9 @@ function asstFree(){
 }
 function asstHTML(){
   return `<div class="smallMuted" style="margin-bottom:8px;">مساعد بيحلل بيانات عملائك اللي في النظام بس، ومن غير ما يبعت حاجة لأي خدمة خارجية.</div>
-    <div class="asChips">${ASST_INTENTS.map(i=>`<button class="asChip" onclick="asstAsk('${i.k}')">${i.ic} ${escapeHTML(i.q)}</button>`).join('')}</div>
+    <div class="rhChips">${ASST_INTENTS.map(i=>`<button class="rhChip" onclick="asstAsk('${i.k}')">${i.ic} ${escapeHTML(i.q)}</button>`).join('')}</div>
     <div style="display:flex;gap:6px;margin:10px 0;"><input id="asstInput" type="text" style="flex:1;" placeholder="اكتب سؤالك... مثلًا: مين عليه مطالبات؟" onkeydown="if(event.key==='Enter')asstFree()"><button class="btn btn-primary btn-sm" onclick="asstFree()">اسأل</button></div>
-    ${rhAnswer ? `<div class="asAns">${rhAnswer}</div>` : ''}`;
+    ${rhAnswer ? `<div class="rhAns">${rhAnswer}</div>` : ''}`;
 }
 
 
@@ -2569,7 +2569,7 @@ function rrRepHTML(){
   return tabs + `
     <div class="field"><label>نوع الطلب</label><div class="resChips">${RR_TYPES.map(t=>`<button type="button" class="resChip ${rrDraft.type===t[0]?'on':''}" onclick="rrDraft.type='${t[0]}';renderRepRequests()">${t[1]}</button>`).join('')}</div></div>
     <div class="field"><label>العميل (اختياري)</label>
-      ${c ? `<div class="asRow"><div style="flex:1;"><b>${escapeHTML(c.name||c.code)}</b><div class="smallMuted">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''}</div></div><button class="btn btn-ghost btn-sm" onclick="rrDraft.customer=null;renderRepRequests()">تغيير</button></div>`
+      ${c ? `<div class="rhRow"><div style="flex:1;"><b>${escapeHTML(c.name||c.code)}</b><div class="smallMuted">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''}</div></div><button class="btn btn-ghost btn-sm" onclick="rrDraft.customer=null;renderRepRequests()">تغيير</button></div>`
         : `<input id="rrCustQ" type="text" placeholder="ابحث باسم العميل أو كوده..." oninput="rrCustSearch(this.value)"><div id="rrCustRes"></div>`}
     </div>
     <div class="field"><label>التفاصيل</label><textarea id="rrText" rows="4" maxlength="600" placeholder="اكتب طلبك باختصار..." oninput="rrDraft.text=this.value">${escapeHTML(rrDraft.text)}</textarea></div>
@@ -10629,7 +10629,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v2.92): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v2.94): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
