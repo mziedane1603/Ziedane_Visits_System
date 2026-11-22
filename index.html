@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.03)</title>
+<title>Ziedane CRM (v3.04)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1015,7 +1015,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.03';
+const APP_VERSION = '3.04';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -2914,9 +2914,11 @@ function viewAgreements(){
         ${CURRENT_USER.role==='admin' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="agrDelete('${a.id}')">🗑</button>` : ''}
       </div></div>`;
   }).join('');
+  const tabs = `<div class="tabsRow" style="margin-bottom:8px;"><button class="tabBtn ${agrTab==='list'?'active':''}" onclick="agrTab='list';renderView()">📑 العقود</button><button class="tabBtn ${agrTab==='report'?'active':''}" onclick="agrTab='report';renderView()">📊 التقرير المجمع</button></div>`;
   return `<div class="pageHead"><div><h2>📑 عقود الاتفاق</h2><div class="desc">${list.length} عقد · المتابعة من شيت المطالبات (شهر المطالبة من 14 لـ 13)</div></div>
-    <div><button class="btn btn-primary" onclick="agrOpenEdit()">+ عقد جديد</button></div></div>
-    ${cards || `<div class="card"><div class="emptyState"><div class="ic">📑</div><div class="t">مفيش عقود لسه</div><div class="desc">اضغط "+ عقد جديد"، اكتب كود العميل والبيانات هتظهر لوحدها.</div></div></div>`}`;
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">${agrTab==='report' ? `<button class="btn btn-outline" onclick="agrReportPrint()">🖨 طباعة</button><button class="btn btn-outline" onclick="agrReportImage()">📷 صورة</button><button class="btn btn-primary" onclick="agrReportWhatsApp()">📲 واتساب</button>` : ''}<button class="btn ${agrTab==='report'?'btn-ghost':'btn-primary'}" onclick="agrOpenEdit()">+ عقد جديد</button></div></div>
+    ${tabs}
+    ${agrTab==='report' ? viewAgreementsReport() : cards || `<div class="card"><div class="emptyState"><div class="ic">📑</div><div class="t">مفيش عقود لسه</div><div class="desc">اضغط "+ عقد جديد"، اكتب كود العميل والبيانات هتظهر لوحدها.</div></div></div>`}`;
 }
 function agrOpenEdit(id){
   const a = id ? AGREEMENTS.find(x=>x.id===id) : null;
@@ -3011,6 +3013,111 @@ function agrPrint(id){
     <p class="agrB">هذا الإتفاق يسري على الأكواد المذكورة فقط #</p>
     <div class="agrSign"><div><b>الصيادلة العرب</b><br><br>المدير المالى والإدارى</div><div><b>صيدلية د : ${escapeHTML(a.pharmacist)}</b><br><br>الإدارة</div></div></div>
     <style>.agrDoc{font-family:Tahoma,Arial,sans-serif;direction:rtl;padding:10mm 14mm;color:#111;font-size:15px;line-height:1.9}.agrLogo{margin-bottom:24px}.agrTitle{text-align:center;margin:26px 0}.agrTitle span{background:#d9d9d9;padding:2px 10px;font-size:20px}.agrB{font-weight:700;margin:16px 0}.agrGap{margin-inline-end:34px}.agrTbl{width:100%;border-collapse:collapse;margin:26px 0;text-align:center}.agrTbl th{background:#cfe1f3;padding:8px;border:1px solid #8aa9cc}.agrTbl td{padding:8px;border:1px solid #8aa9cc;font-weight:700}.agrSign{display:flex;justify-content:space-around;margin-top:60px;text-align:center}</style>`;
+  printSoon();
+}
+
+
+/* ---------- تقرير مجمع لكل عقود الاتفاق (فلاتر + ترتيب + رسوم + طباعة + واتساب) ---------- */
+let agrTab = 'list', agrCharts = [];
+const agrRep = {city:'', area:'', status:'active', res:'', q:'', sort:'pct', month:''};
+function agrMonthOptions(){
+  const set = new Set(); AGREEMENTS.forEach(a=>agrMonths(a).forEach(m=>{ if(m.has) set.add(m.k); }));
+  return [...set].sort().reverse();
+}
+function agrReportRows(){
+  const opts = agrMonthOptions(); const mk = agrRep.month || opts[0] || '';
+  let rows = AGREEMENTS.map(a=>{
+    const ms = agrMonths(a), cur = ms.find(x=>x.k===mk), hist = ms.filter(x=>x.has);
+    const state = !cur || !cur.has ? 'none' : cur.ok ? 'ok' : 'bad';
+    return {a, cur, state, total: cur&&cur.has?cur.total:0, pct: cur&&cur.has?cur.pct:0, okMonths: hist.filter(x=>x.ok).length, hist: hist.length,
+      due: ms.filter(x=>x.ok&&x.paid).reduce((s,x)=>s+x.discount,0), gap: cur&&cur.has&&!cur.ok ? Math.max(0,(Number(a.amount)||0)-cur.total) : 0};
+  });
+  if(agrRep.city) rows = rows.filter(r=>r.a.city===agrRep.city);
+  if(agrRep.area) rows = rows.filter(r=>r.a.area===agrRep.area);
+  if(agrRep.status==='active') rows = rows.filter(r=>agrActive(r.a)); else if(agrRep.status==='ended') rows = rows.filter(r=>!agrActive(r.a));
+  if(agrRep.res) rows = rows.filter(r=>r.state===agrRep.res);
+  if(agrRep.q){ const q = agrRep.q.toLowerCase(); rows = rows.filter(r=>(r.a.pharmacist+' '+(r.a.codes||[]).map(c=>c.code+' '+c.name).join(' ')).toLowerCase().includes(q)); }
+  const S = {pct:(x,y)=>y.pct-x.pct, total:(x,y)=>y.total-x.total, gap:(x,y)=>y.gap-x.gap, name:(x,y)=>String(x.a.pharmacist).localeCompare(String(y.a.pharmacist),'ar'), city:(x,y)=>String(x.a.city).localeCompare(String(y.a.city),'ar')||String(x.a.area).localeCompare(String(y.a.area),'ar'), months:(x,y)=>y.okMonths-x.okMonths};
+  rows.sort(S[agrRep.sort]||S.pct);
+  return {rows, mk};
+}
+function agrSet(k,v){ agrRep[k]=v; if(k==='city') agrRep.area=''; renderView(); }
+function viewAgreementsReport(){
+  const {rows, mk} = agrReportRows(), opts = agrMonthOptions();
+  const cities = [...new Set(AGREEMENTS.map(a=>a.city).filter(Boolean))].sort(), areas = [...new Set(AGREEMENTS.filter(a=>!agrRep.city||a.city===agrRep.city).map(a=>a.area).filter(Boolean))].sort();
+  const ok = rows.filter(r=>r.state==='ok').length, bad = rows.filter(r=>r.state==='bad').length, none = rows.filter(r=>r.state==='none').length;
+  const tot = rows.reduce((s,r)=>s+r.total,0), due = rows.reduce((s,r)=>s+r.due,0);
+  const sel = (k,list,all)=>`<select onchange="agrSet('${k}',this.value)"><option value="">${all}</option>${list.map(x=>`<option ${agrRep[k]===x?'selected':''}>${escapeHTML(x)}</option>`).join('')}</select>`;
+  const tr = rows.map(r=>`<tr><td><b>${escapeHTML(r.a.pharmacist)}</b><div class="smallMuted">${(r.a.codes||[]).map(c=>c.code).join(' · ')}</div></td><td>${escapeHTML(r.a.city)}<div class="smallMuted">${escapeHTML(r.a.area)}</div></td><td>${fmtMoney(r.a.amount)}</td><td><b>${r.state==='none'?'-':fmtMoney(r.total)}</b></td>
+    <td><div style="background:var(--gray-100);border-radius:6px;height:8px;min-width:70px;"><i style="display:block;height:8px;border-radius:6px;width:${Math.min(100,r.pct)}%;background:${r.state==='ok'?'var(--teal)':'var(--red)'}"></i></div><span class="smallMuted">${r.state==='none'?'-':r.pct+'%'}</span></td>
+    <td>${r.state==='ok'?'🟢 محقق':r.state==='bad'?`🔴 ناقص ${fmtMoney(r.gap)}`:'⏳ لسه'}</td><td>${r.okMonths}/${r.hist}</td></tr>`).join('');
+  setTimeout(agrDrawCharts, 30);
+  return `<div class="card" style="margin-bottom:10px;"><div class="filterBar">
+      <select onchange="agrSet('month',this.value)">${opts.map(k=>`<option value="${k}" ${k===mk?'selected':''}>شهر مطالبة ${periodLabel(k)}</option>`).join('')||'<option>مفيش بيانات</option>'}</select>
+      ${sel('city',cities,'كل المدن')}${sel('area',areas,'كل المناطق')}
+      <select onchange="agrSet('status',this.value)"><option value="active" ${agrRep.status==='active'?'selected':''}>العقود السارية</option><option value="ended" ${agrRep.status==='ended'?'selected':''}>المنتهية</option><option value="" ${agrRep.status===''?'selected':''}>الكل</option></select>
+      <select onchange="agrSet('res',this.value)"><option value="">كل النتائج</option><option value="ok" ${agrRep.res==='ok'?'selected':''}>محقق</option><option value="bad" ${agrRep.res==='bad'?'selected':''}>لم يحقق</option><option value="none" ${agrRep.res==='none'?'selected':''}>لسه</option></select>
+      <select onchange="agrSet('sort',this.value)">${[['pct','ترتيب: % تحقيق'],['total','المطالبة'],['gap','الأكتر نقصاً'],['months','شهور محققة'],['name','الاسم'],['city','المدينة/المنطقة']].map(x=>`<option value="${x[0]}" ${agrRep.sort===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>
+      <input placeholder="🔍 اسم أو كود" value="${escapeHTML(agrRep.q)}" oninput="agrRep.q=this.value;dbnc('agrRepQ',()=>{const p=this.selectionStart;renderView();const i=document.querySelector('.filterBar input');if(i){i.focus();try{i.setSelectionRange(p,p)}catch(e){}}})"></div></div>
+    <div id="agrRepBody"><div class="qrStats">${qrStat('عقود',rows.length)}${qrStat('🟢 محقق',ok)}${qrStat('🔴 لم يحقق',bad)}${qrStat('⏳ لسه',none)}${qrStat('إجمالي المطالبة',fmtMoney(tot))}${qrStat('خصم مستحق (مسدد)',fmtMoney(due))}</div>
+    <div class="grid grid-2" style="margin:10px 0;"><div class="card"><h3 style="font-size:14px;margin:0 0 6px;">نتيجة الشهر</h3><div style="height:230px;"><canvas id="agC1"></canvas></div></div>
+      <div class="card"><h3 style="font-size:14px;margin:0 0 6px;">أعلى/أقل 10 عقود (% من الهدف)</h3><div style="height:230px;"><canvas id="agC2"></canvas></div></div></div>
+    <div class="card" style="margin-bottom:10px;"><h3 style="font-size:14px;margin:0 0 6px;">التحقيق شهر بشهر (عدد العقود)</h3><div style="height:210px;"><canvas id="agC3"></canvas></div></div>
+    <div class="card"><div class="tableWrap"><table><thead><tr><th>الصيدلي / الأكواد</th><th>المدينة / المنطقة</th><th>الهدف</th><th>المطالبة</th><th>% تحقيق</th><th>الحالة</th><th>شهور محققة</th></tr></thead><tbody>${tr||'<tr><td colspan="7" class="smallMuted">مفيش نتائج بالفلاتر دي</td></tr>'}</tbody></table></div></div></div>`;
+}
+function agrDrawCharts(){
+  agrCharts.forEach(c=>{ try{ c.destroy(); }catch(e){} }); agrCharts = [];
+  if(!window.Chart || !document.getElementById('agC1')) return;
+  const {rows} = agrReportRows(); const G='#2e8b6f', R='#d2563f', Y='#c9a24a';
+  const ok = rows.filter(r=>r.state==='ok').length, bad = rows.filter(r=>r.state==='bad').length, none = rows.filter(r=>r.state==='none').length;
+  const base = {responsive:true, maintainAspectRatio:false, animation:{duration:600}, font:{size:12}};
+  agrCharts.push(new Chart('agC1',{type:'doughnut',data:{labels:['محقق','لم يحقق','لسه'],datasets:[{data:[ok,bad,none],backgroundColor:[G,R,'#b8c2bd']}]},options:{...base,plugins:{legend:{position:'bottom'}}}}));
+  const w = rows.filter(r=>r.state!=='none').sort((x,y)=>y.pct-x.pct); const pick = w.length>20 ? [...w.slice(0,10),...w.slice(-10)] : w;
+  agrCharts.push(new Chart('agC2',{type:'bar',data:{labels:pick.map(r=>String(r.a.pharmacist).slice(0,16)),datasets:[{data:pick.map(r=>r.pct),backgroundColor:pick.map(r=>r.state==='ok'?G:R)}]},options:{...base,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>v+'%'}}}}}));
+  const ks = agrMonthOptions().slice().reverse(), vis = new Set(rows.map(r=>r.a.id));
+  const per = ks.map(k=>{ let o=0,b=0; AGREEMENTS.filter(a=>vis.has(a.id)).forEach(a=>{ const m = agrMonths(a).find(x=>x.k===k); if(m&&m.has){ if(m.ok)o++; else b++; } }); return [o,b]; });
+  agrCharts.push(new Chart('agC3',{type:'bar',data:{labels:ks.map(k=>periodLabel(k)),datasets:[{label:'محقق',data:per.map(x=>x[0]),backgroundColor:G},{label:'لم يحقق',data:per.map(x=>x[1]),backgroundColor:R}]},options:{...base,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{precision:0}}}}}));
+}
+function agrReportText(){
+  const {rows, mk} = agrReportRows(); const ok = rows.filter(r=>r.state==='ok'), bad = rows.filter(r=>r.state==='bad'), none = rows.filter(r=>r.state==='none');
+  const f = [agrRep.city, agrRep.area].filter(Boolean).join(' - ');
+  const line = r=>`• ${r.a.pharmacist} (${r.a.area||r.a.city}) ${r.pct}%${r.state==='bad'?` - ناقص ${Math.round(r.gap).toLocaleString('en-US')}`:''}`;
+  return `📑 *تقرير عقود الاتفاق*\nشهر المطالبة: ${mk?periodLabel(mk):'-'}${f?`\n📍 ${f}`:''}\n\n🟢 محقق: ${ok.length}\n🔴 لم يحقق: ${bad.length}\n⏳ لسه: ${none.length}\n`
+    + (bad.length ? `\n*محتاجين دفعة (الأقرب للهدف):*\n${bad.sort((x,y)=>y.pct-x.pct).slice(0,12).map(line).join('\n')}\n` : '')
+    + (ok.length ? `\n*حققوا الهدف 👏:*\n${ok.slice(0,12).map(line).join('\n')}\n` : '') + `\nيلا نكمّل ونقفل الشهر بأعلى تحقيق 💪`;
+}
+function agrReportWhatsApp(){ window.open('https://wa.me/?text='+encodeURIComponent(agrReportText()),'_blank'); }
+// صورة التقرير (الرسوم + أهم الأرقام) للواتساب - بتتشارك مباشرة لو الجهاز بيدعم، وإلا بتنزل كصورة
+async function agrReportImage(){
+  try{
+    const {rows, mk} = agrReportRows(), W = 1080, c = document.createElement('canvas'), top = rows.filter(r=>r.state!=='none').slice(0,14);
+    const imgs = ['agC1','agC2'].map(id=>document.getElementById(id)).filter(Boolean);
+    c.width = W; c.height = 190 + 520 + top.length*46 + 90; const x = c.getContext('2d');
+    x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.direction='rtl'; x.textAlign='right';
+    x.fillStyle='#0F7A6B'; x.font='bold 44px Tahoma,Arial'; x.fillText('تقرير عقود الاتفاق', W-40, 70);
+    x.fillStyle='#444'; x.font='28px Tahoma,Arial'; x.fillText('شهر المطالبة '+(mk?periodLabel(mk):'')+((agrRep.city||agrRep.area)?'  |  '+[agrRep.city,agrRep.area].filter(Boolean).join(' - '):''), W-40, 120);
+    const ok = rows.filter(r=>r.state==='ok').length, bad = rows.filter(r=>r.state==='bad').length;
+    x.font='bold 32px Tahoma,Arial'; x.fillStyle='#2e8b6f'; x.fillText('🟢 محقق '+ok, W-40, 170); x.fillStyle='#d2563f'; x.fillText('🔴 لم يحقق '+bad, W-340, 170);
+    if(imgs[0]) x.drawImage(imgs[0], 540, 200, 500, 500*imgs[0].height/imgs[0].width);
+    if(imgs[1]) x.drawImage(imgs[1], 40, 200, 480, 480*imgs[1].height/imgs[1].width);
+    let y = 730; x.font='26px Tahoma,Arial';
+    top.forEach(r=>{ x.fillStyle = r.state==='ok'?'#2e8b6f':'#d2563f'; x.fillText(`${r.state==='ok'?'🟢':'🔴'} د. ${String(r.a.pharmacist).slice(0,22)} - ${r.a.area||r.a.city}`, W-40, y); x.textAlign='left'; x.fillText(r.pct+'%', 40, y); x.textAlign='right'; y+=46; });
+    const blob = await new Promise(res=>c.toBlob(res,'image/png')), file = new File([blob],'agreements-report.png',{type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text:agrReportText()}); }
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'agreements-report.png'; a.click(); toast('اتحفظت الصورة - ابعتها واتساب 📷','ok'); }
+  }catch(e){ if(e && e.name==='AbortError') return; console.error(e); toast('تعذّر عمل الصورة','err'); }
+}
+function agrReportPrint(){
+  const {rows, mk} = agrReportRows(); if(!rows.length){ toast('مفيش بيانات للطباعة','warn'); return; }
+  const im = ['agC1','agC2','agC3'].map(id=>{ const c = document.getElementById(id); return c ? `<img src="${c.toDataURL('image/png')}" style="width:${id==='agC3'?'100%':'49%'};vertical-align:top;">` : ''; }).join('');
+  const ok = rows.filter(r=>r.state==='ok').length, bad = rows.filter(r=>r.state==='bad').length, none = rows.length-ok-bad;
+  const body = rows.map(r=>`<tr><td>${escapeHTML(r.a.pharmacist)}</td><td>${escapeHTML(r.a.city)} - ${escapeHTML(r.a.area)}</td><td>${(r.a.codes||[]).map(c=>c.code).join(' ')}</td><td>${fmtMoney(r.a.amount)}</td><td>${r.state==='none'?'-':fmtMoney(r.total)}</td><td>${r.state==='none'?'-':r.pct+'%'}</td><td>${r.state==='ok'?'محقق':r.state==='bad'?'ناقص '+fmtMoney(r.gap):'لسه'}</td><td>${r.okMonths}/${r.hist}</td></tr>`).join('');
+  document.getElementById('printArea').innerHTML = `<div class="printHeader"><div class="printLogo"><span class="logoZ">Z</span>⚡</div><div><h1>تقرير عقود الاتفاق</h1>
+    <div class="printMeta">${escapeHTML((COMPANY&&(COMPANY.nameAr||COMPANY.name))||'شركة الصيادلة العرب')} · شهر المطالبة ${mk?periodLabel(mk):'-'} · ${[agrRep.city,agrRep.area].filter(Boolean).join(' - ')||'كل المدن'} · ${fmtDateArabic(todayISO())}</div></div></div>
+    <div class="printSummaryGrid"><div class="printSummaryCard"><div class="l">عقود</div><div class="v">${rows.length}</div></div><div class="printSummaryCard"><div class="l">محقق</div><div class="v">${ok}</div></div><div class="printSummaryCard"><div class="l">لم يحقق</div><div class="v">${bad}</div></div><div class="printSummaryCard"><div class="l">لسه</div><div class="v">${none}</div></div></div>
+    <div style="margin-bottom:14px;">${im}</div>
+    <table class="printTable"><thead><tr><th>الصيدلي</th><th>المدينة - المنطقة</th><th>الأكواد</th><th>الهدف</th><th>المطالبة</th><th>%</th><th>الحالة</th><th>شهور محققة</th></tr></thead><tbody>${body}</tbody></table>
+    <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>`;
   printSoon();
 }
 
@@ -11048,7 +11155,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.03): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.04): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
