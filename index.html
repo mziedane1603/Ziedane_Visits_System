@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.02)</title>
+<title>Ziedane CRM (v3.03)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1015,7 +1015,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.02';
+const APP_VERSION = '3.03';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1181,6 +1181,7 @@ const ALL_PAGES = [
   {id:'repbonus',  label:'حوافز المناديب', ic:'💰'},
   {id:'definitions', label:'التعريفات', ic:'⚙️'},
   {id:'claims',     label:'المطالبات', ic:'💵'},
+  {id:'agreements', label:'عقود الاتفاق', ic:'📑'},
   {id:'customersales', label:'مبيعات العملاء', ic:'📈'},
   {id:'citysales', label:'مبيعات المدن', ic:'🏙️'},
   {id:'customerstatement', label:'كشف حساب عميل', ic:'📄'},
@@ -1348,7 +1349,7 @@ function groupTabsHTML(){
 const PAGE_SECTION = {
   dashboard:'main',
   routeplan:'daily', calendar:'daily', addvisit:'daily', visits:'daily', customers:'daily', custdata:'daily', followup:'daily',
-  inventory:'sales', suggestedorders:'sales', portalorders:'sales', customersales:'sales', salesdeck:'sales', citysales:'sales', customerstatement:'sales', claims:'sales',
+  inventory:'sales', suggestedorders:'sales', portalorders:'sales', customersales:'sales', salesdeck:'sales', citysales:'sales', customerstatement:'sales', claims:'sales', agreements:'sales',
   teamchat:'comm', announcements:'comm',
   reps:'admin', repbonus:'admin', definitions:'admin', users:'admin', auditlog:'admin',
   athkar:'more'
@@ -1764,6 +1765,7 @@ function dataNeededForView(view){
       return ['citySales','claims','customerSales','followups','plannedVisits','users'].concat(reportsTab==='analytics' ? ['salesAnalytics'] : []);
     case 'addvisit': return ['claims'];
     case 'claims': return ['claims'];
+    case 'agreements': return ['agreements','claims'];
     case 'customersales': return ['customerSales'];
     case 'salesdeck': return ['customerSales'];
     case 'citysales': return ['citySales'].concat(isAdminLike() ? ['salesAnalytics'] : []);
@@ -1844,6 +1846,7 @@ DATA_ATTACHERS['cdFields'] = ()=>{
   }, err=>console.error('cdFields listener', err)));
 };
 lazyScoped('claims', 'claims', l=>{ CLAIMS = l; });
+lazyListen('agreements', ()=>db.collection('agreements'), snap=>{ AGREEMENTS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('agreements'); });
 lazyScoped('customerSales', 'customerSales', l=>{ CUSTOMER_SALES = l; });
 lazyScoped('citySales', 'citySales', l=>{ CITY_SALES_RAW = l; rebuildCitySales(); });
 lazyListen('salesAnalytics', ()=>db.collection('salesAnalytics'), snap=>{ SALES_ANALYTICS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('salesAnalytics'); });
@@ -2183,6 +2186,7 @@ function renderView(){
     else if(currentView==='reps') main.innerHTML = viewReps();
     else if(currentView==='definitions') main.innerHTML = viewDefinitions();
     else if(currentView==='claims') main.innerHTML = viewClaims();
+    else if(currentView==='agreements') main.innerHTML = viewAgreements();
     else if(currentView==='customersales') main.innerHTML = viewCustomerSales();
     else if(currentView==='salesdeck') main.innerHTML = viewSalesDeck();
     else if(currentView==='citysales') main.innerHTML = viewCitySales();
@@ -2857,6 +2861,158 @@ const Q=[['الربع 1',0,2],['الربع 2',3,5],['الربع 3',6,8],['الر
   };
 })();
 function viewSalesDeck(){ return SalesDeck.view(); }
+
+
+/* ==========================================================================
+   📑 عقود الاتفاق: عقد خصم إضافي لصيدلية/أكتر (طباعة بنفس الشكل) + متابعة التنفيذ شهر بشهر من المطالبات
+   شهر المطالبة = من يوم 14 لحد 13 الشهر اللي بعده. الأعمدة بتتقرا من شيت المطالبات الجديد (claims.periods)
+   ========================================================================== */
+let AGREEMENTS = [];
+let agrDraft = null, agrTrackId = null;
+const AGR_DEFAULT_PARTY = 'الإدارة المالية -- شركة الصيادلة العرب – شبين القناطر';
+function periodStartKey(iso){ // أي تاريخ → مفتاح شهر المطالبة اللي بيبدأ يوم 14 (YYYY-MM)
+  let y = Number(iso.slice(0,4)), m = Number(iso.slice(5,7)), d = Number(iso.slice(8,10));
+  if(d<14){ m--; if(m<1){ m=12; y--; } }
+  return y+'-'+String(m).padStart(2,'0');
+}
+function periodNextKey(k){ let y=Number(k.slice(0,4)), m=Number(k.slice(5,7))+1; if(m>12){ m=1; y++; } return y+'-'+String(m).padStart(2,'0'); }
+function periodLabel(k){ const nk = periodNextKey(k); return `14-${k.slice(5)} ← 13-${nk.slice(5)}`; }
+function agrCustomer(code){ return CUSTOMERS.find(c=>String(c.code)===String(code)); }
+function agrFmt(d){ return d ? String(d).split('-').reverse().join('-') : ''; }
+function agrActive(a){ return !a.endDate || a.endDate >= todayISO(); }
+// المطالبة الشهرية لعقد: مجموع مطالبات أكواد العقد لكل شهر مطالبة جوه مدة العقد
+function agrMonths(a){
+  const first = periodStartKey(a.startDate), last = periodStartKey(a.endDate||todayISO()), out = [];
+  let k = first; for(let i=0;i<30 && k<=last;i++){ out.push(k); k = periodNextKey(k); }
+  const claims = (a.codes||[]).map(c=>CLAIMS.find(x=>String(x.code)===String(c.code)));
+  const target = Number(a.amount)||0, pct = Number(a.discountPct)||0;
+  return out.map(k=>{
+    const vals = claims.map(cl=>cl && cl.periods && cl.periods[k]!=null ? Number(cl.periods[k])||0 : null);
+    const has = vals.some(v=>v!=null), total = vals.reduce((s,v)=>s+(v||0),0);
+    const paid = !!(a.paid && a.paid[k]);
+    return {k, has, vals, total, ok: has && total>=target, pct: target ? Math.round(total/target*100) : 0, discount: has && total>=target ? Math.round(total*pct)/100 : 0, paid};
+  });
+}
+function agrProgress(a){ const m = agrMonths(a).filter(x=>x.has); return {done:m.length, ok:m.filter(x=>x.ok).length}; }
+
+function viewAgreements(){
+  const list = AGREEMENTS.slice().sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)));
+  const cards = list.map(a=>{
+    const p = agrProgress(a), act = agrActive(a);
+    return `<div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:flex-start;">
+        <div><div style="font-weight:800;font-size:16px;">د. ${escapeHTML(a.pharmacist||'')}</div>
+          <div class="smallMuted">${escapeHTML(a.area||'')} · ${escapeHTML(a.city||'')} · ${(a.codes||[]).length} كود · من ${agrFmt(a.startDate)} حتى ${agrFmt(a.endDate)}</div>
+          <div class="smallMuted">مسحوبات ${fmtMoney(a.amount)} شهرياً ← خصم ${a.discountPct}%</div></div>
+        <span class="badge ${act?'badge-teal':'badge-gray'}">${act?'ساري':'منتهي'}</span>
+      </div>
+      <div style="margin:8px 0;font-weight:700;">${p.done ? `حقق ${p.ok} من ${p.done} شهر` : 'لسه مفيش بيانات مطالبات للعقد'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="agrOpenTrack('${a.id}')">📊 المتابعة</button>
+        <button class="btn btn-outline btn-sm" onclick="agrPrint('${a.id}')">🖨 طباعة</button>
+        <button class="btn btn-ghost btn-sm" onclick="agrOpenEdit('${a.id}')">✏️ تعديل</button>
+        ${CURRENT_USER.role==='admin' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="agrDelete('${a.id}')">🗑</button>` : ''}
+      </div></div>`;
+  }).join('');
+  return `<div class="pageHead"><div><h2>📑 عقود الاتفاق</h2><div class="desc">${list.length} عقد · المتابعة من شيت المطالبات (شهر المطالبة من 14 لـ 13)</div></div>
+    <div><button class="btn btn-primary" onclick="agrOpenEdit()">+ عقد جديد</button></div></div>
+    ${cards || `<div class="card"><div class="emptyState"><div class="ic">📑</div><div class="t">مفيش عقود لسه</div><div class="desc">اضغط "+ عقد جديد"، اكتب كود العميل والبيانات هتظهر لوحدها.</div></div></div>`}`;
+}
+function agrOpenEdit(id){
+  const a = id ? AGREEMENTS.find(x=>x.id===id) : null;
+  const t = todayISO(), endD = new Date(t+'T12:00:00Z'); endD.setUTCFullYear(endD.getUTCFullYear()+1); endD.setUTCDate(endD.getUTCDate()-1);
+  agrDraft = a ? JSON.parse(JSON.stringify(a)) : {pharmacist:'', area:'', city:'', party:AGR_DEFAULT_PARTY, amount:120000, discountPct:1, startDate:t, endDate:endD.toISOString().slice(0,10), codes:[], paid:{}};
+  agrRenderEdit();
+}
+function agrRenderEdit(){
+  document.getElementById('agrModal')?.remove();
+  const d = agrDraft, m = document.createElement('div'); m.className='modalBg'; m.id='agrModal';
+  m.innerHTML = `<div class="modal" style="max-width:640px;max-height:92vh;overflow:auto;">
+    <h3>${d.id?'تعديل عقد':'عقد اتفاق جديد'}</h3>
+    <div class="field"><label>اسم الصيدلي (د.)</label><input id="agPh" value="${escapeHTML(d.pharmacist)}" oninput="agrDraft.pharmacist=this.value"></div>
+    <div class="field"><label>أكواد الصيدليات - اكتب الكود واضغط Enter</label>
+      <div style="display:flex;gap:6px;"><input id="agCode" inputmode="numeric" placeholder="كود العميل" onkeydown="if(event.key==='Enter'){event.preventDefault();agrAddCode()}"><button class="btn btn-outline" onclick="agrAddCode()">+ إضافة</button></div></div>
+    ${d.codes.length ? `<div class="tableWrap"><table><thead><tr><th>الكود</th><th>الاسم</th><th>المنطقة</th><th>المدينة</th><th></th></tr></thead><tbody>${d.codes.map((c,i)=>`<tr><td>${escapeHTML(c.code)}</td><td>${escapeHTML(c.name)}</td><td>${escapeHTML(c.area)}</td><td>${escapeHTML(c.city)}</td><td><button class="btn btn-ghost btn-sm" onclick="agrDraft.codes.splice(${i},1);agrRenderEdit()">✕</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+    <div class="grid grid-2"><div class="field"><label>المنطقة</label><input value="${escapeHTML(d.area)}" oninput="agrDraft.area=this.value"></div>
+      <div class="field"><label>المدينة</label><input value="${escapeHTML(d.city)}" oninput="agrDraft.city=this.value"></div></div>
+    <div class="field"><label>الجهة المتعاقدة</label><input value="${escapeHTML(d.party)}" oninput="agrDraft.party=this.value"></div>
+    <div class="grid grid-2"><div class="field"><label>مبلغ المسحوبات الشهري</label><input type="number" value="${d.amount}" oninput="agrDraft.amount=Number(this.value)||0"></div>
+      <div class="field"><label>نسبة الخصم %</label><input type="number" step="0.01" value="${d.discountPct}" oninput="agrDraft.discountPct=Number(this.value)||0"></div></div>
+    <div class="grid grid-2"><div class="field"><label>بداية العقد (يفضل يوم 14)</label><input type="date" value="${d.startDate}" onchange="agrDraft.startDate=this.value"></div>
+      <div class="field"><label>نهاية العقد</label><input type="date" value="${d.endDate}" onchange="agrDraft.endDate=this.value"></div></div>
+    <div class="modalActions"><button class="btn btn-ghost" onclick="document.getElementById('agrModal').remove()">إلغاء</button><button class="btn btn-primary" onclick="agrSave()">💾 حفظ</button></div></div>`;
+  document.body.appendChild(m);
+  setTimeout(()=>document.getElementById('agCode')?.focus(), 50);
+}
+function agrAddCode(){
+  const inp = document.getElementById('agCode'), code = (inp.value||'').trim(); if(!code) return;
+  if(agrDraft.codes.some(c=>String(c.code)===code)){ toast('الكود ده مضاف','warn'); return; }
+  const c = agrCustomer(code); if(!c){ toast('الكود ده مش موجود في العملاء','warn'); return; }
+  agrDraft.codes.push({code:String(c.code), name:c.name||'', area:c.area||'', city:c.city||''});
+  if(!agrDraft.pharmacist) agrDraft.pharmacist = String(c.name||'').replace(/^د[.\s]*/,'');
+  if(!agrDraft.area) agrDraft.area = c.area||'';
+  if(!agrDraft.city) agrDraft.city = c.city||'';
+  agrRenderEdit();
+}
+async function agrSave(){
+  const d = agrDraft;
+  if(!d.pharmacist.trim()){ toast('اكتب اسم الصيدلي','warn'); return; }
+  if(!d.codes.length){ toast('ضيف كود واحد على الأقل','warn'); return; }
+  if(!d.startDate || !d.endDate || d.endDate<=d.startDate){ toast('تأكد من تواريخ العقد','warn'); return; }
+  const payload = {pharmacist:d.pharmacist.trim(), area:d.area||'', city:d.city||'', party:d.party||AGR_DEFAULT_PARTY, amount:Number(d.amount)||0, discountPct:Number(d.discountPct)||0, startDate:d.startDate, endDate:d.endDate, codes:d.codes, paid:d.paid||{}};
+  try{
+    if(d.id) await trackWrite(db.collection('agreements').doc(d.id).update(payload));
+    else await trackWrite(db.collection('agreements').add({...payload, createdBy:CURRENT_USER.username, createdAt:firebase.firestore.FieldValue.serverTimestamp()}));
+    logAudit(d.id?'edit':'add','agreements', payload.pharmacist);
+    document.getElementById('agrModal')?.remove(); toast('تم حفظ العقد ✔','ok');
+  }catch(e){ console.error(e); toast('فشل الحفظ','err'); }
+}
+async function agrDelete(id){
+  if(!confirm('حذف العقد نهائياً؟')) return;
+  try{ await trackWrite(db.collection('agreements').doc(id).delete()); toast('اتحذف','ok'); }catch(e){ toast('فشل الحذف','err'); }
+}
+async function agrTogglePaid(id, k){
+  const a = AGREEMENTS.find(x=>x.id===id); if(!a) return;
+  const paid = {...(a.paid||{})}; if(paid[k]) delete paid[k]; else paid[k] = true;
+  try{ await trackWrite(db.collection('agreements').doc(id).update({paid})); }catch(e){ toast('فشل الحفظ','err'); }
+}
+function agrOpenTrack(id){
+  const a = AGREEMENTS.find(x=>x.id===id); if(!a) return;
+  const ms = agrMonths(a), p = agrProgress(a), disc = ms.filter(x=>x.ok&&x.paid).reduce((s,x)=>s+x.discount,0);
+  const rows = ms.map(x=>{
+    const st = !x.has ? '<span class="smallMuted">لسه</span>' : x.ok ? (x.paid?'✅ مستحق':'🟢 محقق') : '🔴 لم يحقق';
+    return `<tr><td>${periodLabel(x.k)}</td>${a.codes.length>1 ? x.vals.map(v=>`<td>${v==null?'-':fmtMoney(v)}</td>`).join('') : ''}<td><b>${x.has?fmtMoney(x.total):'-'}</b></td><td>${x.has?x.pct+'%':'-'}</td><td>${st}</td><td>${x.ok?fmtMoney(x.discount):'-'}</td>
+      <td>${x.ok?`<label style="cursor:pointer;"><input type="checkbox" ${x.paid?'checked':''} onchange="agrTogglePaid('${a.id}','${x.k}')"> سدّد كاش</label>`:''}</td></tr>`;
+  }).join('');
+  document.getElementById('agrTrack')?.remove();
+  const m = document.createElement('div'); m.className='modalBg'; m.id='agrTrack';
+  m.innerHTML = `<div class="modal" style="max-width:860px;max-height:92vh;overflow:auto;">
+    <h3>📊 متابعة عقد د. ${escapeHTML(a.pharmacist)}</h3>
+    <div class="smallMuted" style="margin-bottom:8px;">الهدف ${fmtMoney(a.amount)} لكل شهر مطالبة ← خصم ${a.discountPct}% من إجمالي المطالبة بشرط السداد النقدي الكامل</div>
+    <div class="qrStats">${qrStat('شهور فيها بيانات',p.done)}${qrStat('شهور محققة',p.ok)}${qrStat('خصم مستحق (مسدد)',fmtMoney(disc))}</div>
+    <div class="tableWrap"><table><thead><tr><th>شهر المطالبة</th>${a.codes.length>1?a.codes.map(c=>`<th>${escapeHTML(c.code)}</th>`).join(''):''}<th>الإجمالي</th><th>% من الهدف</th><th>الحالة</th><th>الخصم</th><th>السداد</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="smallMuted" style="margin-top:8px;">الأرقام بتيجي من شيت المطالبات (أعمدة الفترات). حدّث الشيت من صفحة المطالبات علشان تظهر شهور جديدة.</div>
+    <div class="modalActions"><button class="btn btn-outline" onclick="agrPrint('${a.id}')">🖨 طباعة العقد</button><button class="btn btn-ghost" onclick="document.getElementById('agrTrack').remove()">إغلاق</button></div></div>`;
+  document.body.appendChild(m);
+}
+function agrPrint(id){
+  const a = AGREEMENTS.find(x=>x.id===id); if(!a) return;
+  const logo = COMPANY && COMPANY.logo ? `<img src="${COMPANY.logo}" style="max-height:90px;">` : `<div style="font-size:44px;font-weight:800;color:#2aa7d8;letter-spacing:4px;">APC</div><div style="color:#2aa7d8;font-weight:700;">Arab Pharmacists Company</div>`;
+  const rows = a.codes.map(c=>`<tr><td>${escapeHTML(c.code)}</td><td>${escapeHTML(c.name)}</td><td>${escapeHTML(c.area)}</td><td>${escapeHTML(c.city)}</td></tr>`).join('');
+  document.getElementById('printArea').innerHTML = `<div class="agrDoc">
+    <div class="agrLogo">${logo}</div>
+    <h2 class="agrTitle"><span>عقد إتفاق</span></h2>
+    <p class="agrB">أتفقت إدارة صيدلية د : <span class="agrGap">${escapeHTML(a.pharmacist)}</span> <span class="agrGap">منطقة : ${escapeHTML(a.area)}</span> <span>مدينة : ${escapeHTML(a.city)}</span></p>
+    <p class="agrB">مع ${escapeHTML(a.party||AGR_DEFAULT_PARTY)}</p>
+    <p class="agrB">على أنه فى حالة وصول مسحوبات العميل لمبلغ ( ${Number(a.amount).toLocaleString('en-US')} ) خلال شهر التعامل<br>يمنح العميل خصم إضافى ( ${Number(a.discountPct).toFixed(2)} % ) من إجمالى المطالبة شرط السداد النقدى الكامل<br>قبل يوم 27 #</p>
+    <table class="agrTbl"><thead><tr><th>كود الصيدلية</th><th>أسم الصيدلية</th><th>المنطقة</th><th>المدينة</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="agrB">هذا الإتفاق سارى بداية من ${agrFmt(a.startDate)} حتى ${agrFmt(a.endDate)}</p>
+    <p class="agrB">هذا الإتفاق يلغى فى حالة إخلال العميل بقيمة المسحوبات أو شرط السداد النقدي الكامل #</p>
+    <p class="agrB">هذا الإتفاق يسري على الأكواد المذكورة فقط #</p>
+    <div class="agrSign"><div><b>الصيادلة العرب</b><br><br>المدير المالى والإدارى</div><div><b>صيدلية د : ${escapeHTML(a.pharmacist)}</b><br><br>الإدارة</div></div></div>
+    <style>.agrDoc{font-family:Tahoma,Arial,sans-serif;direction:rtl;padding:10mm 14mm;color:#111;font-size:15px;line-height:1.9}.agrLogo{margin-bottom:24px}.agrTitle{text-align:center;margin:26px 0}.agrTitle span{background:#d9d9d9;padding:2px 10px;font-size:20px}.agrB{font-weight:700;margin:16px 0}.agrGap{margin-inline-end:34px}.agrTbl{width:100%;border-collapse:collapse;margin:26px 0;text-align:center}.agrTbl th{background:#cfe1f3;padding:8px;border:1px solid #8aa9cc}.agrTbl td{padding:8px;border:1px solid #8aa9cc;font-weight:700}.agrSign{display:flex;justify-content:space-around;margin-top:60px;text-align:center}</style>`;
+  printSoon();
+}
 
 var repMoreOpen = false;
 function toggleRepMore(){ repMoreOpen = !repMoreOpen; renderView(); }
@@ -6248,7 +6404,7 @@ async function saveUser(id){
 /* ==========================================================================
    BACKUP & RESTORE
    ========================================================================== */
-const BACKUP_COLLECTIONS = ['reps','customers','visits','claims','visitResults','users','announcements','customerData','portalOrders','customerSales','citySales','followups','followupResults','appConfig','salesAnalytics','teamChat','plannedVisits','inventory','bonusOffers','suggestedOrders','orderTemplates'];
+const BACKUP_COLLECTIONS = ['agreements','reps','customers','visits','claims','visitResults','users','announcements','customerData','portalOrders','customerSales','citySales','followups','followupResults','appConfig','salesAnalytics','teamChat','plannedVisits','inventory','bonusOffers','suggestedOrders','orderTemplates'];
 
 // يرجّع نصوص التاريخ (ISO) و{seconds,nanoseconds} لـ Timestamp عشان الاستعادة ما تبوّظش الترتيب والفلاتر بالتاريخ
 function reviveBackupValue(v){
@@ -7018,31 +7174,56 @@ function claimsTableHTML(list){
 }
 
 
+// قراءة الشيت بالعناوين (عشان نتعرف على أعمدة فترات المطالبة زي: 14-11 ل 13-12)
+async function parseExcelWithHeader(file){
+  await loadXLSX();
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{ try{ const wb = XLSX.read(e.target.result,{type:'array'}); resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})); }catch(err){ reject(err); } };
+    reader.onerror = reject; reader.readAsArrayBuffer(file);
+  });
+}
+// عنوان عمود فترة مطالبة → {m: شهر البداية}. بيقبل: "14-11 ل 13-12" أو "مطالبة 14/11 الى 13/12"
+function parsePeriodHeader(h){
+  const m = String(h||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).match(/(\d{1,2})\s*[-\/]\s*(\d{1,2})\s*(?:ل|لـ|الى|إلى|to|-|–)\s*(\d{1,2})\s*[-\/]\s*(\d{1,2})/i);
+  return m ? Number(m[2]) : null;
+}
 async function handleClaimsExcelImport(file){
   if(!file) return;
   try{
     toast('جاري قراءة الملف...','warn');
-    const rawRows = await parseExcelRows(file);
-    const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>({
-      code: String(r[0]??'').trim(),
-      name: String(r[1]??'').trim(),
-      city: String(r[2]??'').trim(),
-      area: String(r[3]??'').trim(),
-      paymentStatus: String(r[4]??'').trim(),
-      netSales: parseNum(r[5])
-    }));
+    const all = await parseExcelWithHeader(file), head = all[0]||[], rawRows = all.slice(1);
+    // أعمدة الفترات (من العمود 6 وراح): شهر البداية بيتحدد بالترتيب، والسنة بتزيد لما الشهر يرجع لورا
+    const cols = []; const now = new Date(), curM = now.getMonth()+1;
+    let year = null, prev = null;
+    for(let i=5;i<head.length;i++){
+      const sm = parsePeriodHeader(head[i]); if(!sm) continue;
+      if(year==null) year = sm > curM+1 ? now.getFullYear()-1 : now.getFullYear();
+      else if(sm < prev) year++;
+      prev = sm; cols.push({i, key: year+'-'+String(sm).padStart(2,'0'), label: String(head[i]).trim()});
+    }
+    const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>{
+      const o = {code:String(r[0]??'').trim(), name:String(r[1]??'').trim(), city:String(r[2]??'').trim(), area:String(r[3]??'').trim(), paymentStatus:String(r[4]??'').trim()};
+      if(cols.length){
+        const periods = {}; let last = 0;
+        cols.forEach(c=>{ const raw = r[c.i]; if(raw!=='' && raw!=null){ const v = parseNum(raw); periods[c.key] = v; if(v) last = v; } });
+        o.periods = periods; o.netSales = last;     // netSales = آخر فترة فيها رقم (باقي الشاشات بتعتمد عليه)
+      }else o.netSales = parseNum(r[5]);
+      return o;
+    });
     if(!rows.length){ toast('لم يتم العثور على بيانات صالحة في الملف','err'); return; }
-    showImportPreview('المطالبات', ['كود','اسم','مدينة','منطقة','حالة الدفع','صافي المبيعات'],
-      rows.map(r=>[r.code,r.name,r.city,r.area,r.paymentStatus,r.netSales]),
+    const labels = cols.length ? cols.map(c=>c.label) : ['صافي المبيعات'];
+    showImportPreview('المطالبات'+(cols.length?` (${cols.length} فترة)`:''), ['كود','اسم','مدينة','منطقة','حالة الدفع',...labels],
+      rows.map(r=>[r.code,r.name,r.city,r.area,r.paymentStatus,...(cols.length ? cols.map(c=>(r.periods||{})[c.key] ?? '') : [r.netSales])]),
       async ()=>{
         toast(`جاري استبدال البيانات (${rows.length} سجل)...`,'warn');
         await replaceCollectionData('claims', rows);
-        logAudit('import','claims', `استيراد ${rows.length} سجل من ملف ${file.name}`);
+        logAudit('import','claims', `استيراد ${rows.length} سجل${cols.length?` و${cols.length} فترة`:''} من ملف ${file.name}`);
         toast('تم تحديث المطالبات بنجاح ✔','ok');
       });
   }catch(e){
     console.error(e);
-    toast('فشل استيراد الملف - تأكد من تنسيق الأعمدة (كود، اسم، مدينة، منطقة، حالة الدفع، صافي المبيعات)','err');
+    toast('فشل استيراد الملف - الأعمدة: كود، اسم، مدينة، منطقة، حالة الدفع، ثم فترات المطالبة (مثال: 14-11 ل 13-12)','err');
   }
 }
 
@@ -10867,7 +11048,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.02): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.03): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -11033,6 +11214,7 @@ service cloud.firestore {
     // ===== بيانات مقيّدة بمدن المستخدم (الاستعلام لازم يحتوي where city == ...) =====
     match /customers/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
     match /claims/{id}             { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /agreements/{id}         { allow read, write: if isAdminOrManager(); }
     match /customerSales/{id}      { allow read: if sameCity(); allow write: if isAdmin(); }
     match /citySales/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
     // تحليلات المبيعات: للإدارة فقط
