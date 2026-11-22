@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.04)</title>
+<title>Ziedane CRM (v3.05)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1015,7 +1015,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.04';
+const APP_VERSION = '3.05';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -2932,8 +2932,9 @@ function agrRenderEdit(){
   m.innerHTML = `<div class="modal" style="max-width:640px;max-height:92vh;overflow:auto;">
     <h3>${d.id?'تعديل عقد':'عقد اتفاق جديد'}</h3>
     <div class="field"><label>اسم الصيدلي (د.)</label><input id="agPh" value="${escapeHTML(d.pharmacist)}" oninput="agrDraft.pharmacist=this.value"></div>
-    <div class="field"><label>أكواد الصيدليات - اكتب الكود واضغط Enter</label>
-      <div style="display:flex;gap:6px;"><input id="agCode" inputmode="numeric" placeholder="كود العميل" onkeydown="if(event.key==='Enter'){event.preventDefault();agrAddCode()}"><button class="btn btn-outline" onclick="agrAddCode()">+ إضافة</button></div></div>
+    <div class="field" style="position:relative;"><label>أضف صيدلية - ابحث بالاسم أو الكود</label>
+      <input id="agCode" autocomplete="off" placeholder="🔍 اكتب اسم أو كود العميل..." oninput="agrSuggest(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();agrAddCode()}">
+      <div id="agSug" style="display:none;position:absolute;inset-inline:0;top:100%;z-index:5;background:#fff;border:1px solid var(--gray-300);border-radius:10px;box-shadow:0 8px 24px #0002;max-height:260px;overflow:auto;"></div></div>
     ${d.codes.length ? `<div class="tableWrap"><table><thead><tr><th>الكود</th><th>الاسم</th><th>المنطقة</th><th>المدينة</th><th></th></tr></thead><tbody>${d.codes.map((c,i)=>`<tr><td>${escapeHTML(c.code)}</td><td>${escapeHTML(c.name)}</td><td>${escapeHTML(c.area)}</td><td>${escapeHTML(c.city)}</td><td><button class="btn btn-ghost btn-sm" onclick="agrDraft.codes.splice(${i},1);agrRenderEdit()">✕</button></td></tr>`).join('')}</tbody></table></div>` : ''}
     <div class="grid grid-2"><div class="field"><label>المنطقة</label><input value="${escapeHTML(d.area)}" oninput="agrDraft.area=this.value"></div>
       <div class="field"><label>المدينة</label><input value="${escapeHTML(d.city)}" oninput="agrDraft.city=this.value"></div></div>
@@ -2946,9 +2947,23 @@ function agrRenderEdit(){
   document.body.appendChild(m);
   setTimeout(()=>document.getElementById('agCode')?.focus(), 50);
 }
-function agrAddCode(){
-  const inp = document.getElementById('agCode'), code = (inp.value||'').trim(); if(!code) return;
-  if(agrDraft.codes.some(c=>String(c.code)===code)){ toast('الكود ده مضاف','warn'); return; }
+function agrMatches(q){
+  q = String(q||'').trim().toLowerCase(); if(!q) return [];
+  const exact = CUSTOMERS.filter(c=>String(c.code).toLowerCase()===q);
+  const part = CUSTOMERS.filter(c=>String(c.code).toLowerCase()!==q && (String(c.code).toLowerCase().startsWith(q) || String(c.name||'').toLowerCase().includes(q)));
+  return [...exact, ...part].filter(c=>!agrDraft.codes.some(x=>String(x.code)===String(c.code))).slice(0,8);
+}
+function agrSuggest(q){
+  const box = document.getElementById('agSug'); if(!box) return;
+  const m = agrMatches(q);
+  box.style.display = m.length ? 'block' : 'none';
+  box.innerHTML = m.map(c=>`<div style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--gray-100);" onmousedown="event.preventDefault();agrAddCode('${escapeHTML(String(c.code))}')"><b>${escapeHTML(c.name||'')}</b> <span class="smallMuted">· ${escapeHTML(String(c.code))} · ${escapeHTML(c.area||'')} · ${escapeHTML(c.city||'')}</span></div>`).join('');
+}
+function agrAddCode(pick){
+  const inp = document.getElementById('agCode');
+  const code = pick || (agrMatches(inp.value)[0] || {}).code;
+  if(!code){ toast(inp.value.trim() ? 'مفيش عميل بالاسم أو الكود ده' : 'اكتب اسم أو كود', 'warn'); return; }
+  if(agrDraft.codes.some(c=>String(c.code)===String(code))){ toast('الكود ده مضاف','warn'); return; }
   const c = agrCustomer(code); if(!c){ toast('الكود ده مش موجود في العملاء','warn'); return; }
   agrDraft.codes.push({code:String(c.code), name:c.name||'', area:c.area||'', city:c.city||''});
   if(!agrDraft.pharmacist) agrDraft.pharmacist = String(c.name||'').replace(/^د[.\s]*/,'');
@@ -7292,7 +7307,7 @@ async function parseExcelWithHeader(file){
 }
 // عنوان عمود فترة مطالبة → {m: شهر البداية}. بيقبل: "14-11 ل 13-12" أو "مطالبة 14/11 الى 13/12"
 function parsePeriodHeader(h){
-  const m = String(h||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).match(/(\d{1,2})\s*[-\/]\s*(\d{1,2})\s*(?:ل|لـ|الى|إلى|to|-|–)\s*(\d{1,2})\s*[-\/]\s*(\d{1,2})/i);
+  const m = String(h||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).match(/(\d{1,2})\s*[-\/]\s*(\d{1,2})\s*(?:ل|لـ|الى|إلى|الي|حتى|حتي|to|-|–)\s*(\d{1,2})\s*[-\/]\s*(\d{1,2})/i);
   return m ? Number(m[2]) : null;
 }
 async function handleClaimsExcelImport(file){
@@ -7309,7 +7324,9 @@ async function handleClaimsExcelImport(file){
       else if(sm < prev) year++;
       prev = sm; cols.push({i, key: year+'-'+String(sm).padStart(2,'0'), label: String(head[i]).trim()});
     }
-    const rows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0])).map(r=>{
+    const dataRows = rawRows.filter(r=>r && r[0] && !isTotalRowLabel(r[0]));
+    for(let k=cols.length-1;k>=0;k--){ if(!dataRows.some(r=>parseNum(r[cols[k].i])!==0)) cols.splice(k,1); }   // فترة كلها أصفار = لسه ماجتش
+    const rows = dataRows.map(r=>{
       const o = {code:String(r[0]??'').trim(), name:String(r[1]??'').trim(), city:String(r[2]??'').trim(), area:String(r[3]??'').trim(), paymentStatus:String(r[4]??'').trim()};
       if(cols.length){
         const periods = {}; let last = 0;
@@ -11155,7 +11172,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.04): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.05): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
