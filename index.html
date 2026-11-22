@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.00)</title>
+<title>Ziedane CRM (v3.01)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1014,7 +1014,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.00';
+const APP_VERSION = '3.01';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -2449,9 +2449,9 @@ function asstVisitBtn(code){ return `<button class="btn btn-ghost btn-sm" onclic
 const ASST_INTENTS = [
   {k:'today', ic:'🧭', q:'أبدأ بمين النهارده؟', kw:['ابدا','النهارده','اولويه','ازور','زور','اروح']},
   {k:'claims', ic:'💵', q:'مين عليه مطالبات؟', kw:['مطالب','تحصيل','فلوس','مديون','ديون']},
-  {k:'topA', ic:'⭐', q:'عملاء A مستنيني', kw:['مهم','a ','كبار','مستنيني']},
-  {k:'falling', ic:'📉', q:'مين مبيعاته نازلة أو وقف يشتري؟', kw:['نازل','وقف','خطر','ضعيف','هيروح','قل']},
-  {k:'never', ic:'👀', q:'عملاء عمرهم ما اتزاروا', kw:['عمره','متزار','مازرت','ماتزار','جديد']},
+  {k:'topA', ic:'⭐', q:'عملاء A مستنيني', kw:['مهمين','كبار','مستنيني','عملاء a']},
+  {k:'falling', ic:'📉', q:'مين مبيعاته نازلة أو وقف يشتري؟', kw:['نازل','نازلين','وقف','خطر','ضعيف','هيروح','بيقل','قلت']},
+  {k:'never', ic:'👀', q:'عملاء عمرهم ما اتزاروا', kw:['عمره','متزار','مازرت','ماتزار','اتزاروا']},
   {k:'top', ic:'🏆', q:'أكبر 5 عملاء عندي', kw:['اكبر','اعلي','افضل','اكتر مبيع']},
   {k:'goal', ic:'🎯', q:'أنا ماشي إزاي الشهر ده؟', kw:['هدف','ماشي','تارجت','انجاز','زيارات الشهر']}
 ];
@@ -2509,9 +2509,13 @@ function asstSearch(raw){
 }
 function asstFree(){
   const raw = document.getElementById('asstInput')?.value || rhQuery || ''; rhQuery = raw;
-  const q = _nk(raw); if(!q.trim()) return;
-  const hit = ASST_INTENTS.find(i=>i.kw.some(w=>q.includes(_nk(w))));
-  rhAnswer = hit ? asstCompute(hit.k) : (asstSearch(raw) || `<div class="smallMuted">ما لقيتش حاجة بالاسم ده 🤔 - جرّب جزء تاني من الاسم أو واحد من الأسئلة السريعة.</div>`);
+  const q = _nk(raw).trim(); if(!q) return;
+  const toks = q.split(/\s+/);
+  // الكلمة المفتاحية لازم تطابق كلمة كاملة (أو بدايتها لو طويلة) - مش أي حروف جوه اسم عميل
+  const hit = ASST_INTENTS.find(i=>i.kw.some(w=>{ const n = _nk(w).trim(); return n.includes(' ') ? q.includes(n) : toks.some(t=>t===n || (n.length>=4 && t.startsWith(n))); }));
+  const found = asstSearch(raw);
+  if(hit) rhAnswer = asstCompute(hit.k) + (found ? `<div style="margin-top:12px;">${found}</div>` : '');
+  else rhAnswer = found || `<div class="smallMuted">ما لقيتش حاجة بالاسم ده 🤔 - جرّب جزء تاني من الاسم أو واحد من الأسئلة السريعة.</div>`;
   renderRepHelper();
 }
 function asstVoice(btn){
@@ -3251,6 +3255,10 @@ function asIntents(qn){
     hit.slice(0,3).forEach(c=>{ const t = Number(c.salesTarget)||0, net = Number(c.netSales)||0;
       out.push(['🏙️', `${escapeHTML(c.city)}: مبيعات <b>${fmtMoney(net)}</b>${t>0?` (${Math.round(net/t*100)}% من الهدف)`:''} · ${Number(c.customersActive)||0} عميل متعامل`, '', '']); });
     if(!hit.length && has('مبيعات') && rows.length) out.push(['💰','مبيعات المدن', "closeAssistant();openKpiReport('citysales')", 'عرض الملخص']);
+  }
+  if(has('بونص') && !has('صنف')){
+    const b = INVENTORY.filter(i=>bonusTiersFor(i.itemName,i.company).length).slice(0,6);
+    out.push(['🎁', b.length ? `أصناف عليها بونص (${b.length}${b.length===6?'+':''}):<br>`+b.map(i=>`• <b>${escapeHTML(i.itemName||'')}</b> ${bonusTiersFor(i.itemName,i.company).slice(0,2).map(t=>t.qty+'+'+t.bonusQty).join(' | ')}`).join('<br>') : (INVENTORY.length ? 'مفيش أصناف عليها بونص حالياً' : '⏳ جاري تحميل الأصناف…'), "closeAssistant();goTo('inventory')", 'فتح المخزون']);
   }
   if(has('كام عميل','عدد العملاء','عدد عملاء')){
     const cs = visibleCustomers(); const hit = [...new Set(cs.map(c=>c.city).filter(Boolean))].filter(ct=>qn.includes(asNorm(ct)));
@@ -10849,7 +10857,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.00): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.01): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
