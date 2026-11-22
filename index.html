@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.05)</title>
+<title>Ziedane CRM (v3.06)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1015,7 +1015,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.05';
+const APP_VERSION = '3.06';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1198,7 +1198,7 @@ function defaultPermissionsForRole(role){
   if(role==='admin'){ ALL_PAGES.forEach(x=>p[x.id]=true); return p; }
   if(role==='manager'){ ALL_PAGES.forEach(x=>p[x.id]=true); p.users=false; p.repbonus=false; return p; }
   if(role==='rep'){
-    ['dashboard','teamchat','routeplan','calendar','addvisit','visits','custdata','inventory','suggestedorders','claims','customerstatement','citysales'].forEach(id=>p[id]=true);
+    ['dashboard','teamchat','routeplan','calendar','addvisit','visits','custdata','inventory','suggestedorders','claims','agreements','customerstatement','citysales'].forEach(id=>p[id]=true);
     return p;
   }
   if(role==='telesales'){
@@ -1309,7 +1309,7 @@ const NAV_GROUPS = [
   {id:'g_sys',    label:'الإدارة',          ic:'⚙️',   members:['reps','repbonus','definitions','users','auditlog']}
 ];
 // للمندوب/التيلي سيلز: الصفحات الثانوية بتتجمع تحت عنصر واحد "المزيد" عشان القايمة تبقى خفيفة
-const REP_MORE_GROUP = {id:'g_repmore', label:'المزيد', ic:'☰', members:['custdata','claims','customerstatement','citysales','suggestedorders']};
+const REP_MORE_GROUP = {id:'g_repmore', label:'المزيد', ic:'☰', members:['custdata','claims','agreements','customerstatement','citysales','suggestedorders']};
 function navGroupsFor(){
   if(!isSimpleUser()) return NAV_GROUPS;
   return [REP_MORE_GROUP, ...NAV_GROUPS.map(g=>({...g, members:g.members.filter(m=>!REP_MORE_GROUP.members.includes(m))})).filter(g=>g.members.length)];
@@ -1846,7 +1846,7 @@ DATA_ATTACHERS['cdFields'] = ()=>{
   }, err=>console.error('cdFields listener', err)));
 };
 lazyScoped('claims', 'claims', l=>{ CLAIMS = l; });
-lazyListen('agreements', ()=>db.collection('agreements'), snap=>{ AGREEMENTS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('agreements'); });
+lazyScoped('agreements', 'agreements', l=>{ AGREEMENTS = l; });
 lazyScoped('customerSales', 'customerSales', l=>{ CUSTOMER_SALES = l; });
 lazyScoped('citySales', 'citySales', l=>{ CITY_SALES_RAW = l; rebuildCitySales(); });
 lazyListen('salesAnalytics', ()=>db.collection('salesAnalytics'), snap=>{ SALES_ANALYTICS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('salesAnalytics'); });
@@ -2910,13 +2910,13 @@ function viewAgreements(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" onclick="agrOpenTrack('${a.id}')">📊 المتابعة</button>
         <button class="btn btn-outline btn-sm" onclick="agrPrint('${a.id}')">🖨 طباعة</button>
-        <button class="btn btn-ghost btn-sm" onclick="agrOpenEdit('${a.id}')">✏️ تعديل</button>
+        ${isAdminLike() ? `<button class="btn btn-ghost btn-sm" onclick="agrOpenEdit('${a.id}')">✏️ تعديل</button>` : ''}
         ${CURRENT_USER.role==='admin' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="agrDelete('${a.id}')">🗑</button>` : ''}
       </div></div>`;
   }).join('');
   const tabs = `<div class="tabsRow" style="margin-bottom:8px;"><button class="tabBtn ${agrTab==='list'?'active':''}" onclick="agrTab='list';renderView()">📑 العقود</button><button class="tabBtn ${agrTab==='report'?'active':''}" onclick="agrTab='report';renderView()">📊 التقرير المجمع</button></div>`;
   return `<div class="pageHead"><div><h2>📑 عقود الاتفاق</h2><div class="desc">${list.length} عقد · المتابعة من شيت المطالبات (شهر المطالبة من 14 لـ 13)</div></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">${agrTab==='report' ? `<button class="btn btn-outline" onclick="agrReportPrint()">🖨 طباعة</button><button class="btn btn-outline" onclick="agrReportImage()">📷 صورة</button><button class="btn btn-primary" onclick="agrReportWhatsApp()">📲 واتساب</button>` : ''}<button class="btn ${agrTab==='report'?'btn-ghost':'btn-primary'}" onclick="agrOpenEdit()">+ عقد جديد</button></div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">${agrTab==='report' ? `<button class="btn btn-outline" onclick="agrReportPrint()">🖨 طباعة</button><button class="btn btn-outline" onclick="agrReportImage()">📷 صورة</button><button class="btn btn-primary" onclick="agrReportWhatsApp()">📲 واتساب</button>` : ''}${isAdminLike() ? `<button class="btn ${agrTab==='report'?'btn-ghost':'btn-primary'}" onclick="agrOpenEdit()">+ عقد جديد</button>` : ''}</div></div>
     ${tabs}
     ${agrTab==='report' ? viewAgreementsReport() : cards || `<div class="card"><div class="emptyState"><div class="ic">📑</div><div class="t">مفيش عقود لسه</div><div class="desc">اضغط "+ عقد جديد"، اكتب كود العميل والبيانات هتظهر لوحدها.</div></div></div>`}`;
 }
@@ -2999,7 +2999,7 @@ function agrOpenTrack(id){
   const rows = ms.map(x=>{
     const st = !x.has ? '<span class="smallMuted">لسه</span>' : x.ok ? (x.paid?'✅ مستحق':'🟢 محقق') : '🔴 لم يحقق';
     return `<tr><td>${periodLabel(x.k)}</td>${a.codes.length>1 ? x.vals.map(v=>`<td>${v==null?'-':fmtMoney(v)}</td>`).join('') : ''}<td><b>${x.has?fmtMoney(x.total):'-'}</b></td><td>${x.has?x.pct+'%':'-'}</td><td>${st}</td><td>${x.ok?fmtMoney(x.discount):'-'}</td>
-      <td>${x.ok?`<label style="cursor:pointer;"><input type="checkbox" ${x.paid?'checked':''} onchange="agrTogglePaid('${a.id}','${x.k}')"> سدّد كاش</label>`:''}</td></tr>`;
+      <td>${x.ok ? (isAdminLike() ? `<label style="cursor:pointer;"><input type="checkbox" ${x.paid?'checked':''} onchange="agrTogglePaid('${a.id}','${x.k}')"> سدّد كاش</label>` : (x.paid?'✔ سدّد':'')) : ''}</td></tr>`;
   }).join('');
   document.getElementById('agrTrack')?.remove();
   const m = document.createElement('div'); m.className='modalBg'; m.id='agrTrack';
@@ -11172,7 +11172,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.05): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.06): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -11338,7 +11338,7 @@ service cloud.firestore {
     // ===== بيانات مقيّدة بمدن المستخدم (الاستعلام لازم يحتوي where city == ...) =====
     match /customers/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
     match /claims/{id}             { allow read: if sameCity(); allow write: if isAdmin(); }
-    match /agreements/{id}         { allow read, write: if isAdminOrManager(); }
+    match /agreements/{id}         { allow read: if sameCity(); allow write: if isAdminOrManager(); }
     match /customerSales/{id}      { allow read: if sameCity(); allow write: if isAdmin(); }
     match /citySales/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
     // تحليلات المبيعات: للإدارة فقط
