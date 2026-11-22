@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.01)</title>
+<title>Ziedane CRM (v3.02)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -705,7 +705,8 @@ tbody tr:nth-child(even){background:#FAFCFC;} tbody tr:hover{background:var(--te
 .repToday .rtRow{display:flex;gap:10px;}.repToday .rtBig{flex:1;background:var(--teal-light,#e0f3f0);border-radius:14px;padding:12px;text-align:center;}
 .repToday .rtBig b{display:block;font-size:30px;color:var(--teal-dark,#0f7a6b);}.repToday .rtBig span{font-size:12.5px;color:var(--gray-700,#374151);font-weight:700;}
 .repToday .rtTasks{margin-top:10px;font-size:13.5px;display:flex;flex-direction:column;gap:4px;}
-.repToday .rtBtns{display:flex;gap:8px;margin-top:12px;}.repToday .rtBtns .btn{flex:1;min-height:46px;}
+.repToday .repMorePanel{margin-top:8px;padding-top:8px;border-top:1px dashed var(--gray-300);}
+.rtBtns{display:flex;gap:8px;margin-top:12px;}.repToday .rtBtns .btn{flex:1;min-height:46px;}
 .rhStats{display:flex;justify-content:space-between;background:var(--teal-light,#e0f3f0);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700;}
 .qzQ{margin-bottom:16px;}.qzQ>b{display:block;margin-bottom:8px;}
 .qzOpt{display:block;width:100%;text-align:right;margin:6px 0;min-height:44px;border:1.5px solid var(--gray-300,#d6e0e0);background:#fff;border-radius:12px;font:inherit;font-weight:700;padding:8px 12px;}
@@ -1014,7 +1015,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.01';
+const APP_VERSION = '3.02';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1306,10 +1307,16 @@ const NAV_GROUPS = [
   {id:'g_plan',   label:'خطتي ومهامي',     ic:'🗺️',   members:['routeplan','calendar']},
   {id:'g_sys',    label:'الإدارة',          ic:'⚙️',   members:['reps','repbonus','definitions','users','auditlog']}
 ];
+// للمندوب/التيلي سيلز: الصفحات الثانوية بتتجمع تحت عنصر واحد "المزيد" عشان القايمة تبقى خفيفة
+const REP_MORE_GROUP = {id:'g_repmore', label:'المزيد', ic:'☰', members:['custdata','claims','customerstatement','citysales','suggestedorders']};
+function navGroupsFor(){
+  if(!isSimpleUser()) return NAV_GROUPS;
+  return [REP_MORE_GROUP, ...NAV_GROUPS.map(g=>({...g, members:g.members.filter(m=>!REP_MORE_GROUP.members.includes(m))})).filter(g=>g.members.length)];
+}
 function navEntriesFor(user){
   const items = navItemsFor(user), byId = new Map(items.map(i=>[i.id,i])), done = new Set(), out = [];
   items.forEach(it=>{
-    const g = NAV_GROUPS.find(x=>x.members.includes(it.id));
+    const g = navGroupsFor().find(x=>x.members.includes(it.id));
     if(!g){ out.push({id:it.id, label:it.label, ic:it.ic, members:[it.id]}); return; }
     if(done.has(g.id)) return; done.add(g.id);
     const mem = g.members.filter(m=>byId.has(m));
@@ -1328,7 +1335,7 @@ function fmtBadge(n){ return n>0 ? (n>9?'9+':n) : null; }
 function navBadgeFor(pageId){ return fmtBadge(navBadgeRaw(pageId)); }
 function navEntryBadge(e){ return fmtBadge(e.members.reduce((a,m)=>a+navBadgeRaw(m),0)); }
 function groupTabsHTML(){
-  const g = NAV_GROUPS.find(x=>x.members.includes(currentView)); if(!g) return '';
+  const g = navGroupsFor().find(x=>x.members.includes(currentView)); if(!g) return '';
   const allowed = new Set(navItemsFor(CURRENT_USER).map(i=>i.id));
   const mem = g.members.filter(m=>allowed.has(m)); if(mem.length<2) return '';
   return `<div class="tabsRow" style="margin-bottom:8px;">` + mem.map(m=>{
@@ -2851,21 +2858,28 @@ const Q=[['الربع 1',0,2],['الربع 2',3,5],['الربع 3',6,8],['الر
 })();
 function viewSalesDeck(){ return SalesDeck.view(); }
 
+var repMoreOpen = false;
+function toggleRepMore(){ repMoreOpen = !repMoreOpen; renderView(); }
 function repTodayCardHTML(visitsToday){
   let tasks = [];
   try{ const t = todayISO(); tasks = tasksOn(t).filter(x=>!taskDone(x,t)); }catch(e){}
+  let top = [];
+  try{ top = crmIntel().list.filter(x=>!x.visitedToday && x.score>0).sort((p,q)=>q.score-p.score).slice(0,3); }catch(e){}
+  const pend = rrMine().filter(r=>r.status==='pending').length;
   return `<div class="card repToday">
     <div class="rtMotiv">${repMotivationLine(visitsToday)}</div>
     <div class="rtRow"><div class="rtBig"><b>${visitsToday}</b><span>زيارة النهارده</span></div>
       <div class="rtBig"><b>${tasks.length}</b><span>مهمة مفتوحة</span></div></div>
-    ${tasks.length ? `<div class="rtTasks">${tasks.slice(0,3).map(x=>`<div>📌 ${escapeHTML(x.title||'')}${x.time?` · ${escapeHTML(x.time)}`:''}</div>`).join('')}${tasks.length>3?`<div class="smallMuted">+${tasks.length-3} مهمة كمان</div>`:''}</div>` : ''}
-    <div class="rtBtns"><button class="btn btn-primary" onclick="goTo('addvisit')">+ زيارة جديدة</button>
-      <button class="btn btn-outline" onclick="goTo('calendar')">📅 مهامي</button></div>
-    <div class="rtBtns"><button class="btn btn-outline" onclick="openRepHelper('quiz')">🎮 تحدي اليوم</button>
-      <button class="btn btn-outline" onclick="openRepHelper('ask')">🤖 مساعدي</button></div>
-    <div class="rtBtns"><button class="btn btn-outline" onclick="rrTab='new';openRepRequests()">📨 طلب من الإدارة</button>
-      <button class="btn btn-outline" onclick="rrTab='mine';openRepRequests()">📋 طلباتي${rrMine().filter(r=>r.status==='pending').length?` (${rrMine().filter(r=>r.status==='pending').length} معلّق)`:''}</button></div>
-    ${repTipHTML()}
+    ${top.length ? `<div class="secTitle" style="margin:10px 0 4px;">🔥 ابدأ بيهم النهارده</div>`+top.map(x=>asstRow(x, escapeHTML((x.reasons||[]).slice(0,2).join(' · ')||'أولوية عادية'))).join('') : ''}
+    <div class="rtBtns"><button class="btn btn-primary" style="flex:2;" onclick="goTo('addvisit')">+ زيارة جديدة</button>
+      <button class="btn btn-outline" onclick="toggleRepMore()">${repMoreOpen?'▲ أقل':'▼ المزيد'}${pend?` (${pend})`:''}</button></div>
+    ${repMoreOpen ? `<div class="repMorePanel">
+      ${tasks.length ? `<div class="rtTasks">${tasks.slice(0,3).map(x=>`<div>📌 ${escapeHTML(x.title||'')}${x.time?` · ${escapeHTML(x.time)}`:''}</div>`).join('')}</div>` : ''}
+      <div class="rtBtns"><button class="btn btn-outline" onclick="goTo('calendar')">📅 مهامي</button>
+        <button class="btn btn-outline" onclick="openRepHelper('quiz')">🎮 تحدي اليوم</button></div>
+      <div class="rtBtns"><button class="btn btn-outline" onclick="rrTab='new';openRepRequests()">📨 طلب من الإدارة</button>
+        <button class="btn btn-outline" onclick="rrTab='mine';openRepRequests()">📋 طلباتي${pend?` (${pend} معلّق)`:''}</button></div>
+      ${repTipHTML()}</div>` : ''}
   </div>`;
 }
 function viewDashboard(){
@@ -2924,19 +2938,15 @@ function viewDashboard(){
       <div><h2>مرحباً، ${escapeHTML(CURRENT_USER.name||CURRENT_USER.username)} 👋</h2><div class="desc">نظرة عامة على نشاط الزيارات</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${(CURRENT_USER.role==='admin'||CURRENT_USER.role==='manager') ? `<button class="btn btn-outline" onclick="shareDailyDigestWhatsApp()">📤 الملخص اليومي</button>` : ''}
-        ${userPermissions(CURRENT_USER).addvisit ? `<button class="btn btn-primary" onclick="goTo('addvisit')">+ تسجيل زيارة جديدة</button>` : ''}
+        ${(CURRENT_USER.role!=='rep' && userPermissions(CURRENT_USER).addvisit) ? `<button class="btn btn-primary" onclick="goTo('addvisit')">+ تسجيل زيارة جديدة</button>` : ''}
       </div>
     </div>
-    ${CURRENT_USER.role==='rep' ? welcomeBannerHTML() : ''}
     ${isAdminLike() ? repReqCardHTML() : ''}
     ${CURRENT_USER.role==='rep' ? repTodayCardHTML(visitsToday) : ''}
     ${CURRENT_USER.role==='rep' ? '' : `<div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>`}
     ${CURRENT_USER.role==='rep' ? '' : homeExtrasHTML()}
-    ${dashboardAttentionHTML(list)}
-    ${CURRENT_USER.role==='rep' ? repStaleCustomersWidgetHTML() : ''}
-    ${topRepsCardHTML()}
-    ${repBlock}
+    ${CURRENT_USER.role==='rep' ? (repMoreOpen ? welcomeBannerHTML()+dashboardAttentionHTML(list)+repStaleCustomersWidgetHTML()+topRepsCardHTML()+repBlock : '') : dashboardAttentionHTML(list)+topRepsCardHTML()+repBlock}
     ${CURRENT_USER.role==='rep' ? `<div class="repMore"><button class="btn btn-ghost" onclick="goTo('visits')">📋 كل زياراتي</button><button class="btn ${repReportsOpen?'btn-primary':'btn-outline'}" onclick="toggleRepReports()">🏆 إنجازي وتقاريري ${repReportsOpen?'▲':'▼'}</button></div>` : `<div class="card">
       <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">آخر الزيارات</h2><button class="btn btn-ghost btn-sm" onclick="goTo('visits')">عرض الكل ←</button></div>
       <div class="tableWrap"><table><thead><tr>
@@ -10857,7 +10867,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.01): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.02): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
