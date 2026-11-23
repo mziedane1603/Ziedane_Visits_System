@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.07)</title>
+<title>Ziedane CRM (v3.08)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1033,7 +1033,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.07';
+const APP_VERSION = '3.08';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1296,7 +1296,7 @@ const REPORT_GROUPS = [
 const REPORT_DRAW = {overview:'drawReportCharts', sales:'drawSalesReportCharts', citycompare:'drawCityCompareCharts', claims:'drawClaimsChart', coverage:'drawCoverageChart', analytics:'drawSalesAnalyticsCharts'};
 var repReportsOpen = false;
 function toggleRepReports(){ repReportsOpen = !repReportsOpen; renderView(); if(repReportsOpen) setTimeout(()=>document.getElementById('rptAnchor')?.scrollIntoView({behavior:'smooth',block:'start'}),120); }
-function setReportsTab(k){ reportsTab = k; repReportsOpen = true; renderView(); const f = REPORT_DRAW[k]; if(f && typeof window[f]==='function') setTimeout(window[f], 30); }
+function setReportsTab(k){ reportsTab = k; repReportsOpen = true; if(isAdminLike()) homeTab = 'reports'; renderView(); const f = REPORT_DRAW[k]; if(f && typeof window[f]==='function') setTimeout(window[f], 30); }
 function saGroups(){
   return [
     {label:'نظرة عامة', tabs:[['overview','نظرة عامة']]},
@@ -3178,6 +3178,12 @@ function repTodayCardHTML(visitsToday){
       ${repTipHTML()}</div>` : ''}
   </div>`;
 }
+let homeTab = 'main';
+function setHomeTab(k){ homeTab = k; renderView(); }
+function homeTabsHTML(){
+  const T = [['main','🏠 الرئيسية'],['perf','🧑‍💼 أداء المناديب'],['recent','📋 آخر الزيارات'],['reports','📊 التقارير']];
+  return `<div class="segRow" style="margin:0 0 12px;">${T.map(([k,l])=>`<button class="seg ${homeTab===k?'on':''}" onclick="setHomeTab('${k}')">${l}</button>`).join('')}<button class="seg ${homeTab==='reports'&&reportsTab==='claims'?'on':''}" onclick="setReportsTab('claims')">💵 تقرير المطالبات</button></div>`;
+}
 function viewDashboard(){
   const list = visibleVisits();
   const today = todayISO();
@@ -3237,20 +3243,21 @@ function viewDashboard(){
         ${(CURRENT_USER.role!=='rep' && userPermissions(CURRENT_USER).addvisit) ? `<button class="btn btn-primary" onclick="goTo('addvisit')">+ تسجيل زيارة جديدة</button>` : ''}
       </div>
     </div>
-    ${isAdminLike() ? repReqCardHTML() : ''}
+    ${isAdminLike() ? homeTabsHTML() : ''}
+    ${isAdminLike() && homeTab==='main' ? repReqCardHTML() : ''}
     ${CURRENT_USER.role==='rep' ? repTodayCardHTML(visitsToday) : ''}
-    ${CURRENT_USER.role==='rep' ? '' : `<div class="secTitle">📊 نظرة سريعة</div>
+    ${CURRENT_USER.role==='rep' || (isAdminLike() && homeTab!=='main') ? '' : `<div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>`}
-    ${CURRENT_USER.role==='rep' ? '' : homeExtrasHTML()}
-    ${CURRENT_USER.role==='rep' ? (repMoreOpen ? welcomeBannerHTML()+dashboardAttentionHTML(list)+repStaleCustomersWidgetHTML()+topRepsCardHTML()+repBlock : '') : dashboardAttentionHTML(list)+topRepsCardHTML()+repBlock}
-    ${CURRENT_USER.role==='rep' ? `<div class="repMore"><button class="btn btn-ghost" onclick="goTo('visits')">📋 كل زياراتي</button><button class="btn ${repReportsOpen?'btn-primary':'btn-outline'}" onclick="toggleRepReports()">🏆 إنجازي وتقاريري ${repReportsOpen?'▲':'▼'}</button></div>` : `<div class="card">
+    ${CURRENT_USER.role==='rep' || (isAdminLike() && homeTab!=='main') ? '' : homeExtrasHTML()}
+    ${CURRENT_USER.role==='rep' ? (repMoreOpen ? welcomeBannerHTML()+dashboardAttentionHTML(list)+repStaleCustomersWidgetHTML()+topRepsCardHTML()+repBlock : '') : (isAdminLike() ? (homeTab==='main' ? dashboardAttentionHTML(list)+topRepsCardHTML() : homeTab==='perf' ? repBlock : '') : dashboardAttentionHTML(list)+topRepsCardHTML()+repBlock)}
+    ${CURRENT_USER.role==='rep' ? `<div class="repMore"><button class="btn btn-ghost" onclick="goTo('visits')">📋 كل زياراتي</button><button class="btn ${repReportsOpen?'btn-primary':'btn-outline'}" onclick="toggleRepReports()">🏆 إنجازي وتقاريري ${repReportsOpen?'▲':'▼'}</button></div>` : (isAdminLike() && homeTab!=='recent') ? '' : `<div class="card">
       <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">آخر الزيارات</h2><button class="btn btn-ghost btn-sm" onclick="goTo('visits')">عرض الكل ←</button></div>
       <div class="tableWrap"><table><thead><tr>
         <th>التاريخ</th><th>المندوب</th><th>العميل</th><th>المدينة</th><th>النتيجة</th><th>التقييم</th>
       </tr></thead><tbody>${recentRows}</tbody></table></div>
     </div>`}
     <div id="rptAnchor"></div>
-    ${CURRENT_USER.role==='rep' ? (repReportsOpen ? viewReportsBody() : '') : viewReportsBody()}
+    ${CURRENT_USER.role==='rep' ? (repReportsOpen ? viewReportsBody() : '') : (isAdminLike() && homeTab!=='reports' ? '' : viewReportsBody())}
   `;
 }
 // عدد العملاء المتأخرين عن الزيارة بسرعة (خريطة آخر زيارة بدل البحث لكل عميل)
@@ -8758,6 +8765,13 @@ function drawReportCharts(){
   const dailyData = days.map(d=>VISITS.filter(v=>v.date===d).length);
   mkChart('chTrend','line',{labels:days.map(d=>d.slice(5)),datasets:[{label:'زيارات',data:dailyData,borderColor:'#0F7A6B',backgroundColor:'rgba(15,122,107,.12)',tension:.3,fill:true}]},{plugins:{legend:{display:false}}});
 }
+if(window.Chart && !Chart.registry.plugins.get('pctLbl')) Chart.register({id:'pctLbl', afterDatasetsDraw(ch){
+  if(!['chCityShare','chSAPay'].includes(ch.canvas.id)) return;
+  const m = ch.getDatasetMeta(0), d = ch.data.datasets[0].data, t = d.reduce((a,b)=>a+b,0), x = ch.ctx; if(!t) return;
+  x.save(); x.font = 'bold 12px Tahoma,Arial'; x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  m.data.forEach((a,i)=>{ const p = d[i]/t*100; if(p<4) return; const pos = a.tooltipPosition(); x.fillText(Math.round(p)+'%', pos.x, pos.y); });
+  x.restore();
+}});
 function mkChart(id,type,data,extraOpts){
   const el = document.getElementById(id);
   if(!el) return;
@@ -9566,7 +9580,8 @@ function availableCitySalesDates(){
   return [...new Set(visibleCitySales().map(c=>c.date))].sort().reverse();
 }
 let salesHubTab = 'cities', salesHubCity = '';
-const SALES_HUB = ()=>[['cities','🏙️ المدن والأهداف'],['ov','📊 نظرة عامة'],['regions','🏘️ المناطق'],['customers','👥 العملاء'],['zeros','0️⃣ الصفريات'],['lowvalue','💤 تحت '+SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')],['segments','🧩 الشرائح']];
+function _fixHubTab(){ if(salesHubTab==='ov') salesHubTab = 'cities'; }
+const SALES_HUB = ()=>[['cities','🏙️ المدن والأهداف'],['regions','🏘️ المناطق'],['customers','👥 العملاء'],['zeros','0️⃣ الصفريات'],['lowvalue','💤 تحت '+SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')],['segments','🧩 الشرائح']];
 const SALES_HUB_SA = {ov:'overview', regions:'regions', customers:'customers', zeros:'zeros', lowvalue:'lowvalue', segments:'segments'};
 function salesHubTabsHTML(){ return isAdminLike() ? `<div class="segRow" style="margin:0 0 10px;">${SALES_HUB().map(([k,l])=>`<button class="seg ${salesHubTab===k?'on':''}" onclick="setSalesHub('${k}')">${l}</button>`).join('')}</div>` : ''; }
 function setSalesHub(k){ salesHubTab = k; if(SALES_HUB_SA[k]) salesAnalyticsTab = SALES_HUB_SA[k]; renderView(); setTimeout(()=>{ if(k==='cities') drawCitySalesChart(); else drawSalesAnalyticsCharts(); }, 30); }
@@ -9582,7 +9597,7 @@ function viewSalesHubAnalytics(){
   const pages = {ov:viewSAOverview, regions:viewSARegions, customers:viewSACustomers, zeros:viewSAZeros, lowvalue:viewSALowValue, segments:viewSASegments};
   return head + sel + (pages[salesHubTab]||viewSAOverview)();
 }
-function viewCitySales(){
+function viewCitySales(){ _fixHubTab();
   if(isAdminLike() && salesHubTab!=='cities') return viewSalesHubAnalytics();
   return viewCitySalesMain();
 }
@@ -9633,7 +9648,7 @@ function viewCitySalesMain(){
     const remain = cityRemainingToThreshold(c), daily = cityDailyTargetNeeded(c);
     const st = pct>=100 ? ['tgOk','🏆 حقق الهدف'] : (salesOk&&custOk) ? ['tgOk','✅ فوق الحد'] : (salesOk||custOk) ? ['tgMid','⚠️ جزئي'] : ['tgBad','🔻 متأخر'];
     return `<tr>
-      <td><div class="tgCity">${isAdminLike() ? `<a href="#" onclick="drillCity(${escapeHTML(JSON.stringify(c.city))});return false;">${escapeHTML(c.city)}</a>` : escapeHTML(c.city)}</div><span class="tgChip ${st[0]}">${st[1]}</span></td>
+      <td><div class="tgCity">${isAdminLike() ? `<a href="#" onclick="drillCity(${escapeHTML(JSON.stringify(c.city))});return false;">${escapeHTML(c.city)}</a>` : escapeHTML(c.city)}</div><span class="tgChip ${st[0]}">${st[1]}</span> <span class="tgChip" style="background:#e8eef3;color:#2E6FA7;">${totalNet>0?Math.round((c.netSales||0)/totalNet*100):0}% من الفرع</span></td>
       <td>${tgMeter(pct, salesOk, fmtMoney(c.netSales)+' / '+fmtMoney(c.salesTarget))}</td>
       <td>${remain>0 ? `<b class="tgBadTx">${fmtMoney(remain)}</b>` : '<span class="tgChip tgOk">تحقق ✔</span>'}</td>
       <td>${fmtMoney(daily)}</td>
@@ -9677,11 +9692,12 @@ function viewCitySalesMain(){
         <tfoot><tr><td><b>الإجمالي</b></td><td>${tgMeter(overallPct, overallPct>=CITY_THRESHOLDS.salesMinPct, fmtMoney(totalNet)+' / '+fmtMoney(totalTarget))}</td><td></td><td></td><td>${tgMeter(totalCustTarget>0?totalCustActive/totalCustTarget*100:0, true, totalCustActive+' / '+totalCustTarget+' عميل', true)}</td></tr></tfoot></table></div>
       <div class="smallMuted" style="margin-top:8px;">"الباقي للحد الأدنى" = الناقص لوصول المدينة لـ${CITY_THRESHOLDS.salesMinPct}% من هدفها. "المطلوب يومياً" = باقي الهدف الكامل ÷ ${remainWorkDays} يوم عمل متبقي.</div>
     </div>
-    <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">نسبة التحقيق لكل مدينة (المبيعات والعملاء)</h2></div><div class="chartBox" style="height:${Math.max(240, rows.length*46)}px;"><canvas id="chCityPct"></canvas></div></div>
+    <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">🥧 مساهمة كل مدينة في المبيعات</h2></div><div class="chartBox" style="height:300px;"><canvas id="chCityShare"></canvas></div></div>
     <div class="grid grid-2">
       <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">الهدف مقابل الفعلي - المبيعات</h2></div><div class="chartBox"><canvas id="chCityTargetVsActual"></canvas></div></div>
       <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">الهدف مقابل الفعلي - العملاء</h2></div><div class="chartBox"><canvas id="chCityCustTargetVsActual"></canvas></div></div>
     </div>
+    ${(isAdminLike() && saData().length) ? `<div class="secTitle" style="margin-top:14px;">📊 نظرة عامة على العملاء</div>${viewSAOverview()}` : ''}
     ${thresholdSettings}
   `;
 }
@@ -9706,21 +9722,24 @@ function printCityTargets(){
   printSoon();
 }
 
+function drawSAPayChart(){
+  const list = saData(), payMap = {}; list.forEach(c=>{ const p = c.paymentStatus||'أخرى'; payMap[p]=(payMap[p]||0)+(Number(c.branch)||0); });
+  const labels = Object.keys(payMap), tot = Object.values(payMap).reduce((a,b)=>a+b,0);
+  if(labels.length) mkChart('chSAPay','doughnut',{labels:labels.map(l=>l+' ('+(tot?Math.round(payMap[l]/tot*100):0)+'%)'),datasets:[{data:Object.values(payMap),backgroundColor:['#0F7A6B','#2E6FA7','#D68910','#12A594','#C0392B','#7A8A90','#8E6FBF'],borderWidth:2,borderColor:'#fff'}]},{plugins:{legend:{position:'right'}}});
+}
 function drawCitySalesChart(){
   if(isAdminLike() && salesHubTab!=='cities') return;
-  destroyCharts(['chCityPct','chCityTargetVsActual','chCityCustTargetVsActual']);
+  destroyCharts(['chCityShare','chSAPay','chCityTargetVsActual','chCityCustTargetVsActual']);
   if(currentView!=='citysales') return;
+  if(isAdminLike()) drawSAPayChart();
   const list = visibleCitySales();
   if(!list.length) return;
 
   const dateRows = citySalesSelectedDate ? list.filter(c=>c.date===citySalesSelectedDate).map(c=>periodRec(c,cityPeriod)) : [];
   if(dateRows.length){
     const cityLabels = dateRows.map(c=>c.city);
-    const sp = dateRows.map(c=>Math.round(cityAchievementPct(c))), cp = dateRows.map(c=>Math.round(cityCustomerPct(c)));
-    mkChart('chCityPct','bar',{labels:cityLabels,datasets:[
-      {label:'% المبيعات', data:sp, backgroundColor:sp.map(v=>v>=100?'#1f8f6e':v>=CITY_THRESHOLDS.salesMinPct?'#6aa88f':'#d2563f'), borderRadius:6},
-      {label:'% العملاء', data:cp, backgroundColor:cp.map(v=>v>=100?'#2E6FA7':v>=CITY_THRESHOLDS.customerMinPct?'#7fa9cc':'#e0954a'), borderRadius:6}]},
-      {indexAxis:'y', plugins:{legend:{display:true,position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+'%'}}}, scales:{x:{suggestedMax:100, ticks:{callback:v=>v+'%'}}}});
+    const tot = dateRows.reduce((t,c)=>t+(c.netSales||0),0), PAL=['#0F7A6B','#2E6FA7','#D68910','#8E6FBF','#C0392B','#12A594','#7A8A90','#B5651D','#4C9F70'];
+    mkChart('chCityShare','doughnut',{labels:dateRows.map(c=>c.city+' ('+(tot?Math.round((c.netSales||0)/tot*100):0)+'%)'),datasets:[{data:dateRows.map(c=>c.netSales||0),backgroundColor:dateRows.map((_,i)=>PAL[i%PAL.length]),borderWidth:2,borderColor:'#fff'}]},{plugins:{legend:{display:true,position:'right'},tooltip:{callbacks:{label:c=>c.label.replace(/ \(.*$/,'')+': '+fmtMoney(c.raw)}}}});
     mkChart('chCityTargetVsActual','bar',{
       labels:cityLabels,
       datasets:[
@@ -11221,7 +11240,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.07): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.08): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
