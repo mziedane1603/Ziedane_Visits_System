@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.08)</title>
+<title>Ziedane CRM (v3.09)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1033,7 +1033,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.08';
+const APP_VERSION = '3.09';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -6469,6 +6469,10 @@ function openUserModal(id){
         <label style="margin:0;">الحساب نشط</label>
         <label class="switch"><input type="checkbox" id="mUActive" ${u?.active===false?'':'checked'}><span class="track"></span></label>
       </div>
+      <div class="field" id="incField" style="display:flex;align-items:center;justify-content:space-between;">
+        <label style="margin:0;">💰 إظهار الحافز المتوقع للمندوب (مخفي افتراضياً)</label>
+        <label class="switch"><input type="checkbox" id="mUShowInc" ${u?.showIncentive===true?'checked':''}><span class="track"></span></label>
+      </div>
       <div class="field">
         <label>الصفحات المتاحة لهذا المستخدم</label>
         <div class="permGrid" id="permChecklist">${permissionsChecklistHTML(perms)}</div>
@@ -6520,6 +6524,7 @@ async function saveUser(id){
     repId: role==='rep' ? (document.getElementById('mURepId').value || null) : null,
     cities: role==='telesales' ? Array.from(document.getElementById('mUCities').selectedOptions).map(o=>o.value) : [],
     active: document.getElementById('mUActive').checked,
+    showIncentive: !!document.getElementById('mUShowInc')?.checked,
     permissions
   };
   try{
@@ -7616,7 +7621,7 @@ function targetBonusCardHTML(){
   let bonusPart = '';
   try{
     const r = repBonusRowsForMonth(month).find(x=>x.repId===CURRENT_USER.repId);
-    if(r && r.parts.some(p=>p.enabled)) bonusPart = `<div class="goalTop" style="margin-top:10px;"><span>💰 حافزك المتوقع لحد دلوقتي</span><span><b>${fmtMoney(r.bonus)}</b></span></div>
+    if(CURRENT_USER.showIncentive===true && r && r.parts.some(p=>p.enabled)) bonusPart = `<div class="goalTop" style="margin-top:10px;"><span>💰 حافزك المتوقع لحد دلوقتي</span><span><b>${fmtMoney(r.bonus)}</b></span></div>
       <div>${r.parts.filter(p=>p.enabled).map(p=>`<span class="iChip">${p.ic} ${escapeHTML(p.label)}: ${escapeHTML(String(p.info||'-'))} → ${fmtMoney(p.amount)}</span>`).join('')}</div>`;
   }catch(e){}
   return (cityPart||bonusPart) ? `<div class="card"><div class="goal" style="margin:0;">${cityPart}${bonusPart}</div></div>` : '';
@@ -11240,7 +11245,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.08): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.09): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
