@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.10)</title>
+<title>Ziedane CRM (v3.11)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1033,7 +1033,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.10';
+const APP_VERSION = '3.11';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1322,6 +1322,7 @@ function setDefTab(k){ definitionsTab = k; renderView(); }
 const NAV_GROUPS = [
   {id:'g_orders', label:'الطلبيات',        ic:'🧾',   members:['suggestedorders','portalorders']},
   {id:'g_sales',  label:'المبيعات',        ic:'📈',   members:['citysales','customersales','customerstatement']},
+  {id:'g_claims', label:'المطالبات والعقود', ic:'💵', members:['claims','agreements']},
   {id:'g_comm',   label:'التواصل',         ic:'💬',   members:['teamchat','announcements']},
   {id:'g_cust',   label:'العملاء',         ic:'🏥',   members:['customers','custdata']},
   {id:'g_plan',   label:'خطتي ومهامي',     ic:'🗺️',   members:['routeplan','calendar']},
@@ -7245,7 +7246,7 @@ function viewClaims(){
       <input type="file" accept=".xlsx,.xls" onchange="handleClaimsExcelImport(this.files[0])" style="display:none;">
     </label>` : '';
   const addBtn = canEdit ? `<button class="btn btn-outline btn-sm" onclick="openClaimModal()">+ إضافة يدوياً</button>` : '';
-  const printBtn = `<button class="btn btn-outline btn-sm" onclick="printClaims()">🖨 طباعة PDF</button>`;
+  const printBtn = `<button class="btn btn-outline btn-sm" onclick="printClaims()">🖨 طباعة PDF</button>` + (isAdminLike() ? ` <button class="btn btn-outline btn-sm" onclick="goTo('dashboard');setReportsTab('claims')">📊 تقرير حالات الدفع</button>` : '');
 
   return `
     <div class="pageHead">
@@ -9638,9 +9639,10 @@ function availableCitySalesDates(){
 }
 let salesHubTab = 'cities', salesHubCity = '';
 function _fixHubTab(){ if(salesHubTab==='ov') salesHubTab = 'cities'; }
-const SALES_HUB = ()=>[['cities','🏙️ المدن والأهداف'],['regions','🏘️ المناطق'],['customers','👥 العملاء'],['zeros','0️⃣ الصفريات'],['lowvalue','💤 تحت '+SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')],['segments','🧩 الشرائح']];
+const SALES_HUB = ()=>[['cities','🏙️ المدن والأهداف'],['regions','🏘️ المناطق'],['customers','👥 العملاء'],['zeros','🎯 عملاء محتاجين شغل'],['segments','🧩 الشرائح']];
 const SALES_HUB_SA = {ov:'overview', regions:'regions', customers:'customers', zeros:'zeros', lowvalue:'lowvalue', segments:'segments'};
-function salesHubTabsHTML(){ return isAdminLike() ? `<div class="segRow" style="margin:0 0 10px;">${SALES_HUB().map(([k,l])=>`<button class="seg ${salesHubTab===k?'on':''}" onclick="setSalesHub('${k}')">${l}</button>`).join('')}</div>` : ''; }
+function salesHubTabsHTML(){ return isAdminLike() ? `<div class="segRow" style="margin:0 0 10px;">${SALES_HUB().map(([k,l])=>`<button class="seg ${(salesHubTab==='lowvalue'?'zeros':salesHubTab)===k?'on':''}" onclick="setSalesHub('${k}')">${l}</button>`).join('')}</div>` : ''; }
+function setSAKind(k){ salesHubTab = k; salesAnalyticsTab = k; saLF[k].city = saLF[k].city||''; renderView(); setTimeout(drawSalesAnalyticsCharts,30); }
 function setSalesHub(k){ salesHubTab = k; if(SALES_HUB_SA[k]) salesAnalyticsTab = SALES_HUB_SA[k]; renderView(); setTimeout(()=>{ if(k==='cities') drawCitySalesChart(); else drawSalesAnalyticsCharts(); }, 30); }
 function setSalesHubCity(c){ salesHubCity = c; renderView(); setTimeout(drawSalesAnalyticsCharts, 30); }
 function drillCity(city){ salesHubCity = cleanCity(city); salesHubTab = 'customers'; salesAnalyticsTab = 'customers'; renderView(); setTimeout(drawSalesAnalyticsCharts, 30); }
@@ -11144,6 +11146,8 @@ function saListRows(kind){
 }
 function viewSAList(kind){
   const f = saLF[kind], {base, list} = saListRows(kind), zero = kind==='zeros';
+  const nZ = saListRows('zeros').base.length, nL = saListRows('lowvalue').base.length;
+  const kindTabs = `<div class="segRow" style="margin:0 0 10px;"><button class="seg ${zero?'on':''}" onclick="setSAKind('zeros')">0️⃣ الصفريات (${nZ})</button><button class="seg ${zero?'':'on'}" onclick="setSAKind('lowvalue')">💤 تحت ${SA_LOW_VALUE_THRESHOLD.toLocaleString('en-US')} (${nL})</button></div>`;
   const uniq = k=>[...new Set(base.filter(c=>k!=='region'||!f.city||c.city===f.city).map(c=>k==='pay'?(c.paymentStatus||''):k==='region'?(c.region||''):(c.city||'')))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'ar'));
   const sel = (k,all)=>`<select onchange="saLFSet('${kind}','${k}',this.value)"><option value="">${all}</option>${uniq(k).map(x=>`<option ${f[k]===x?'selected':''}>${escapeHTML(x)}</option>`).join('')}</select>`;
   const sorts = zero ? [['region','ترتيب: المدينة والمنطقة'],['name','الاسم'],['code','الكود'],['pay','حالة الدفع']] : [['sales','المبيعات (الأعلى)'],['salesAsc','المبيعات (الأقل)'],['region','المدينة والمنطقة'],['name','الاسم'],['code','الكود']];
@@ -11151,7 +11155,7 @@ function viewSAList(kind){
   const rows = list.map((c,i)=>`<tr><td>${i+1}</td><td>${escapeHTML(c.code)}</td><td style="white-space:normal;min-width:150px;">${escapeHTML(c.name)}</td><td>${escapeHTML(c.city)}</td><td>${escapeHTML(c.region||'')}</td>
     ${zero ? '' : `<td style="font-weight:700;color:var(--red);">${fmtMoney(c.branch)}</td><td style="color:var(--amber);font-weight:700;">${fmtMoney(SA_LOW_VALUE_THRESHOLD-(c.branch||0))}</td>`}
     <td>${escapeHTML(c.paymentStatus||'')}</td><td><button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(c.code))})">📝 زيارة</button></td></tr>`).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--gray-500);padding:24px;">${zero?'مفيش عملاء بالفلاتر دي 🎉':'لا يوجد عملاء في هذه الفئة'}</td></tr>`;
-  return `<div class="card"><div class="pageHead" style="margin-bottom:8px;"><div><h2 style="font-size:15px;">${zero?'عملاء بمبيعات صفر':`عملاء بمبيعات أقل من ${thr} ج.م`}</h2><div class="desc">${list.length} من ${base.length} عميل</div></div>
+  return kindTabs + `<div class="card"><div class="pageHead" style="margin-bottom:8px;"><div><h2 style="font-size:15px;">${zero?'عملاء بمبيعات صفر':`عملاء بمبيعات أقل من ${thr} ج.م`}</h2><div class="desc">${list.length} من ${base.length} عميل</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-outline btn-sm" onclick="saListPrint('${kind}')">🖨 طباعة</button><button class="btn btn-outline btn-sm" onclick="saListWhatsApp('${kind}')">📲 واتساب</button></div></div>
     <div class="filterBar" style="margin-bottom:10px;">${sel('city','كل المدن')}${sel('region','كل المناطق')}${sel('pay','كل حالات الدفع')}
       <select onchange="saLFSet('${kind}','sort',this.value)">${sorts.map(x=>`<option value="${x[0]}" ${f.sort===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>
@@ -11297,7 +11301,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.10): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.11): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
