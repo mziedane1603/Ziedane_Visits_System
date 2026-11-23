@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.06)</title>
+<title>Ziedane CRM (v3.07)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -846,6 +846,24 @@ html,body{overflow-x:clip;}
 .deckRoot #dkDots{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:60vw}
 .deckRoot .dkDot{width:9px;height:9px;border-radius:9px;background:var(--ln);cursor:pointer}.deckRoot .dkDot.on{background:var(--ac)}
 @media(max-width:700px){.deckRoot{height:calc(100dvh - 150px)}.deckRoot .dkHead{padding:8px 10px}.deckRoot .dkHead h1{font-size:15px}.deckRoot main{padding:0 8px 6px}.deckRoot .dkSl{padding:12px;border-radius:16px;overflow-y:auto;gap:8px}.deckRoot .dkSl h2{font-size:21px}.deckRoot .dkCv{flex:none;height:290px;min-height:0}.deckRoot .dkCap,.deckRoot .dkTip{font-size:16px;padding:10px 12px}.deckRoot .dkKp{flex:none;gap:8px}.deckRoot .dkKp div{padding:12px}.deckRoot .dkKp b{font-size:30px}.deckRoot .dkTwo{display:flex;flex-direction:column}}
+
+.tgHero{display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:12px;margin-bottom:12px}
+@media(max-width:800px){.tgHero{grid-template-columns:1fr 1fr}.tgMini{grid-column:1/-1}}
+.tgRingBox{background:#fff;border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 2px 10px #0001}
+.tgRing{--p:0;--c:#0F7A6B;width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),#e6ecea 0);display:flex;align-items:center;justify-content:center}
+.tgRing>div{width:96px;height:96px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.tgRing b{font-size:26px;line-height:1}.tgRing span{font-size:12px;color:var(--gray-500);margin-top:2px}
+.tgRingSub{text-align:center;font-weight:700;font-size:14px}.tgRingSub span{font-weight:400;color:var(--gray-500);font-size:12px}
+.tgMini{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tgMiniCard{background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 2px 10px #0001;border-inline-start:4px solid #1f8f6e;display:flex;flex-direction:column;gap:2px}
+.tgMiniCard.bad{border-inline-start-color:#d2563f}.tgMiniCard span{font-size:12px;color:var(--gray-500)}.tgMiniCard b{font-size:22px}.tgMiniCard small{color:var(--gray-500);font-size:11px}
+.tgTable th{background:var(--gray-100);font-size:13px}.tgTable td{vertical-align:middle;padding:12px 10px}
+.tgTable tfoot td{background:var(--gray-100);border-top:2px solid var(--gray-300)}
+.tgCity{font-weight:800;font-size:15px;margin-bottom:4px}.tgCity a{color:inherit}
+.tgChip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700}
+.tgOk{background:#dff3ea;color:#17684f}.tgMid{background:#fbf0d2;color:#8a6410}.tgBad{background:#fbe0da;color:#a8341f}.tgBadTx{color:#b8412c}
+.tgMeter{min-width:170px}.tgMeterTop{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:4px;font-size:12px}.tgMeterTop b{font-size:16px}.tgMeterTop span{color:var(--gray-500)}
+.tgBar{height:9px;background:#e6ecea;border-radius:9px;overflow:hidden}.tgBar i{display:block;height:100%;border-radius:9px;transition:width .6s}
 </style>
 </head>
 <body>
@@ -1015,7 +1033,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.06';
+const APP_VERSION = '3.07';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -8223,7 +8241,7 @@ const CITY_PERIODS = {
   am:{label:'الفترة الصباحية', ic:'🌅', s:'amSales', c:'amCustomers', ts:'amTarget', tc:'amCustTarget'},
   pm:{label:'الفترة المسائية', ic:'🌙', s:'pmSales', c:'pmCustomers', ts:'pmTarget', tc:'pmCustTarget'}
 };
-let cityPeriod = 'br';
+let cityPeriod = 'br', cityTgSort = 'sales';
 const cleanCity = s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
 const normCity = s=>normName(cleanCity(s));
 function enrichCityRow(r){
@@ -8361,7 +8379,12 @@ function cityTargetsFromDoc(d){
 }
 /* محرر الأهداف (لشهر محدد) */
 let tgMonth = null, tgDraft = null, tgFrom = '';
-function tgLoad(){ if(!tgMonth) tgMonth = todayISO().slice(0,7); const r = targetsForMonth(tgMonth); tgDraft = cloneT(r.t); tgFrom = r.from; }
+function tgLoad(){
+  if(!tgMonth) tgMonth = todayISO().slice(0,7); const r = targetsForMonth(tgMonth); tgDraft = cloneT(r.t); tgFrom = r.from;
+  // أي مدينة (زي كبار العملاء) موجودة في بلوك تتضاف للباقي بهدف 0 عشان تقدر تحط التارجت في أي شيفت
+  const all = []; ['br','am','pm'].forEach(k=>(tgDraft[k]||[]).forEach(x=>{ if(!all.some(c=>normCity(c)===normCity(x[0]))) all.push(x[0]); }));
+  ['br','am','pm'].forEach(k=>{ tgDraft[k] = tgDraft[k]||[]; all.forEach(c=>{ if(!tgDraft[k].some(x=>normCity(x[0])===normCity(c))) tgDraft[k].push([c,0,0]); }); });
+}
 function tgShift(d){ tgMonth = shiftMonth(tgMonth||todayISO().slice(0,7), d); tgLoad(); renderView(); }
 function tgCopyPrev(){ const r = targetsForMonth(shiftMonth(tgMonth,-1)); tgDraft = cloneT(r.t); toast('اتنسخت أهداف '+(r.from.length===7?monthLabelAr(r.from):'الشهر السابق')+' - اضغط حفظ','ok'); renderView(); }
 function setCityTarget(k,i,f,v){ tgDraft[k][i][f] = Math.max(0, Number(v)||0); }
@@ -9600,26 +9623,24 @@ function viewCitySalesMain(){
 
   const remainWorkDays = remainingWorkDaysInMonth();
 
-  const bodyRows = rows.map(c=>{
-    const pct = cityAchievementPct(c);
-    const custPct = cityCustomerPct(c);
-    const salesOk = pct >= CITY_THRESHOLDS.salesMinPct;
-    const custOk = custPct >= CITY_THRESHOLDS.customerMinPct;
-    const remainToThreshold = cityRemainingToThreshold(c);
-    const dailyNeeded = cityDailyTargetNeeded(c);
+  const tgSorted = rows.slice().sort({
+    sales:(x,y)=>(y.netSales||0)-(x.netSales||0), pct:(x,y)=>cityAchievementPct(y)-cityAchievementPct(x),
+    gap:(x,y)=>cityRemainingToThreshold(y)-cityRemainingToThreshold(x), cust:(x,y)=>cityCustomerPct(y)-cityCustomerPct(x),
+    name:(x,y)=>String(x.city).localeCompare(String(y.city),'ar')}[cityTgSort] || ((x,y)=>(y.netSales||0)-(x.netSales||0)));
+  const bodyRows = tgSorted.map(c=>{
+    const pct = cityAchievementPct(c), custPct = cityCustomerPct(c);
+    const salesOk = pct >= CITY_THRESHOLDS.salesMinPct, custOk = custPct >= CITY_THRESHOLDS.customerMinPct;
+    const remain = cityRemainingToThreshold(c), daily = cityDailyTargetNeeded(c);
+    const st = pct>=100 ? ['tgOk','🏆 حقق الهدف'] : (salesOk&&custOk) ? ['tgOk','✅ فوق الحد'] : (salesOk||custOk) ? ['tgMid','⚠️ جزئي'] : ['tgBad','🔻 متأخر'];
     return `<tr>
-      <td style="font-weight:700;">${isAdminLike() ? `<a href="#" onclick="drillCity(${escapeHTML(JSON.stringify(c.city))});return false;">${escapeHTML(c.city)}</a>` : escapeHTML(c.city)} ${!salesOk||!custOk?'⚠️':''}</td>
-      <td>${fmtMoney(c.salesTarget)}</td>
-      <td>${fmtMoney(c.netSales)}</td>
-      <td><span class="badge ${salesOk?'badge-teal':'badge-red'}">${pct.toFixed(0)}%</span></td>
-      <td>${remainToThreshold>0 ? fmtMoney(remainToThreshold) : '<span class="badge badge-teal">تحقق ✔</span>'}</td>
-      <td>${fmtMoney(dailyNeeded)}</td>
-      <td>${c.customerTarget||0}</td>
-      <td>${c.customersActive||0}</td>
-      <td><span class="badge ${custOk?'badge-teal':'badge-red'}">${custPct.toFixed(0)}%</span></td>
+      <td><div class="tgCity">${isAdminLike() ? `<a href="#" onclick="drillCity(${escapeHTML(JSON.stringify(c.city))});return false;">${escapeHTML(c.city)}</a>` : escapeHTML(c.city)}</div><span class="tgChip ${st[0]}">${st[1]}</span></td>
+      <td>${tgMeter(pct, salesOk, fmtMoney(c.netSales)+' / '+fmtMoney(c.salesTarget))}</td>
+      <td>${remain>0 ? `<b class="tgBadTx">${fmtMoney(remain)}</b>` : '<span class="tgChip tgOk">تحقق ✔</span>'}</td>
+      <td>${fmtMoney(daily)}</td>
+      <td>${tgMeter(custPct, custOk, (c.customersActive||0)+' / '+(c.customerTarget||0)+' عميل', true)}</td>
     </tr>`;
   }).join('');
-
+  const dim = new Date(); const dayFrac = (citySalesSelectedDate||'').slice(0,7)===todayISO().slice(0,7) ? Math.round(dim.getDate()/new Date(dim.getFullYear(),dim.getMonth()+1,0).getDate()*100) : null;
   const thresholdSettings = canEdit ? `
     <div class="card">
       <h2 style="font-size:15px;margin:0 0 10px;">⚙️ الحد الأدنى المقبول لكل مدينة</h2>
@@ -9638,44 +9659,68 @@ function viewCitySalesMain(){
       </div>
     </div>
     ${salesHubTabsHTML()}${hasPeriods ? cityPeriodTabsHTML() : ''}
-    <div class="grid grid-4">
-      <div class="kpi"><div class="ic" style="background:var(--teal-light);color:var(--teal-dark);">🎯</div><div class="lbl">نسبة تحقيق هدف المبيعات</div><div class="val" style="font-size:18px;">${overallPct.toFixed(0)}%</div><div class="sub">${fmtMoney(totalNet)} من ${fmtMoney(totalTarget)}</div></div>
-      <div class="kpi"><div class="ic" style="background:#E7F0F8;color:var(--blue);">📆</div><div class="lbl">باقي أيام العمل لنهاية الشهر</div><div class="val" style="font-size:18px;">${remainWorkDays}</div><div class="sub">بدون الجمعة</div></div>
-      <div class="kpi"><div class="ic" style="background:${belowSalesCount?'#FBEAE8':'var(--teal-light)'};color:${belowSalesCount?'var(--red)':'var(--teal-dark)'};">⚠️</div><div class="lbl">مدن تحت حد المبيعات (${CITY_THRESHOLDS.salesMinPct}%)</div><div class="val" style="font-size:18px;">${belowSalesCount}</div></div>
-      <div class="kpi"><div class="ic" style="background:${belowCustCount?'#FBEAE8':'var(--teal-light)'};color:${belowCustCount?'var(--red)':'var(--teal-dark)'};">⚠️</div><div class="lbl">مدن تحت حد العملاء (${CITY_THRESHOLDS.customerMinPct}%)</div><div class="val" style="font-size:18px;">${belowCustCount}</div></div>
+    <div class="tgHero">
+      <div class="tgRingBox">${tgRing(overallPct, 'المبيعات')}<div class="tgRingSub">${fmtMoney(totalNet)}<br><span>من ${fmtMoney(totalTarget)}</span></div></div>
+      <div class="tgRingBox">${tgRing(totalCustTarget>0?totalCustActive/totalCustTarget*100:0, 'العملاء')}<div class="tgRingSub">${totalCustActive} عميل<br><span>من ${totalCustTarget}</span></div></div>
+      <div class="tgMini">
+        <div class="tgMiniCard"><span>📆 باقي أيام العمل</span><b>${remainWorkDays}</b><small>بدون الجمعة</small></div>
+        <div class="tgMiniCard ${belowSalesCount?'bad':''}"><span>⚠️ مدن تحت حد المبيعات (${CITY_THRESHOLDS.salesMinPct}%)</span><b>${belowSalesCount}</b></div>
+        <div class="tgMiniCard ${belowCustCount?'bad':''}"><span>⚠️ مدن تحت حد العملاء (${CITY_THRESHOLDS.customerMinPct}%)</span><b>${belowCustCount}</b></div>
+        ${dayFrac!=null ? `<div class="tgMiniCard ${overallPct>=dayFrac?'':'bad'}"><span>⏱️ المفروض نكون عند</span><b>${dayFrac}%</b><small>${overallPct>=dayFrac?'إحنا قدّام الوتيرة 👏':'محتاجين نسرّع'}</small></div>` : ''}
+      </div>
     </div>
-    <div class="card">
-      <div class="tableWrap"><table><thead><tr>
-        <th>المدينة</th><th>هدف المبيعات</th><th>صافي المبيعات</th><th>% تحقيق الهدف</th><th>الباقي للحد الأدنى</th><th>الهدف اليومي المطلوب</th><th>هدف العملاء</th><th>العملاء المتعاملين</th><th>% تحقيق هدف العملاء</th>
-      </tr></thead><tbody>${bodyRows}</tbody></table></div>
-      <div class="smallMuted" style="margin-top:8px;">"الباقي للحد الأدنى" = المبلغ الناقص لوصول المدينة لـ${CITY_THRESHOLDS.salesMinPct}% من هدفها. "الهدف اليومي المطلوب" = باقي المبلغ لتحقيق الهدف الكامل ÷ ${remainWorkDays} يوم عمل متبقي.</div>
+    <div class="card tgCard">
+      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">🎯 تحقيق الأهداف - ${CITY_PERIODS[cityPeriod].label}</h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;"><select onchange="cityTgSort=this.value;renderView();setTimeout(drawCitySalesChart,30)">${[['sales','ترتيب: صافي المبيعات'],['pct','% تحقيق المبيعات'],['cust','% تحقيق العملاء'],['gap','الأكتر نقصاً للحد'],['name','الاسم']].map(x=>`<option value="${x[0]}" ${cityTgSort===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>
+        <button class="btn btn-outline btn-sm" onclick="printCityTargets()">🖨 طباعة</button></div></div>
+      <div class="tableWrap"><table class="tgTable"><thead><tr><th>المدينة</th><th>المبيعات (فعلي / هدف)</th><th>الباقي للحد الأدنى</th><th>المطلوب يومياً</th><th>العملاء (فعلي / هدف)</th></tr></thead><tbody>${bodyRows}</tbody>
+        <tfoot><tr><td><b>الإجمالي</b></td><td>${tgMeter(overallPct, overallPct>=CITY_THRESHOLDS.salesMinPct, fmtMoney(totalNet)+' / '+fmtMoney(totalTarget))}</td><td></td><td></td><td>${tgMeter(totalCustTarget>0?totalCustActive/totalCustTarget*100:0, true, totalCustActive+' / '+totalCustTarget+' عميل', true)}</td></tr></tfoot></table></div>
+      <div class="smallMuted" style="margin-top:8px;">"الباقي للحد الأدنى" = الناقص لوصول المدينة لـ${CITY_THRESHOLDS.salesMinPct}% من هدفها. "المطلوب يومياً" = باقي الهدف الكامل ÷ ${remainWorkDays} يوم عمل متبقي.</div>
     </div>
+    <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">نسبة التحقيق لكل مدينة (المبيعات والعملاء)</h2></div><div class="chartBox" style="height:${Math.max(240, rows.length*46)}px;"><canvas id="chCityPct"></canvas></div></div>
     <div class="grid grid-2">
       <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">الهدف مقابل الفعلي - المبيعات</h2></div><div class="chartBox"><canvas id="chCityTargetVsActual"></canvas></div></div>
       <div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">الهدف مقابل الفعلي - العملاء</h2></div><div class="chartBox"><canvas id="chCityCustTargetVsActual"></canvas></div></div>
-    </div>
-    <div class="card">
-      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">اتجاه صافي المبيعات الكلي عبر أيام الاستيراد</h2></div>
-      <div class="chartBox"><canvas id="chCitySalesTrend"></canvas></div>
     </div>
     ${thresholdSettings}
   `;
 }
 
+
+function tgMeter(pct, ok, label, blue){
+  const w = Math.max(0,Math.min(100,pct)), col = pct>=100 ? (blue?'#2E6FA7':'#1f8f6e') : ok ? (blue?'#7fa9cc':'#6aa88f') : '#d2563f';
+  return `<div class="tgMeter"><div class="tgMeterTop"><b style="color:${ok?'inherit':'#b8412c'}">${Math.round(pct)}%</b><span>${label}</span></div><div class="tgBar"><i style="width:${w}%;background:${col}"></i></div></div>`;
+}
+function tgRing(pct, label){
+  const w = Math.max(0,Math.min(100,pct)), col = pct>=100?'#1f8f6e':pct>=70?'#c9a24a':'#d2563f';
+  return `<div class="tgRing" style="--p:${w};--c:${col}"><div><b>${Math.round(pct)}%</b><span>${label}</span></div></div>`;
+}
+function printCityTargets(){
+  const rows = (citySalesSelectedDate ? visibleCitySales().filter(c=>c.date===citySalesSelectedDate) : []).map(c=>periodRec(c,cityPeriod)).sort((a,b)=>(b.netSales||0)-(a.netSales||0));
+  if(!rows.length){ toast('لا توجد بيانات للطباعة','warn'); return; }
+  const tT = rows.reduce((s,c)=>s+(Number(c.salesTarget)||0),0), tN = rows.reduce((s,c)=>s+(Number(c.netSales)||0),0), cT = rows.reduce((s,c)=>s+(Number(c.customerTarget)||0),0), cA = rows.reduce((s,c)=>s+(Number(c.customersActive)||0),0);
+  const body = rows.map(c=>`<tr><td>${escapeHTML(c.city)}</td><td>${fmtMoney(c.salesTarget)}</td><td>${fmtMoney(c.netSales)}</td><td>${cityAchievementPct(c).toFixed(0)}%</td><td>${cityRemainingToThreshold(c)>0?fmtMoney(cityRemainingToThreshold(c)):'تحقق'}</td><td>${fmtMoney(cityDailyTargetNeeded(c))}</td><td>${c.customerTarget||0}</td><td>${c.customersActive||0}</td><td>${cityCustomerPct(c).toFixed(0)}%</td></tr>`).join('');
+  document.getElementById('printArea').innerHTML = `<div class="printHeader"><div class="printLogo"><span class="logoZ">Z</span>⚡</div><div><h1>تحقيق أهداف المدن - ${CITY_PERIODS[cityPeriod].label}</h1><div class="printMeta">${escapeHTML((COMPANY&&(COMPANY.nameAr||COMPANY.name))||'شركة الصيادلة العرب')} · بيانات ${fmtDate(citySalesSelectedDate)}</div></div></div>
+    <div class="printSummaryGrid"><div class="printSummaryCard"><div class="l">تحقيق المبيعات</div><div class="v">${tT?Math.round(tN/tT*100):0}%</div></div><div class="printSummaryCard"><div class="l">صافي المبيعات</div><div class="v">${fmtMoney(tN)}</div></div><div class="printSummaryCard"><div class="l">تحقيق العملاء</div><div class="v">${cT?Math.round(cA/cT*100):0}%</div></div></div>
+    <table class="printTable"><thead><tr><th>المدينة</th><th>هدف المبيعات</th><th>صافي المبيعات</th><th>%</th><th>الباقي للحد الأدنى</th><th>المطلوب يومياً</th><th>هدف العملاء</th><th>المتعاملين</th><th>%</th></tr></thead><tbody>${body}</tbody></table><div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>`;
+  printSoon();
+}
+
 function drawCitySalesChart(){
   if(isAdminLike() && salesHubTab!=='cities') return;
-  destroyCharts(['chCitySalesTrend','chCityTargetVsActual','chCityCustTargetVsActual']);
+  destroyCharts(['chCityPct','chCityTargetVsActual','chCityCustTargetVsActual']);
   if(currentView!=='citysales') return;
   const list = visibleCitySales();
   if(!list.length) return;
 
-  const dates = [...new Set(list.map(c=>c.date))].sort();
-  const PF = CITY_PERIODS[cityPeriod]||CITY_PERIODS.br, totals = dates.map(d=>list.filter(c=>c.date===d).reduce((s,c)=>s+(Number(c[PF.s])||0),0));
-  mkChart('chCitySalesTrend','line',{labels:dates.map(d=>d.slice(5)),datasets:[{label:'صافي المبيعات',data:totals,borderColor:'#0F7A6B',backgroundColor:'rgba(15,122,107,.12)',tension:.3,fill:true}]},{plugins:{legend:{display:false}}});
-
   const dateRows = citySalesSelectedDate ? list.filter(c=>c.date===citySalesSelectedDate).map(c=>periodRec(c,cityPeriod)) : [];
   if(dateRows.length){
     const cityLabels = dateRows.map(c=>c.city);
+    const sp = dateRows.map(c=>Math.round(cityAchievementPct(c))), cp = dateRows.map(c=>Math.round(cityCustomerPct(c)));
+    mkChart('chCityPct','bar',{labels:cityLabels,datasets:[
+      {label:'% المبيعات', data:sp, backgroundColor:sp.map(v=>v>=100?'#1f8f6e':v>=CITY_THRESHOLDS.salesMinPct?'#6aa88f':'#d2563f'), borderRadius:6},
+      {label:'% العملاء', data:cp, backgroundColor:cp.map(v=>v>=100?'#2E6FA7':v>=CITY_THRESHOLDS.customerMinPct?'#7fa9cc':'#e0954a'), borderRadius:6}]},
+      {indexAxis:'y', plugins:{legend:{display:true,position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+'%'}}}, scales:{x:{suggestedMax:100, ticks:{callback:v=>v+'%'}}}});
     mkChart('chCityTargetVsActual','bar',{
       labels:cityLabels,
       datasets:[
@@ -11010,25 +11055,50 @@ function viewSACustomers(){
   `;
 }
 
-function viewSAZeros(){
-  const list = saData().filter(c=>!((c.branch||0)>0)).sort((a,b)=>(a.area||a.region||'').localeCompare(b.region||'','ar'));
-  const rows = list.map((c,i)=>`
-    <tr>
-      <td>${i+1}</td>
-      <td>${escapeHTML(c.code)}</td>
-      <td style="white-space:normal;min-width:150px;">${escapeHTML(c.name)}</td>
-      <td>${escapeHTML(c.city)}</td>
-      <td>${escapeHTML(c.region||'')}</td>
-      <td>${escapeHTML(c.paymentStatus||'')}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(c.code))})">📝 زيارة</button></td>
-    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:24px;">كل العملاء عندهم مبيعات 🎉</td></tr>`;
-  return `
-    <div class="card">
-      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">عملاء بمبيعات صفر</h2><div class="desc">${list.length} عميل</div></div>
-      <div class="tableWrap"><table><thead><tr><th>#</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>المنطقة</th><th>حالة الدفع</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-    </div>
-  `;
+/* ---------- صفحات الصفريات / تحت الحد: فلترة + ترتيب + طباعة + واتساب ---------- */
+const saLF = {zeros:{city:'',region:'',pay:'',q:'',sort:'region'}, lowvalue:{city:'',region:'',pay:'',q:'',sort:'sales'}};
+function saLFSet(kind,k,v){ saLF[kind][k]=v; if(k==='city') saLF[kind].region=''; renderView(); }
+function saListRows(kind){
+  const f = saLF[kind], base = saData().filter(c=> kind==='zeros' ? !((c.branch||0)>0) : ((c.branch||0)>0 && (c.branch||0)<SA_LOW_VALUE_THRESHOLD));
+  let l = base.filter(c=>(!f.city||c.city===f.city) && (!f.region||(c.region||'')===f.region) && (!f.pay||(c.paymentStatus||'')===f.pay));
+  if(f.q){ const q = f.q.toLowerCase(); l = l.filter(c=>(String(c.code)+' '+(c.name||'')).toLowerCase().includes(q)); }
+  const S = {region:(x,y)=>String(x.city||'').localeCompare(String(y.city||''),'ar')||String(x.region||'').localeCompare(String(y.region||''),'ar'), name:(x,y)=>String(x.name||'').localeCompare(String(y.name||''),'ar'), code:(x,y)=>String(x.code).localeCompare(String(y.code),undefined,{numeric:true}), pay:(x,y)=>String(x.paymentStatus||'').localeCompare(String(y.paymentStatus||''),'ar'),
+    sales:(x,y)=>(y.branch||0)-(x.branch||0), salesAsc:(x,y)=>(x.branch||0)-(y.branch||0)};
+  return {base, list:l.sort(S[f.sort]||S.region)};
 }
+function viewSAList(kind){
+  const f = saLF[kind], {base, list} = saListRows(kind), zero = kind==='zeros';
+  const uniq = k=>[...new Set(base.filter(c=>k!=='region'||!f.city||c.city===f.city).map(c=>k==='pay'?(c.paymentStatus||''):k==='region'?(c.region||''):(c.city||'')))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'ar'));
+  const sel = (k,all)=>`<select onchange="saLFSet('${kind}','${k}',this.value)"><option value="">${all}</option>${uniq(k).map(x=>`<option ${f[k]===x?'selected':''}>${escapeHTML(x)}</option>`).join('')}</select>`;
+  const sorts = zero ? [['region','ترتيب: المدينة والمنطقة'],['name','الاسم'],['code','الكود'],['pay','حالة الدفع']] : [['sales','المبيعات (الأعلى)'],['salesAsc','المبيعات (الأقل)'],['region','المدينة والمنطقة'],['name','الاسم'],['code','الكود']];
+  const thr = SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn');
+  const rows = list.map((c,i)=>`<tr><td>${i+1}</td><td>${escapeHTML(c.code)}</td><td style="white-space:normal;min-width:150px;">${escapeHTML(c.name)}</td><td>${escapeHTML(c.city)}</td><td>${escapeHTML(c.region||'')}</td>
+    ${zero ? '' : `<td style="font-weight:700;color:var(--red);">${fmtMoney(c.branch)}</td><td style="color:var(--amber);font-weight:700;">${fmtMoney(SA_LOW_VALUE_THRESHOLD-(c.branch||0))}</td>`}
+    <td>${escapeHTML(c.paymentStatus||'')}</td><td><button class="btn btn-ghost btn-sm" onclick="quickVisitFor(${escapeHTML(JSON.stringify(c.code))})">📝 زيارة</button></td></tr>`).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--gray-500);padding:24px;">${zero?'مفيش عملاء بالفلاتر دي 🎉':'لا يوجد عملاء في هذه الفئة'}</td></tr>`;
+  return `<div class="card"><div class="pageHead" style="margin-bottom:8px;"><div><h2 style="font-size:15px;">${zero?'عملاء بمبيعات صفر':`عملاء بمبيعات أقل من ${thr} ج.م`}</h2><div class="desc">${list.length} من ${base.length} عميل</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-outline btn-sm" onclick="saListPrint('${kind}')">🖨 طباعة</button><button class="btn btn-outline btn-sm" onclick="saListWhatsApp('${kind}')">📲 واتساب</button></div></div>
+    <div class="filterBar" style="margin-bottom:10px;">${sel('city','كل المدن')}${sel('region','كل المناطق')}${sel('pay','كل حالات الدفع')}
+      <select onchange="saLFSet('${kind}','sort',this.value)">${sorts.map(x=>`<option value="${x[0]}" ${f.sort===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>
+      <input placeholder="🔍 اسم أو كود" value="${escapeHTML(f.q)}" oninput="saLF['${kind}'].q=this.value;dbnc('saLQ',()=>{const p=this.selectionStart;renderView();const i=document.querySelector('.filterBar input');if(i){i.focus();try{i.setSelectionRange(p,p)}catch(e){}}})"></div>
+    <div class="tableWrap"><table><thead><tr><th>#</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>المنطقة</th>${zero?'':`<th>المبيعات</th><th>الفجوة عن ${thr}</th>`}<th>حالة الدفع</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function saListFilterLine(kind){ const f = saLF[kind]; return [f.city,f.region,f.pay,f.q&&('بحث: '+f.q)].filter(Boolean).join(' · ') || 'كل العملاء'; }
+function saListPrint(kind){
+  const {list} = saListRows(kind), zero = kind==='zeros';
+  if(!list.length){ toast('مفيش بيانات للطباعة','warn'); return; }
+  const body = list.map((c,i)=>`<tr><td>${i+1}</td><td>${escapeHTML(c.code)}</td><td>${escapeHTML(c.name)}</td><td>${escapeHTML(c.city)}</td><td>${escapeHTML(c.region||'')}</td>${zero?'':`<td>${fmtMoney(c.branch)}</td>`}<td>${escapeHTML(c.paymentStatus||'')}</td></tr>`).join('');
+  document.getElementById('printArea').innerHTML = `<div class="printHeader"><div class="printLogo"><span class="logoZ">Z</span>⚡</div><div><h1>${zero?'عملاء بمبيعات صفر':'عملاء تحت '+SA_LOW_VALUE_THRESHOLD.toLocaleString('en-US')+' ج.م'}</h1><div class="printMeta">${escapeHTML((COMPANY&&(COMPANY.nameAr||COMPANY.name))||'شركة الصيادلة العرب')} · ${escapeHTML(saListFilterLine(kind))} · ${fmtDateArabic(todayISO())}</div></div></div>
+    <div class="printSummaryGrid"><div class="printSummaryCard"><div class="l">عدد العملاء</div><div class="v">${list.length}</div></div></div>
+    <table class="printTable"><thead><tr><th>#</th><th>الكود</th><th>الاسم</th><th>المدينة</th><th>المنطقة</th>${zero?'':'<th>المبيعات</th>'}<th>حالة الدفع</th></tr></thead><tbody>${body}</tbody></table><div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>`;
+  printSoon();
+}
+function saListWhatsApp(kind){
+  const {list} = saListRows(kind), zero = kind==='zeros'; if(!list.length){ toast('مفيش بيانات','warn'); return; }
+  const t = `${zero?'🔴 *عملاء بمبيعات صفر*':'🟠 *عملاء تحت '+SA_LOW_VALUE_THRESHOLD.toLocaleString('en-US')+' ج.م*'}\n📍 ${saListFilterLine(kind)}\nالعدد: ${list.length}\n\n`+list.slice(0,40).map(c=>`• ${c.name} (${c.code}) - ${c.region||c.city}${zero?'':' - '+Math.round(c.branch).toLocaleString('en-US')}`).join('\n')+(list.length>40?`\n... و${list.length-40} تانيين`:'')+'\n\nيلا نزورهم ونفعّلهم 💪';
+  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
+}
+function viewSAZeros(){ return viewSAList('zeros'); }
+function viewSALowValue(){ return viewSAList('lowvalue'); }
 
 function saSegmentData(){
   const list = saData();
@@ -11057,27 +11127,6 @@ function viewSASegments(){
     <div class="card">
       <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">عدد العملاء لكل شريحة</h2></div>
       <div class="chartBox"><canvas id="chSASegments"></canvas></div>
-    </div>
-  `;
-}
-
-function viewSALowValue(){
-  const list = saData().filter(c=>(c.branch||0)>0 && (c.branch||0)<SA_LOW_VALUE_THRESHOLD).sort((a,b)=>(b.branch||0)-(a.branch||0));
-  const rows = list.map((c,i)=>`
-    <tr>
-      <td>${i+1}</td>
-      <td>${escapeHTML(c.code)}</td>
-      <td style="white-space:normal;min-width:150px;">${escapeHTML(c.name)}</td>
-      <td>${escapeHTML(c.city)}</td>
-      <td>${escapeHTML(c.region||'')}</td>
-      <td style="font-weight:700;color:var(--red);">${fmtMoney(c.branch)}</td>
-      <td style="color:var(--amber);font-weight:700;">${fmtMoney(SA_LOW_VALUE_THRESHOLD-(c.branch||0))}</td>
-      <td>${escapeHTML(c.paymentStatus||'')}</td>
-    </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--gray-500);padding:24px;">لا يوجد عملاء في هذه الفئة</td></tr>`;
-  return `
-    <div class="card">
-      <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">عملاء بمبيعات أقل من ${SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')} ج.م</h2><div class="desc">${list.length} عميل</div></div>
-      <div class="tableWrap"><table><thead><tr><th>#</th><th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>المنطقة</th><th>المبيعات</th><th>الفجوة عن ${SA_LOW_VALUE_THRESHOLD.toLocaleString('ar-EG-u-nu-latn')}</th><th>حالة الدفع</th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>
   `;
 }
@@ -11172,7 +11221,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.06): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.07): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
