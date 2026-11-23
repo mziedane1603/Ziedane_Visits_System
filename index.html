@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.09)</title>
+<title>Ziedane CRM (v3.10)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1033,7 +1033,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.09';
+const APP_VERSION = '3.10';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1206,6 +1206,7 @@ const ALL_PAGES = [
   {id:'followup', label:'متابعة العملاء', ic:'☎️'},
   {id:'announcements', label:'الإعلانات', ic:'📢'},
   {id:'auditlog', label:'سجل التعديلات', ic:'🕵️'},
+  {id:'usage', label:'استخدام الصفحات', ic:'📈'},
   {id:'users',     label:'المستخدمون والصلاحيات', ic:'🔐'},
 ];
 ALL_PAGES.forEach(p=>{ PAGE_LABELS_FOR_PRESENCE[p.id] = p.label; });
@@ -1214,7 +1215,7 @@ function defaultPermissionsForRole(role){
   const p = {};
   ALL_PAGES.forEach(x=>p[x.id]=false);
   if(role==='admin'){ ALL_PAGES.forEach(x=>p[x.id]=true); return p; }
-  if(role==='manager'){ ALL_PAGES.forEach(x=>p[x.id]=true); p.users=false; p.repbonus=false; return p; }
+  if(role==='manager'){ ALL_PAGES.forEach(x=>p[x.id]=true); p.users=false; p.repbonus=false; p.usage=false; return p; }
   if(role==='rep'){
     ['dashboard','teamchat','routeplan','calendar','addvisit','visits','custdata','inventory','suggestedorders','claims','agreements','customerstatement','citysales'].forEach(id=>p[id]=true);
     return p;
@@ -1324,7 +1325,7 @@ const NAV_GROUPS = [
   {id:'g_comm',   label:'التواصل',         ic:'💬',   members:['teamchat','announcements']},
   {id:'g_cust',   label:'العملاء',         ic:'🏥',   members:['customers','custdata']},
   {id:'g_plan',   label:'خطتي ومهامي',     ic:'🗺️',   members:['routeplan','calendar']},
-  {id:'g_sys',    label:'الإدارة',          ic:'⚙️',   members:['reps','repbonus','definitions','users','auditlog']}
+  {id:'g_sys',    label:'الإدارة',          ic:'⚙️',   members:['reps','repbonus','definitions','users','auditlog','usage']}
 ];
 // للمندوب/التيلي سيلز: الصفحات الثانوية بتتجمع تحت عنصر واحد "المزيد" عشان القايمة تبقى خفيفة
 const REP_MORE_GROUP = {id:'g_repmore', label:'المزيد', ic:'☰', members:['custdata','claims','agreements','customerstatement','citysales','suggestedorders']};
@@ -1369,7 +1370,7 @@ const PAGE_SECTION = {
   routeplan:'daily', calendar:'daily', addvisit:'daily', visits:'daily', customers:'daily', custdata:'daily', followup:'daily',
   inventory:'sales', suggestedorders:'sales', portalorders:'sales', customersales:'sales', salesdeck:'sales', citysales:'sales', customerstatement:'sales', claims:'sales', agreements:'sales',
   teamchat:'comm', announcements:'comm',
-  reps:'admin', repbonus:'admin', definitions:'admin', users:'admin', auditlog:'admin',
+  reps:'admin', repbonus:'admin', definitions:'admin', users:'admin', auditlog:'admin', usage:'admin',
   athkar:'more'
 };
 const NAV_SECTIONS = [['main',''],['daily','العمل اليومي'],['sales','المبيعات والطلبيات'],['comm','التواصل'],['admin','الإدارة'],['more','أخرى']];
@@ -1784,6 +1785,7 @@ function dataNeededForView(view){
     case 'addvisit': return ['claims'];
     case 'claims': return ['claims'];
     case 'agreements': return ['agreements','claims'];
+    case 'usage': return ['usage'];
     case 'customersales': return ['customerSales'];
     case 'salesdeck': return ['customerSales'];
     case 'citysales': return ['citySales'].concat(isAdminLike() ? ['salesAnalytics'] : []);
@@ -1869,6 +1871,7 @@ lazyScoped('customerSales', 'customerSales', l=>{ CUSTOMER_SALES = l; });
 lazyScoped('citySales', 'citySales', l=>{ CITY_SALES_RAW = l; rebuildCitySales(); });
 lazyListen('salesAnalytics', ()=>db.collection('salesAnalytics'), snap=>{ SALES_ANALYTICS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('salesAnalytics'); });
 lazyListen('plannedVisits', ()=>db.collection('plannedVisits'), snap=>{ PLANNED_VISITS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('plannedVisits'); });
+lazyListen('usage', ()=>db.collection('usage').where('date','>=',localISO(new Date(Date.now()-60*86400000))), snap=>{ USAGE = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('usage'); });
 lazyListen('inventory', ()=>db.collection('inventory'), snap=>{ INVENTORY = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('inventory'); });
 lazyListen('bonusOffers', ()=>db.collection('bonusOffers'), snap=>{ BONUS_OFFERS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('bonusOffers'); });
 lazyListen('orderTemplates', ()=>db.collection('orderTemplates'), snap=>{ ORDER_TEMPLATES = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('orderTemplates'); });
@@ -2183,6 +2186,7 @@ function softRender(){
   }, 150);
 }
 function renderView(){
+  usageTrack();
   if(typeof visitsGuard==='function' && CURRENT_USER) visitsGuard();
   if(!CURRENT_USER) return;
   const main = document.getElementById('mainView');
@@ -2211,6 +2215,7 @@ function renderView(){
     else if(currentView==='customerstatement') main.innerHTML = viewCustomerStatement();
     else if(currentView==='announcements') main.innerHTML = viewAnnouncements();
     else if(currentView==='auditlog') main.innerHTML = viewAuditLog();
+    else if(currentView==='usage') main.innerHTML = viewUsage();
     else if(currentView==='users') main.innerHTML = viewUsers();
     else if(currentView==='followup') main.innerHTML = viewFollowup();
     else if(currentView==='teamchat') main.innerHTML = viewTeamChat();
@@ -3152,6 +3157,53 @@ function agrReportPrint(){
     <table class="printTable"><thead><tr><th>الصيدلي</th><th>المدينة - المنطقة</th><th>الأكواد</th><th>الهدف</th><th>المطالبة</th><th>%</th><th>الحالة</th><th>شهور محققة</th></tr></thead><tbody>${body}</tbody></table>
     <div class="printFooter">تم إنشاء هذا التقرير من ${APP_NAME}</div>`;
   printSoon();
+}
+
+
+/* ==========================================================================
+   📈 استخدام الصفحات: كل مستخدم بيسجّل كام مرة فتح كل صفحة (مستند واحد لكل يوم/مستخدم، بيتبعت كل دقيقة تقريباً)
+   علشان الأدمن يشوف اللي مش بيستخدمه حد ويقرر يدمجه أو يخفيه
+   ========================================================================== */
+let USAGE = [], usageDays = 14;
+const _uBuf = {}; let _uLast = '', _uTimer = null;
+function usageTrack(){
+  try{
+    if(!CURRENT_USER || !currentView || currentView===_uLast) return;
+    _uLast = currentView; _uBuf[currentView] = (_uBuf[currentView]||0) + 1;
+    if(!_uTimer) _uTimer = setTimeout(usageFlush, 60000);
+  }catch(e){}
+}
+async function usageFlush(){
+  _uTimer = null;
+  const keys = Object.keys(_uBuf); if(!keys.length || !CURRENT_USER || !navigator.onLine) return;
+  const date = todayISO(), counts = {};
+  keys.forEach(k=>{ counts[k] = firebase.firestore.FieldValue.increment(_uBuf[k]); });
+  const snap = {..._uBuf}; keys.forEach(k=>delete _uBuf[k]);
+  try{ await db.collection('usage').doc(date+'_'+CURRENT_USER.username).set({username:CURRENT_USER.username, role:CURRENT_USER.role, date, counts}, {merge:true}); }
+  catch(e){ Object.keys(snap).forEach(k=>_uBuf[k]=(_uBuf[k]||0)+snap[k]); }
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') usageFlush(); });
+function usageRows(){
+  const from = localISO(new Date(Date.now()-(usageDays-1)*86400000)), docs = USAGE.filter(d=>d.date>=from);
+  const pages = ALL_PAGES.map(p=>({id:p.id, label:p.label, ic:p.ic, views:0, users:new Set(), days:new Set()}));
+  const by = Object.fromEntries(pages.map(p=>[p.id,p]));
+  docs.forEach(d=>Object.entries(d.counts||{}).forEach(([k,n])=>{ const p = by[k]; if(p){ p.views += Number(n)||0; p.users.add(d.username); p.days.add(d.date); } }));
+  return {pages, docs, from};
+}
+function viewUsage(){
+  const {pages, docs} = usageRows(), allUsers = new Set(docs.map(d=>d.username));
+  const sorted = pages.slice().sort((a,b)=>a.views-b.views || String(a.label).localeCompare(String(b.label),'ar'));
+  const unused = sorted.filter(p=>!p.views), max = Math.max(1, ...pages.map(p=>p.views));
+  const rows = sorted.map(p=>`<tr><td>${p.ic||''} <b>${escapeHTML(p.label)}</b></td><td>${p.views}</td><td>${p.users.size}</td><td>${p.days.size}</td>
+    <td style="min-width:120px;"><div style="background:var(--gray-100);height:8px;border-radius:6px;"><i style="display:block;height:8px;border-radius:6px;width:${Math.round(p.views/max*100)}%;background:${p.views?'var(--teal)':'var(--red)'}"></i></div></td>
+    <td>${!p.views?'<span class="badge badge-gray">❌ ما اتفتحتش</span>':p.users.size===1?'<span class="badge badge-gray">⚠️ مستخدم واحد</span>':'<span class="badge badge-teal">مستخدمة</span>'}</td></tr>`).join('');
+  const perUser = {}; docs.forEach(d=>{ const u = perUser[d.username]||(perUser[d.username]={role:d.role, n:0, days:new Set()}); u.n += Object.values(d.counts||{}).reduce((s,x)=>s+(Number(x)||0),0); u.days.add(d.date); });
+  const urows = Object.entries(perUser).sort((a,b)=>b[1].n-a[1].n).map(([k,u])=>`<tr><td>${escapeHTML(k)}</td><td>${escapeHTML(u.role||'')}</td><td>${u.n}</td><td>${u.days.size}</td></tr>`).join('');
+  return `<div class="pageHead"><div><h2>📈 استخدام الصفحات</h2><div class="desc">بيتسجّل من بداية الإصدار ده · لازم أسبوعين على الأقل علشان الأرقام تتعمم عليها</div></div>
+    <select onchange="usageDays=Number(this.value);renderView()">${[7,14,30,60].map(d=>`<option value="${d}" ${usageDays===d?'selected':''}>آخر ${d} يوم</option>`).join('')}</select></div>
+    <div class="qrStats">${qrStat('مستخدمين نشطين',allUsers.size)}${qrStat('صفحات',pages.length)}${qrStat('❌ ما اتفتحتش',unused.length)}</div>
+    <div class="card"><div class="tableWrap"><table><thead><tr><th>الصفحة</th><th>مرات الفتح</th><th>مستخدمين</th><th>أيام</th><th></th><th>الحالة</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+    <div class="card"><h3 style="font-size:14px;margin:0 0 8px;">نشاط المستخدمين</h3><div class="tableWrap"><table><thead><tr><th>المستخدم</th><th>الدور</th><th>مرات الفتح</th><th>أيام النشاط</th></tr></thead><tbody>${urows||'<tr><td colspan="4" class="smallMuted">لسه مفيش بيانات</td></tr>'}</tbody></table></div></div>`;
 }
 
 var repMoreOpen = false;
@@ -11245,7 +11297,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.09): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.10): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -11411,6 +11463,13 @@ service cloud.firestore {
     // ===== بيانات مقيّدة بمدن المستخدم (الاستعلام لازم يحتوي where city == ...) =====
     match /customers/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
     match /claims/{id}             { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /usage/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isStaff()
+        && request.resource.data.keys().hasOnly(['username','role','date','counts'])
+        && request.resource.data.username == myUsername()
+        && id == request.resource.data.date + '_' + myUsername();
+    }
     match /agreements/{id}         { allow read: if sameCity(); allow write: if isAdminOrManager(); }
     match /customerSales/{id}      { allow read: if sameCity(); allow write: if isAdmin(); }
     match /citySales/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }

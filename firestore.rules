@@ -3,6 +3,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===== تعريفات الأدوار =====
+    function pad2(n) { return (n < 10 ? '0' : '') + string(n); }
+    function isoDate(t) { return string(t.year()) + '-' + pad2(t.month()) + '-' + pad2(t.day()); }
+
     function isSignedIn() { return request.auth != null; }
     function profileDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
     // موظف = مستخدم عنده مستند في users وحسابه مش موقوف (حسابات العملاء مالهاش مستند هناك)
@@ -18,13 +21,23 @@ service cloud.firestore {
     function isAdminOrManager() { return isAdmin() || isManager(); }
     function myUsername() { return myProfile().username; }
     function myRepId() { return myProfile().get('repId', null); }
+    function isRep() { return myRole() == 'rep' && myRepId() != null; }
     // عميل بوابة = مسجّل دخول وعنده مستند في customerPortal وملوش مستند موظف
     function isCustomer() { return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) && exists(/databases/$(database)/documents/customerPortal/$(request.auth.uid)); }
     function myKey() { return get(/databases/$(database)/documents/customerPortal/$(request.auth.uid)).data.code; }
 
-    // ===== المستخدمون =====
+    // ===== نطاق المدن: المندوب (من مستند reps) والتلي سيلز (من مستند users) =====
+    // قايمة فاضية = كل المدن (نفس سلوك التطبيق). لو عايز تمنع المندوب من غير مدن، غيّر الشرط size() == 0 إلى false.
+    function myCities() {
+      return isRep() ? get(/databases/$(database)/documents/reps/$(myRepId())).data.get('cities', [])
+           : (myRole() == 'telesales' ? myProfile().get('cities', []) : []);
+    }
+    function inMyCities(city) { return isAdminOrManager() || myCities().size() == 0 || city in myCities(); }
+    function sameCity() { return isStaff() && inMyCities(resource.data.get('city', '')); }
+
+    // ===== المستخدمون: كل واحد يقرا مستنده، والإدارة تقرا الكل =====
     match /users/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdminOrManager());
       allow create, delete: if isAdmin();
       // المستخدم يحدّث حضوره، ويقدر يقفل علم "لازم يغيّر كلمة المرور" (يتحط false بس) بعد ما يغيّرها
       allow update: if isAdmin() ||
@@ -39,7 +52,7 @@ service cloud.firestore {
       // version و branding (اسم الشركة + لوجو صغير) مقروءين قبل تسجيل الدخول، والباقي للموظفين
       allow read: if id == 'version' || id == 'branding' || isStaff();
       // الأدمن يكتب أي إعداد، والمدير يعدّل قواعد الحوافز وحدود المدن بس
-      allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds']);
+      allow write: if isAdmin() || (isManager() && id in ['repBonusRules','cityThresholds','intelCfg','cityTargets']);
     }
 
     // ===== محادثة الفريق =====
@@ -50,7 +63,7 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // ===== النسخ الاحتياطي (مجموعة فرعية chunks جواها) =====
+    // ===== النسخ الاحتياطي =====
     match /systemBackups/{date} {
       allow read: if isAdminOrManager();
       allow write: if isAdmin();
@@ -60,11 +73,26 @@ service cloud.firestore {
       }
     }
 
-    // ===== الزيارات: المندوب يسجّل زياراته هو بس، والتعديل والحذف للأدمن =====
+    // ===== الزيارات =====
+    // المندوب يقرا زياراته هو بس (الاستعلام لازم يحتوي where repId == ...)، والإدارة والتلي سيلز يقروا الكل
     match /visits/{id} {
-      allow read: if isStaff();
+      allow read: if isAdminOrManager() || myRole() == 'telesales'
+        || (isRep() && resource.data.get('repId', '') == myRepId());
       allow create: if isAdminOrManager()
-        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+        || (isRep() && request.resource.data.repId == myRepId()
+            && request.resource.data.keys().hasOnly(['repId','customerCode','customerName','city','area','paymentStatus','visitResult','rating','date','createdAt','createdBy'])
+            && request.resource.data.keys().hasAll(['repId','customerCode','date','createdAt','createdBy'])
+            && request.resource.data.createdBy == myUsername()
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.date is string
+            && request.resource.data.date.matches('^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+            // (1) id ثابت = مندوب_تاريخ_كود: التكرار بيتحوّل لـ update والـ update ممنوع للمندوب
+            && (id == request.resource.data.repId + '_' + request.resource.data.date + '_' + request.resource.data.customerCode
+                || request.resource.data.customerCode.matches('.*/.*') || request.resource.data.repId.matches('.*/.*'))
+            // (2) التاريخ لازم يكون قريب من وقت السيرفر: من 7 أيام فاتت لحد بكرة (7 أيام عشان الزيارات اللي بتتسجل أوفلاين وتترفع بعدين)
+            && request.resource.data.date >= isoDate(request.time - duration.value(7, 'd'))
+            && request.resource.data.date <= isoDate(request.time + duration.value(1, 'd'))
+            && (!('rating' in request.resource.data) || (request.resource.data.rating is number && request.resource.data.rating >= 0 && request.resource.data.rating <= 10)));
       allow update, delete: if isAdmin();
     }
 
@@ -72,10 +100,10 @@ service cloud.firestore {
     match /plannedVisits/{id} {
       allow read: if isStaff();
       allow create: if isAdminOrManager()
-        || (isStaff() && myRole() == 'rep' && myRepId() != null && request.resource.data.repId == myRepId());
+        || (isRep() && request.resource.data.repId == myRepId());
       allow update: if isAdmin();
       allow delete: if isAdminOrManager()
-        || (isStaff() && myRole() == 'rep' && myRepId() != null && resource.data.repId == myRepId());
+        || (isRep() && resource.data.repId == myRepId());
     }
 
     // ===== متابعات التلي سيلز =====
@@ -86,6 +114,21 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ===== طلبات المناديب للإدارة (خصم/استثناء، موافقة، تحصيل...) =====
+    match /repRequests/{id} {
+      allow read: if isAdminOrManager() || (isStaff() && resource.data.createdBy == myUsername());
+      allow create: if isStaff()
+        && request.resource.data.createdBy == myUsername()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasOnly(['createdBy','repId','repName','type','text','status','createdAt','customerCode','customerName','city'])
+        && request.resource.data.text is string && request.resource.data.text.size() > 2 && request.resource.data.text.size() <= 600;
+      allow update: if isAdminOrManager()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reply','repliedBy','repliedByName','repliedAt'])
+        && request.resource.data.status in ['approved','rejected','call','wait'];
+      allow delete: if isAdmin();
+    }
+
     // ===== الطلبيات المقترحة من المناديب =====
     match /suggestedOrders/{id} {
       allow read: if isStaff();
@@ -93,46 +136,78 @@ service cloud.firestore {
       allow update, delete: if isAdminOrManager();
     }
 
-    // ===== بيانات العملاء اللي بيسجلها المناديب (رخصة، كود مكاني...) =====
+    // ===== بيانات العملاء اللي بيسجلها المناديب =====
     match /customerData/{id} {
       allow read: if isStaff();
       allow create, update: if isStaff() && request.resource.data.updatedBy == myUsername();
       allow delete: if isAdmin();
     }
 
-    // ===== سجل التعديلات: إضافة فقط (مفيش تعديل ولا حذف) والقراءة للإدارة =====
+    // ===== سجل التعديلات: إضافة فقط، بشكل ثابت، وبهوية المستخدم الحقيقية (مينفعش يتزوّر) =====
     match /auditLog/{id} {
       allow read: if isAdminOrManager();
-      allow create: if isStaff() && request.resource.data.userName is string;
+      allow create: if isStaff()
+        && request.resource.data.keys().hasOnly(['action','collection','label','userName','userRole','timestamp'])
+        && request.resource.data.keys().hasAll(['action','userName','userRole','timestamp'])
+        && request.resource.data.userRole == myRole()
+        && request.resource.data.userName in [myProfile().get('name', ''), myUsername()]
+        && request.resource.data.timestamp == request.time
+        && request.resource.data.action is string && request.resource.data.action.size() <= 200
+        && (!('label' in request.resource.data) || (request.resource.data.label is string && request.resource.data.label.size() <= 500))
+        && (!('collection' in request.resource.data) || (request.resource.data.collection is string && request.resource.data.collection.size() <= 100));
       allow update, delete: if false;
     }
 
-    // ===== بيانات مرجعية: قراءة للموظفين، وكتابة للأدمن (الاستيراد والتعريفات) =====
+    // ===== بيانات مرجعية عامة للموظفين: كتابة للأدمن =====
     match /reps/{id}               { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /customers/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /claims/{id}             { allow read: if isStaff(); allow write: if isAdmin(); }
     match /visitResults/{id}       { allow read: if isStaff(); allow write: if isAdmin(); }
     match /followupResults/{id}    { allow read: if isStaff(); allow write: if isAdmin(); }
     match /announcements/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /customerSales/{id}      { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /citySales/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
-    match /salesAnalytics/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
     match /inventory/{id}          { allow read: if isStaff(); allow write: if isAdmin(); }
     match /bonusOffers/{id}        { allow read: if isStaff(); allow write: if isAdmin(); }
     match /orderTemplates/{id}     { allow read: if isStaff(); allow write: if isAdmin(); }
 
+    // ===== بيانات مقيّدة بمدن المستخدم (الاستعلام لازم يحتوي where city == ...) =====
+    match /customers/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /claims/{id}             { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /usage/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isStaff()
+        && request.resource.data.keys().hasOnly(['username','role','date','counts'])
+        && request.resource.data.username == myUsername()
+        && id == request.resource.data.date + '_' + myUsername();
+    }
+    match /agreements/{id}         { allow read: if sameCity(); allow write: if isAdminOrManager(); }
+    match /customerSales/{id}      { allow read: if sameCity(); allow write: if isAdmin(); }
+    match /citySales/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
+    // تحليلات المبيعات: للإدارة فقط
+    match /salesAnalytics/{id}     { allow read: if isAdminOrManager(); allow write: if isAdmin(); }
+
+    // ===== المنافسة والمسابقات: ملخصات مجمّعة (أرقام إجمالية بس)، الكل يقرا والإدارة تكتب =====
+    match /leaderboard/{id}        { allow read: if isStaff(); allow write: if isAdminOrManager(); }
+    match /contests/{id}           { allow read: if isStaff(); allow write: if isAdminOrManager(); }
+
+    // ===== مهام الكليندر: خاصة بصاحبها بس (الأدمن يقدر يحذف) =====
+    match /repTasks/{id} {
+      allow read: if isStaff() && resource.data.get('owner', '') == myUsername();
+      allow create: if isStaff() && request.resource.data.owner == myUsername()
+        && request.resource.data.keys().hasOnly(['owner','title','note','date','time','remind','repeat','customerCode','customerName','doneDates','createdAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200;
+      allow update: if isStaff() && resource.data.owner == myUsername() && request.resource.data.owner == myUsername()
+        && request.resource.data.keys().hasOnly(['owner','title','note','date','time','remind','repeat','customerCode','customerName','doneDates','createdAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200;
+      allow delete: if isStaff() && (resource.data.owner == myUsername() || isAdmin());
+    }
+
     // ===== بوابة العملاء =====
-    // كتالوج الأصناف (أسعار وخصومات وبونص بدون كميات): العميل والموظف يقرأوا، الأدمن بس ينشر
     match /catalog/{id} {
       allow read: if isStaff() || isCustomer();
       allow write: if isAdmin();
     }
-    // قايمة الأكواد المسموح لها تدخل البوابة: العميل يقرأ بياناته هو بس
     match /portalAccounts/{key} {
       allow read: if isStaff() || (isCustomer() && myKey() == key);
       allow write: if isAdmin();
     }
-    // ربط حساب الدخول بكود العميل: بيتعمل مرة واحدة أول دخول، ومربوط بإيميل الحساب نفسه
     match /customerPortal/{uid} {
       allow read: if isStaff() || request.auth.uid == uid;
       allow create: if isSignedIn() && request.auth.uid == uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -145,7 +220,6 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pwChanged']);
       allow delete: if isAdmin();
     }
-    // طلبيات العملاء: العميل يضيف ويقرأ طلبياته بس، والموظفين يقروا ويحدّثوا الحالة
     match /portalOrders/{id} {
       allow create: if isCustomer()
         && request.resource.data.uid == request.auth.uid
