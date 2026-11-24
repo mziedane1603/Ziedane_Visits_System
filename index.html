@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.13)</title>
+<title>Ziedane CRM (v3.14)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1046,7 +1046,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.13';
+const APP_VERSION = '3.14';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1795,7 +1795,7 @@ function dataNeededForView(view){
     case 'dashboard':
       if(role==='rep') return ['citySales','customerSales','claims'];
       if(role==='telesales') return ['citySales','followups'].concat(reportsTab==='citycompare' ? ['customerSales'] : []);
-      return ['citySales','claims','customerSales','followups','plannedVisits','users'].concat(reportsTab==='analytics' ? ['salesAnalytics'] : []);
+      return ['citySales','claims','customerSales','followups','plannedVisits','users','agreements'].concat(reportsTab==='analytics' ? ['salesAnalytics'] : []);
     case 'addvisit': return ['claims'];
     case 'claims': return ['claims'];
     case 'agreements': return ['agreements','claims'];
@@ -3044,10 +3044,19 @@ function agrOpenTrack(id){
     <h3>📊 متابعة عقد د. ${escapeHTML(a.pharmacist)}</h3>
     <div class="smallMuted" style="margin-bottom:8px;">الهدف ${fmtMoney(a.amount)} لكل شهر مطالبة ← خصم ${a.discountPct}% من إجمالي المطالبة بشرط السداد النقدي الكامل</div>
     <div class="qrStats">${qrStat('شهور فيها بيانات',p.done)}${qrStat('شهور محققة',p.ok)}${qrStat('خصم مستحق (مسدد)',fmtMoney(disc))}</div>
+    <div class="card" style="margin:8px 0;"><div style="height:220px;"><canvas id="agTrkC"></canvas></div></div>
     <div class="tableWrap"><table><thead><tr><th>شهر المطالبة</th>${a.codes.length>1?a.codes.map(c=>`<th>${escapeHTML(c.code)}</th>`).join(''):''}<th>الإجمالي</th><th>% من الهدف</th><th>الحالة</th><th>الخصم</th><th>السداد</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="smallMuted" style="margin-top:8px;">الأرقام بتيجي من شيت المطالبات (أعمدة الفترات). حدّث الشيت من صفحة المطالبات علشان تظهر شهور جديدة.</div>
     <div class="modalActions"><button class="btn btn-outline" onclick="agrPrint('${a.id}')">🖨 طباعة العقد</button><button class="btn btn-ghost" onclick="document.getElementById('agrTrack').remove()">إغلاق</button></div></div>`;
   document.body.appendChild(m);
+  try{
+    if(window.agTrkChart){ window.agTrkChart.destroy(); window.agTrkChart = null; }
+    const shown = ms.filter(x=>x.has);
+    if(window.Chart && shown.length) window.agTrkChart = new Chart('agTrkC',{data:{labels:shown.map(x=>periodLabel(x.k)),datasets:[
+      {type:'bar',label:'المطالبة',data:shown.map(x=>x.total),backgroundColor:shown.map(x=>x.ok?'#2e8b6f':'#d2563f'),borderRadius:6},
+      {type:'line',label:'الهدف',data:shown.map(()=>Number(a.amount)||0),borderColor:'#D68910',borderDash:[6,4],pointRadius:0,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});
+  }catch(e){ console.error(e); }
 }
 function agrPrint(id){
   const a = AGREEMENTS.find(x=>x.id===id); if(!a) return;
@@ -3265,6 +3274,7 @@ function homeCalmHTML(ctx){
       <div class="card"><h3 class="hkH">الزيارات (آخر 14 يوم)</h3><div class="chartBox sm"><canvas id="chDaily"></canvas></div></div>
       <div class="card"><h3 class="hkH">نتائج الزيارات</h3><div class="chartBox sm"><canvas id="chTypesPie"></canvas></div></div>
     </div>
+    ${AGREEMENTS.length ? agrHomeCardHTML() : ''}
     <details class="card hkDet"><summary>🔔 تنبيهات وطلبات وتقويم ${(pend+alerts)?`<span class="hkBadge">${pend+alerts}</span>`:''} <small>اضغط للفتح</small></summary>
       ${repReqCardHTML()}${homeExtrasHTML()}${dashboardAttentionHTML(ctx.list)}${topRepsCardHTML()}
     </details>`;
@@ -3291,6 +3301,21 @@ function repCalmHTML(ctx){
     </details>`;
 }
 function repHomeAct(k){ if(k==='rep:quiz') openRepHelper('quiz'); else if(k==='rep:req'){ rrTab='new'; openRepRequests(); } }
+
+function agrHomeSummary(){
+  const mk = agrMonthOptions()[0] || '', act = AGREEMENTS.filter(agrActive);
+  let ok = 0, bad = 0, none = 0; const worst = [];
+  act.forEach(a=>{ const m = agrMonths(a).find(x=>x.k===mk); if(!m || !m.has) none++; else if(m.ok) ok++; else { bad++; worst.push({a, m}); } });
+  worst.sort((x,y)=>y.m.pct-x.m.pct);
+  return {mk, ok, bad, none, n:act.length, worst};
+}
+function agrHomeCardHTML(){
+  const S = agrHomeSummary();
+  return `<div class="card" style="margin-top:12px;"><div class="pageHead" style="margin-bottom:6px;"><h3 class="hkH" style="margin:0;">📑 متابعة عقود الاتفاق ${S.mk?`<small class="smallMuted">شهر ${periodLabel(S.mk)}</small>`:''}</h3><button class="btn btn-outline btn-sm" onclick="goTo('agreements')">فتح العقود ←</button></div>
+    <div class="grid grid-2" style="align-items:center;"><div class="chartBox sm"><canvas id="chHomeAgr"></canvas></div>
+      <div><div class="qrStats">${qrStat('🟢 محقق',S.ok)}${qrStat('🔴 لم يحقق',S.bad)}${qrStat('⏳ لسه',S.none)}</div>
+      ${S.worst.length ? `<div class="smallMuted" style="margin:8px 0 4px;">الأقرب للهدف (محتاجين دفعة):</div>`+S.worst.slice(0,3).map(w=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--gray-100);"><span>د. ${escapeHTML(w.a.pharmacist)}</span><b style="color:var(--red);">${w.m.pct}%</b></div>`).join('') : ''}</div></div></div>`;
+}
 let homeTab = 'main';
 function setHomeTab(k){ homeTab = k; renderView(); }
 function homeTabsHTML(){
@@ -3362,7 +3387,7 @@ function viewDashboard(){
     ${CURRENT_USER.role==='rep' || isAdminLike() ? '' : `<div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>`}
     ${CURRENT_USER.role==='rep' || isAdminLike() ? '' : homeExtrasHTML()}
-    ${CURRENT_USER.role==='rep' ? '' : ''}
+    ${CURRENT_USER.role==='rep' ? '' : (isAdminLike() ? (homeTab==='perf' ? repBlock : '') : dashboardAttentionHTML(list)+topRepsCardHTML()+repBlock)}
     ${CURRENT_USER.role==='rep' ? `<div class="repMore"><button class="btn btn-ghost" onclick="goTo('visits')">📋 كل زياراتي</button><button class="btn ${repReportsOpen?'btn-primary':'btn-outline'}" onclick="toggleRepReports()">🏆 إنجازي وتقاريري ${repReportsOpen?'▲':'▼'}</button></div>` : (isAdminLike() && homeTab!=='recent') ? '' : `<div class="card">
       <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">آخر الزيارات</h2><button class="btn btn-ghost btn-sm" onclick="goTo('visits')">عرض الكل ←</button></div>
       <div class="tableWrap"><table><thead><tr>
@@ -8849,7 +8874,8 @@ function exportRepMatrixCSV(){
 }
 
 function drawDashboardCharts(){
-  destroyCharts(['chRepsMonth','chTypesPie','chDaily','chRepDaily']);
+  destroyCharts(['chRepsMonth','chTypesPie','chDaily','chRepDaily','chHomeAgr']);
+  if(isAdminLike() && AGREEMENTS.length && document.getElementById('chHomeAgr')){ const S = agrHomeSummary(); mkChart('chHomeAgr','doughnut',{labels:['محقق','لم يحقق','لسه'],datasets:[{data:[S.ok,S.bad,S.none],backgroundColor:['#2e8b6f','#d2563f','#b8c2bd'],borderWidth:2,borderColor:'#fff'}]},{plugins:{legend:{position:'bottom'}}}); }
   if(CURRENT_USER.role==='rep'){
     const mine = visibleVisits(), days = []; for(let i=13;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); days.push(localISO(d)); }
     mkChart('chRepDaily','bar',{labels:days.map(d=>d.slice(5)),datasets:[{label:'زيارات',data:days.map(d=>mine.filter(v=>v.date===d).length),backgroundColor:'#0F7A6B',borderRadius:6}]},{plugins:{legend:{display:false}},scales:{y:{ticks:{precision:0}}}});
@@ -11365,7 +11391,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.13): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.14): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
