@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.12)</title>
+<title>Ziedane CRM (v3.13)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -865,6 +865,7 @@ html,body{overflow-x:clip;}
 .tgMeter{min-width:170px}.tgMeterTop{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:4px;font-size:12px}.tgMeterTop b{font-size:16px}.tgMeterTop span{color:var(--gray-500)}
 .tgBar{height:9px;background:#e6ecea;border-radius:9px;overflow:hidden}.tgBar i{display:block;height:100%;border-radius:9px;transition:width .6s}
 
+.hkMotiv{background:var(--teal-light);color:var(--teal-dark);border-radius:14px;padding:10px 14px;margin-bottom:10px;font-weight:700}
 .hkRow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 @media(max-width:700px){.hkRow{grid-template-columns:1fr 1fr}}
 .hkCard{background:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 2px 10px #0001;display:flex;flex-direction:column;gap:2px}
@@ -1045,7 +1046,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.12';
+const APP_VERSION = '3.13';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -3268,6 +3269,28 @@ function homeCalmHTML(ctx){
       ${repReqCardHTML()}${homeExtrasHTML()}${dashboardAttentionHTML(ctx.list)}${topRepsCardHTML()}
     </details>`;
 }
+
+/* ---------- رئيسية المندوب الرايقة: 4 أرقام + اختصارات + أولوياتي + رسم + "المزيد" ---------- */
+function repCalmHTML(ctx){
+  const allowed = new Set(navItemsFor(CURRENT_USER).map(i=>i.id)), today = todayISO();
+  const me = REPS.find(x=>x.id===CURRENT_USER.repId) || {}, tgt = Number(me.monthlyVisitTarget)||0;
+  let tasks = []; try{ tasks = tasksOn(today).filter(x=>!taskDone(x,today)); }catch(e){}
+  let top = []; try{ top = crmIntel().list.filter(x=>!x.visitedToday && x.score>0).sort((p,q)=>q.score-p.score).slice(0,3); }catch(e){}
+  const pend = rrMine().filter(x=>x.status==='pending').length;
+  const rated = ctx.list.filter(v=>v.rating).map(v=>v.rating), avg = rated.length ? (rated.reduce((a,b)=>a+b,0)/rated.length).toFixed(1) : '-';
+  const kpi = (ic,l,v,sub)=>`<div class="hkCard"><span>${ic} ${l}</span><b>${v}</b>${sub?`<small>${sub}</small>`:''}</div>`;
+  const T = [['addvisit','📝','زيارة جديدة'],['visits','📋','زياراتي'],['routeplan','🗺️','خطة الزيارات'],['calendar','📅','مهامي'],['inventory','📦','المخزون'],['custdata','🪪','بيانات العملاء'],['claims','💵','المطالبات'],['agreements','📑','عقود الاتفاق'],['suggestedorders','🧾','الطلبيات'],['citysales','🏙️','مبيعات المدن'],['teamchat','💬','محادثة الفريق']].filter(t=>allowed.has(t[0]));
+  const act = [['rep:quiz','🎮','تحدي اليوم'],['rep:req','📨','طلب من الإدارة'+(pend?` (${pend})`:'')]];
+  return `<div class="hkMotiv">${repMotivationLine(ctx.visitsToday)}</div>
+    <div class="hkRow">${kpi('📝','زيارات النهارده',ctx.visitsToday)}${kpi('🗓️','زيارات الشهر',ctx.visitsMonth,tgt?`من هدفي ${tgt} (${Math.round(ctx.visitsMonth/tgt*100)}%)`:'')}${kpi('📌','مهام مفتوحة',tasks.length)}${kpi('⭐','متوسط تقييمي',avg)}</div>
+    <div class="hkShort">${T.map(t=>`<button class="hkTile" onclick="goTo('${t[0]}')"><i>${t[1]}</i><span>${t[2]}</span></button>`).join('')}${act.map(t=>`<button class="hkTile" onclick="repHomeAct('${t[0]}')"><i>${t[1]}</i><span>${t[2]}</span></button>`).join('')}</div>
+    ${top.length ? `<div class="card" style="margin-top:12px;"><h3 class="hkH">🔥 ابدأ بيهم النهارده</h3>${top.map(x=>asstRow(x, escapeHTML((x.reasons||[]).slice(0,2).join(' · ')||'أولوية عادية'))).join('')}</div>` : ''}
+    <div class="card" style="margin-top:12px;"><h3 class="hkH">زياراتي (آخر 14 يوم)</h3><div class="chartBox sm"><canvas id="chRepDaily"></canvas></div></div>
+    <details class="card hkDet"><summary>➕ المزيد: نصيحة وتنبيهات وأعلى المناديب <small>اضغط للفتح</small></summary>
+      ${repTipHTML()}${welcomeBannerHTML()}${dashboardAttentionHTML(ctx.list)}${repStaleCustomersWidgetHTML()}${topRepsCardHTML()}
+    </details>`;
+}
+function repHomeAct(k){ if(k==='rep:quiz') openRepHelper('quiz'); else if(k==='rep:req'){ rrTab='new'; openRepRequests(); } }
 let homeTab = 'main';
 function setHomeTab(k){ homeTab = k; renderView(); }
 function homeTabsHTML(){
@@ -3335,11 +3358,11 @@ function viewDashboard(){
     </div>
     ${isAdminLike() ? homeTabsHTML() : ''}
     ${isAdminLike() && homeTab==='main' ? homeCalmHTML({list, visitsToday, visitsMonth, coveragePctAll, avgRating}) : ''}
-    ${CURRENT_USER.role==='rep' ? repTodayCardHTML(visitsToday) : ''}
+    ${CURRENT_USER.role==='rep' ? repCalmHTML({list, visitsToday, visitsMonth}) : ''}
     ${CURRENT_USER.role==='rep' || isAdminLike() ? '' : `<div class="secTitle">📊 نظرة سريعة</div>
     <div class="kpis">${kpiCards}</div>`}
     ${CURRENT_USER.role==='rep' || isAdminLike() ? '' : homeExtrasHTML()}
-    ${CURRENT_USER.role==='rep' ? (repMoreOpen ? welcomeBannerHTML()+dashboardAttentionHTML(list)+repStaleCustomersWidgetHTML()+topRepsCardHTML()+repBlock : '') : (isAdminLike() ? (homeTab==='perf' ? repBlock : '') : dashboardAttentionHTML(list)+topRepsCardHTML()+repBlock)}
+    ${CURRENT_USER.role==='rep' ? '' : ''}
     ${CURRENT_USER.role==='rep' ? `<div class="repMore"><button class="btn btn-ghost" onclick="goTo('visits')">📋 كل زياراتي</button><button class="btn ${repReportsOpen?'btn-primary':'btn-outline'}" onclick="toggleRepReports()">🏆 إنجازي وتقاريري ${repReportsOpen?'▲':'▼'}</button></div>` : (isAdminLike() && homeTab!=='recent') ? '' : `<div class="card">
       <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">آخر الزيارات</h2><button class="btn btn-ghost btn-sm" onclick="goTo('visits')">عرض الكل ←</button></div>
       <div class="tableWrap"><table><thead><tr>
@@ -8826,8 +8849,12 @@ function exportRepMatrixCSV(){
 }
 
 function drawDashboardCharts(){
-  destroyCharts(['chRepsMonth','chTypesPie','chDaily']);
-  if(CURRENT_USER.role==='rep') return;
+  destroyCharts(['chRepsMonth','chTypesPie','chDaily','chRepDaily']);
+  if(CURRENT_USER.role==='rep'){
+    const mine = visibleVisits(), days = []; for(let i=13;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); days.push(localISO(d)); }
+    mkChart('chRepDaily','bar',{labels:days.map(d=>d.slice(5)),datasets:[{label:'زيارات',data:days.map(d=>mine.filter(v=>v.date===d).length),backgroundColor:'#0F7A6B',borderRadius:6}]},{plugins:{legend:{display:false}},scales:{y:{ticks:{precision:0}}}});
+    return;
+  }
   const monthPrefix = todayISO().slice(0,7);
   const monthVisits = VISITS.filter(v=>(v.date||'').startsWith(monthPrefix));
 
@@ -11338,7 +11365,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.12): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.13): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
