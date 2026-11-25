@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.17)</title>
+<title>Ziedane CRM (v3.18)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1046,7 +1046,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.17';
+const APP_VERSION = '3.18';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -10904,7 +10904,8 @@ function viewCoverageReport(){
    📊 مقارنة المدن سنوياً: المبيعات + عدد العملاء المتعاملين فعلياً (عميل مبيعاته في الشهر > 0)
    المصدر: "مبيعات العملاء" (ملف السنة بالشهور)
    ========================================================================== */
-let cityCmpState = {year:null, city:'', mode:'both', screen:'months'};   // screen: months | summary   // mode: both | sales | cust
+let cityCmpState = {year:null, city:'', mode:'both', screen:'months', sPct:70, sRound:1000, cPct:80, cRound:10};
+try{ const _sv = JSON.parse(localStorage.getItem('cityTgtCfg')||'null'); if(_sv) ['sPct','sRound','cPct','cRound'].forEach(k=>{ if(_sv[k]>0) cityCmpState[k]=_sv[k]; }); }catch(e){}   // screen: months | summary   // mode: both | sales | cust
 const MONTH_SHORT = ['ينا','فبر','مار','أبر','ماي','يون','يول','أغس','سبت','أكت','نوف','ديس'];
 function fmtK(n){
   n = Number(n)||0; const a = Math.abs(n);
@@ -10924,7 +10925,8 @@ function cityYearData(year){
   });
   return [...map.values()].map(m=>({...m, total:m.sales.reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
 }
-function setCityCmp(key, val){ cityCmpState[key] = val; renderView(); setTimeout(drawCityCompareCharts, 40); }
+function setCityCmp(key, val){ cityCmpState[key] = val;
+  if(['sPct','sRound','cPct','cRound'].includes(key)){ try{ localStorage.setItem('cityTgtCfg', JSON.stringify({sPct:cityCmpState.sPct,sRound:cityCmpState.sRound,cPct:cityCmpState.cPct,cRound:cityCmpState.cRound})); }catch(e){} } renderView(); setTimeout(drawCityCompareCharts, 40); }
 function viewCityYearCompare(){
   const years = availableSalesYears();
   if(!years.includes(cityCmpState.year)) cityCmpState.year = years[0];
@@ -10940,8 +10942,8 @@ function viewCityYearCompare(){
   const monthsTxt = monthsDiv.toFixed(2).replace(/\.?0+$/,'');
   const avgCust = d=>d.cust.reduce((a,b)=>a+b,0)/monthsDiv;
   // الهدف المتوقع: مبيعات/شهر للمدينة = 70% من الهدف (لأقرب ألف) | عملاء/شهر = 80% من الهدف (لأقرب 10)
-  const tgtAvg = v=> v>0 ? Math.round(v/0.7/1000)*1000 : 0;
-  const tgtCust = v=> v>0 ? Math.round(v/0.8/10)*10 : 0;
+  const tgtAvg = v=> v>0 ? Math.round(v/(cityCmpState.sPct/100)/cityCmpState.sRound)*cityCmpState.sRound : 0;
+  const tgtCust = v=> v>0 ? Math.round(v/(cityCmpState.cPct/100)/cityCmpState.cRound)*cityCmpState.cRound : 0;
   const tdc = 'text-align:center;';
   const totSales = Array(12).fill(0), totCust = Array(12).fill(0);
   data.forEach(d=>d.sales.forEach((v,i)=>{ totSales[i]+=v; totCust[i]+=d.cust[i]; }));
@@ -10986,11 +10988,17 @@ function viewCityYearCompare(){
       <div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">الجدول الشهري لكل مدينة</h2>
         <div class="segRow" style="margin:0;"><button class="seg ${cityCmpState.screen==='months'?'on':''}" onclick="setCityCmp('screen','months')">📅 المدن والشهور</button><button class="seg ${cityCmpState.screen==='summary'?'on':''}" onclick="setCityCmp('screen','summary')">🎯 الملخص والهدف</button></div></div>
       ${cityCmpState.screen==='months' ? `<div class="segRow" style="margin:0 0 6px;">${seg('both','مبيعات + عملاء')}${seg('sales','المبيعات')}${seg('cust','العملاء المتعاملين')}</div>` : ''}
-      ${cityCmpState.screen==='summary' ? `<div class="tableWrap"><table><thead><tr><th>المدينة</th><th style="${tdc}">الإجمالي</th><th style="${tdc}">عملاء السنة</th><th style="${tdc}">متوسط/عميل</th><th style="${tdc}">عملاء/شهر</th><th style="${tdc}">مبيعات/شهر</th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">مبيعات/شهر</div></th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">عملاء/شهر</div></th></tr></thead>
+      ${cityCmpState.screen==='summary' ? `<div class="segRow" style="margin:0 0 8px;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;">
+        <span style="font-weight:800;">⚙️ قواعد الهدف:</span>
+        <label>المبيعات % <input type="number" min="1" max="500" step="1" value="${cityCmpState.sPct}" style="width:62px;" onchange="setCityCmp('sPct', Number(this.value)||70)"></label>
+        <label>تقريب المبيعات <input type="number" min="1" step="1" value="${cityCmpState.sRound}" style="width:90px;" onchange="setCityCmp('sRound', Number(this.value)||1000)"></label>
+        <label>العملاء % <input type="number" min="1" max="500" step="1" value="${cityCmpState.cPct}" style="width:62px;" onchange="setCityCmp('cPct', Number(this.value)||80)"></label>
+        <label>تقريب العملاء <input type="number" min="1" step="1" value="${cityCmpState.cRound}" style="width:70px;" onchange="setCityCmp('cRound', Number(this.value)||10)"></label></div>
+      <div class="tableWrap"><table><thead><tr><th>المدينة</th><th style="${tdc}">الإجمالي</th><th style="${tdc}">عملاء السنة</th><th style="${tdc}">متوسط/عميل</th><th style="${tdc}">عملاء/شهر</th><th style="${tdc}">مبيعات/شهر</th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">مبيعات/شهر</div></th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">عملاء/شهر</div></th></tr></thead>
         <tbody>${data.map(d=>{ const pa = d.yearCust? d.total/d.yearCust:0, ac = avgCust(d);
           return `<tr><td style="white-space:nowrap;font-weight:700;">${escapeHTML(d.city)}</td><td style="${tdc}font-weight:800;">${fmtK(d.total)}</td><td style="${tdc}font-weight:800;color:var(--teal-dark);">${d.yearCust}<div style="font-size:10px;color:var(--gray-500);font-weight:600;">من ${d.totalCust}</div></td><td style="${tdc}">${pa?fmtK(pa):'-'}</td><td style="${tdc}font-weight:800;color:var(--teal-dark);">${ac.toFixed(1)}</td><td style="${tdc}">${fmtK(d.total/monthsDiv)}</td><td style="${tdc}font-weight:800;">${d.total>0?tgtAvg(d.total/monthsDiv).toLocaleString('en-US'):'-'}</td><td style="${tdc}font-weight:800;">${ac?tgtCust(ac):'-'}</td></tr>`; }).join('')}
         <tr style="font-weight:800;background:var(--teal-lighter);"><td>الإجمالي</td><td style="${tdc}">${fmtK(yearTotal)}</td><td style="${tdc}">${yearCustTotal}</td><td style="${tdc}">${yearCustTotal?fmtK(yearTotal/yearCustTotal):'-'}</td><td style="${tdc}">${(totCust.reduce((a,b)=>a+b,0)/monthsDiv).toFixed(1)}</td><td style="${tdc}">${fmtK(yearTotal/monthsDiv)}</td><td style="${tdc}">${yearTotal>0?tgtAvg(yearTotal/monthsDiv).toLocaleString('en-US'):'-'}</td><td style="${tdc}">${tgtCust(totCust.reduce((a,b)=>a+b,0)/monthsDiv)||'-'}</td></tr></tbody></table></div>
-      <div class="smallMuted" style="margin-top:6px;">المتوسط الشهري = إجمالي السنة ÷ ${monthsTxt} شهر (شهور كاملة + يوم النهاردة ÷ 30). الهدف المتوقع: مبيعات/شهر للمدينة = 70% من الهدف (مقرب لأقرب ألف)، وعملاء/شهر = 80% من الهدف (مقرب لأقرب 10).</div>`
+      <div class="smallMuted" style="margin-top:6px;">المتوسط الشهري = إجمالي السنة ÷ ${monthsTxt} شهر (شهور كاملة + يوم النهاردة ÷ 30). الهدف المتوقع: مبيعات/شهر = ${cityCmpState.sPct}% من الهدف (مقرب لأقرب ${cityCmpState.sRound.toLocaleString('en-US')})، وعملاء/شهر = ${cityCmpState.cPct}% من الهدف (مقرب لأقرب ${cityCmpState.cRound}).</div>`
       : `<div class="tableWrap"><table><thead><tr><th>المدينة</th>${MONTH_SHORT.map(m=>`<th style="text-align:center;padding:8px 3px;font-size:11px;">${m}</th>`).join('')}<th style="${tdc}">الإجمالي</th><th style="${tdc}">عملاء/شهر</th><th style="${tdc}">مبيعات/شهر</th></tr></thead>
         <tbody>${rowsM}${totalRowM}</tbody></table></div>
       <div class="smallMuted" style="margin-top:6px;">العميل المتعامل في شهر = مبيعاته في الشهر دي أكبر من صفر. الأرقام بالمختصر (K = ألف، M = مليون)، وتدرّج اللون بيوضح الأعلى في كل مدينة. المتوسط الشهري = إجمالي السنة ÷ ${monthsTxt} شهر (شهور كاملة + يوم النهاردة ÷ 30).</div>`}
@@ -11404,7 +11412,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.17): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.18): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
