@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.19)</title>
+<title>Ziedane CRM (v3.20)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1046,7 +1046,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.19';
+const APP_VERSION = '3.20';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1979,6 +1979,18 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
         snap.docChanges().forEach(ch=>{ if(ch.type==='added') notifyPortalOrder({id:ch.doc.id, ...ch.doc.data()}); });
       }
       PORTAL_ORDERS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      // التنظيف التلقائي: الطلبية اللي اتنفذت أو اتلغت بقالها أكتر من يوم تتخفي، والأدمن/المدير يمسحها فعلياً
+      const _exp = PORTAL_ORDERS.filter(o=>{
+        if(o.status!=='done' && o.status!=='cancelled') return false;
+        const t = o.updatedAt && o.updatedAt.toMillis ? o.updatedAt.toMillis() : (o.createdAt && o.createdAt.toMillis ? o.createdAt.toMillis() : 0);
+        return t>0 && Date.now()-t > 24*3600*1000;
+      });
+      if(_exp.length){
+        PORTAL_ORDERS = PORTAL_ORDERS.filter(o=>!_exp.includes(o));
+        if(isAdminLike()){
+          _exp.forEach(o=>{ const p = db.collection('portalOrders').doc(o.id).delete(); trackWrite(p); p.catch(e=>console.error('portal cleanup', e)); });
+        }
+      }
       if(portalFirstLoad){
         portalFirstLoad = false;
         const n = PORTAL_ORDERS.filter(o=>(o.status||'new')==='new').length;
@@ -11416,7 +11428,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.19): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.20): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
