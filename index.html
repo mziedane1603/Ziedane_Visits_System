@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.16)</title>
+<title>Ziedane CRM (v3.17)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1046,7 +1046,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.16';
+const APP_VERSION = '3.17';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -10939,7 +10939,7 @@ function viewCityYearCompare(){
   const monthsDiv = _isCur ? Math.max(_now.getMonth() + _now.getDate()/30, 0.1) : 12;
   const monthsTxt = monthsDiv.toFixed(2).replace(/\.?0+$/,'');
   const avgCust = d=>d.cust.reduce((a,b)=>a+b,0)/monthsDiv;
-  // الهدف المتوقع: متوسط/عميل = 70% من الهدف (لأقرب ألف) | عملاء/شهر = 80% من الهدف (لأقرب 10)
+  // الهدف المتوقع: مبيعات/شهر للمدينة = 70% من الهدف (لأقرب ألف) | عملاء/شهر = 80% من الهدف (لأقرب 10)
   const tgtAvg = v=> v>0 ? Math.round(v/0.7/1000)*1000 : 0;
   const tgtCust = v=> v>0 ? Math.round(v/0.8/10)*10 : 0;
   const tdc = 'text-align:center;';
@@ -10986,11 +10986,11 @@ function viewCityYearCompare(){
       <div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">الجدول الشهري لكل مدينة</h2>
         <div class="segRow" style="margin:0;"><button class="seg ${cityCmpState.screen==='months'?'on':''}" onclick="setCityCmp('screen','months')">📅 المدن والشهور</button><button class="seg ${cityCmpState.screen==='summary'?'on':''}" onclick="setCityCmp('screen','summary')">🎯 الملخص والهدف</button></div></div>
       ${cityCmpState.screen==='months' ? `<div class="segRow" style="margin:0 0 6px;">${seg('both','مبيعات + عملاء')}${seg('sales','المبيعات')}${seg('cust','العملاء المتعاملين')}</div>` : ''}
-      ${cityCmpState.screen==='summary' ? `<div class="tableWrap"><table><thead><tr><th>المدينة</th><th style="${tdc}">الإجمالي</th><th style="${tdc}">عملاء السنة</th><th style="${tdc}">متوسط/عميل</th><th style="${tdc}">عملاء/شهر</th><th style="${tdc}">مبيعات/شهر</th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">متوسط/عميل</div></th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">عملاء/شهر</div></th></tr></thead>
+      ${cityCmpState.screen==='summary' ? `<div class="tableWrap"><table><thead><tr><th>المدينة</th><th style="${tdc}">الإجمالي</th><th style="${tdc}">عملاء السنة</th><th style="${tdc}">متوسط/عميل</th><th style="${tdc}">عملاء/شهر</th><th style="${tdc}">مبيعات/شهر</th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">مبيعات/شهر</div></th><th style="${tdc}">الهدف المتوقع<div style="font-size:10px;font-weight:600;">عملاء/شهر</div></th></tr></thead>
         <tbody>${data.map(d=>{ const pa = d.yearCust? d.total/d.yearCust:0, ac = avgCust(d);
-          return `<tr><td style="white-space:nowrap;font-weight:700;">${escapeHTML(d.city)}</td><td style="${tdc}font-weight:800;">${fmtK(d.total)}</td><td style="${tdc}font-weight:800;color:var(--teal-dark);">${d.yearCust}<div style="font-size:10px;color:var(--gray-500);font-weight:600;">من ${d.totalCust}</div></td><td style="${tdc}">${pa?fmtK(pa):'-'}</td><td style="${tdc}font-weight:800;color:var(--teal-dark);">${ac.toFixed(1)}</td><td style="${tdc}">${fmtK(d.total/monthsDiv)}</td><td style="${tdc}font-weight:800;">${pa?fmtK(tgtAvg(pa)):'-'}</td><td style="${tdc}font-weight:800;">${ac?tgtCust(ac):'-'}</td></tr>`; }).join('')}
-        <tr style="font-weight:800;background:var(--teal-lighter);"><td>الإجمالي</td><td style="${tdc}">${fmtK(yearTotal)}</td><td style="${tdc}">${yearCustTotal}</td><td style="${tdc}">${yearCustTotal?fmtK(yearTotal/yearCustTotal):'-'}</td><td style="${tdc}">${(totCust.reduce((a,b)=>a+b,0)/monthsDiv).toFixed(1)}</td><td style="${tdc}">${fmtK(yearTotal/monthsDiv)}</td><td style="${tdc}">${yearCustTotal?fmtK(tgtAvg(yearTotal/yearCustTotal)):'-'}</td><td style="${tdc}">${tgtCust(totCust.reduce((a,b)=>a+b,0)/monthsDiv)||'-'}</td></tr></tbody></table></div>
-      <div class="smallMuted" style="margin-top:6px;">المتوسط الشهري = إجمالي السنة ÷ ${monthsTxt} شهر (شهور كاملة + يوم النهاردة ÷ 30). الهدف المتوقع: متوسط/عميل = 70% من الهدف (مقرب لأقرب ألف)، وعملاء/شهر = 80% من الهدف (مقرب لأقرب 10).</div>`
+          return `<tr><td style="white-space:nowrap;font-weight:700;">${escapeHTML(d.city)}</td><td style="${tdc}font-weight:800;">${fmtK(d.total)}</td><td style="${tdc}font-weight:800;color:var(--teal-dark);">${d.yearCust}<div style="font-size:10px;color:var(--gray-500);font-weight:600;">من ${d.totalCust}</div></td><td style="${tdc}">${pa?fmtK(pa):'-'}</td><td style="${tdc}font-weight:800;color:var(--teal-dark);">${ac.toFixed(1)}</td><td style="${tdc}">${fmtK(d.total/monthsDiv)}</td><td style="${tdc}font-weight:800;">${d.total>0?tgtAvg(d.total/monthsDiv).toLocaleString('en-US'):'-'}</td><td style="${tdc}font-weight:800;">${ac?tgtCust(ac):'-'}</td></tr>`; }).join('')}
+        <tr style="font-weight:800;background:var(--teal-lighter);"><td>الإجمالي</td><td style="${tdc}">${fmtK(yearTotal)}</td><td style="${tdc}">${yearCustTotal}</td><td style="${tdc}">${yearCustTotal?fmtK(yearTotal/yearCustTotal):'-'}</td><td style="${tdc}">${(totCust.reduce((a,b)=>a+b,0)/monthsDiv).toFixed(1)}</td><td style="${tdc}">${fmtK(yearTotal/monthsDiv)}</td><td style="${tdc}">${yearTotal>0?tgtAvg(yearTotal/monthsDiv).toLocaleString('en-US'):'-'}</td><td style="${tdc}">${tgtCust(totCust.reduce((a,b)=>a+b,0)/monthsDiv)||'-'}</td></tr></tbody></table></div>
+      <div class="smallMuted" style="margin-top:6px;">المتوسط الشهري = إجمالي السنة ÷ ${monthsTxt} شهر (شهور كاملة + يوم النهاردة ÷ 30). الهدف المتوقع: مبيعات/شهر للمدينة = 70% من الهدف (مقرب لأقرب ألف)، وعملاء/شهر = 80% من الهدف (مقرب لأقرب 10).</div>`
       : `<div class="tableWrap"><table><thead><tr><th>المدينة</th>${MONTH_SHORT.map(m=>`<th style="text-align:center;padding:8px 3px;font-size:11px;">${m}</th>`).join('')}<th style="${tdc}">الإجمالي</th><th style="${tdc}">عملاء/شهر</th><th style="${tdc}">مبيعات/شهر</th></tr></thead>
         <tbody>${rowsM}${totalRowM}</tbody></table></div>
       <div class="smallMuted" style="margin-top:6px;">العميل المتعامل في شهر = مبيعاته في الشهر دي أكبر من صفر. الأرقام بالمختصر (K = ألف، M = مليون)، وتدرّج اللون بيوضح الأعلى في كل مدينة. المتوسط الشهري = إجمالي السنة ÷ ${monthsTxt} شهر (شهور كاملة + يوم النهاردة ÷ 30).</div>`}
@@ -11404,7 +11404,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.16): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.17): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
