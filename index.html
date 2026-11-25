@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.18)</title>
+<title>Ziedane CRM (v3.19)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1046,7 +1046,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.18';
+const APP_VERSION = '3.19';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -9325,6 +9325,9 @@ function updateCustomerSalesResults(){
   if(tableEl) tableEl.innerHTML = customerSalesTableHTML(list);
 }
 
+// هدف المبيعات للعميل: متوسط المبيعات الفعلي = 70% من الهدف (مقرب لأقرب 1000)
+const CUST_TARGET_PCT = 70, CUST_TARGET_ROUND = 1000;
+function custSalesTarget(c){ const a = calcActualAverage(c); return a>0 ? Math.round(a/(CUST_TARGET_PCT/100)/CUST_TARGET_ROUND)*CUST_TARGET_ROUND : 0; }
 function customerSalesTableHTML(list){
   const rows = list.slice(0,300).map(c=>`
     <tr>
@@ -9334,10 +9337,11 @@ function customerSalesTableHTML(list){
       <td><span class="badge badge-gray">${escapeHTML(c.paymentStatus||'')}</span></td>
       <td style="font-weight:700;">${fmtMoney(c.total)}</td>
       <td>${fmtMoney(calcActualAverage(c))}</td>
+      <td style="font-weight:700;color:var(--teal-dark);">${custSalesTarget(c)? fmtMoney(custSalesTarget(c)) : '-'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openMonthlyDetailModal(${escapeHTML(JSON.stringify(c.id))})">📅 تفاصيل شهرية</button></td>
-    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:24px;">لا توجد نتائج</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--gray-500);padding:24px;">لا توجد نتائج</td></tr>`;
   return `<table><thead><tr>
-      <th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>حالة الدفع</th><th>إجمالي المبيعات</th><th>متوسط المبيعات الفعلي</th><th></th>
+      <th>الكود</th><th>اسم العميل</th><th>المدينة</th><th>حالة الدفع</th><th>إجمالي المبيعات</th><th>متوسط المبيعات الفعلي</th><th>هدف المبيعات</th><th></th>
     </tr></thead><tbody>${rows}</tbody></table>
     ${list.length>300?`<div class="smallMuted" style="text-align:center;margin-top:8px;">تم عرض أول 300 نتيجة - استخدم البحث لتضييق النتائج</div>`:''}`;
 }
@@ -11412,7 +11416,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.18): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.19): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
