@@ -17,7 +17,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ziedane CRM (v3.20)</title>
+<title>Ziedane CRM (v3.23)</title>
 
 <!-- ============================================================
   إعداد Firebase (مطلوب قبل التشغيل):
@@ -1046,7 +1046,7 @@ setTimeout(()=>{
 const PAYMENT_STATUSES = ['نقدي فوري','نقدي أخر الشهر','اجل'];
 const MONTH_KEYS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MONTH_LABELS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-const APP_VERSION = '3.20';
+const APP_VERSION = '3.23';
 
 function escapeHTML(s){
   if(s===null||s===undefined) return '';
@@ -1884,7 +1884,7 @@ lazyScoped('agreements', 'agreements', l=>{ AGREEMENTS = l; });
 lazyScoped('customerSales', 'customerSales', l=>{ CUSTOMER_SALES = l; });
 lazyScoped('citySales', 'citySales', l=>{ CITY_SALES_RAW = l; rebuildCitySales(); });
 lazyListen('salesAnalytics', ()=>db.collection('salesAnalytics'), snap=>{ SALES_ANALYTICS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('salesAnalytics'); });
-lazyListen('plannedVisits', ()=>db.collection('plannedVisits'), snap=>{ PLANNED_VISITS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('plannedVisits'); });
+lazyListen('plannedVisits', ()=>(CURRENT_USER && CURRENT_USER.role==='rep' && CURRENT_USER.repId) ? db.collection('plannedVisits').where('repId','==',CURRENT_USER.repId) : db.collection('plannedVisits'), snap=>{ PLANNED_VISITS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('plannedVisits'); });
 lazyListen('usage', ()=>db.collection('usage').where('date','>=',localISO(new Date(Date.now()-60*86400000))), snap=>{ USAGE = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('usage'); });
 lazyListen('inventory', ()=>db.collection('inventory'), snap=>{ INVENTORY = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('inventory'); });
 lazyListen('bonusOffers', ()=>db.collection('bonusOffers'), snap=>{ BONUS_OFFERS = snap.docs.map(d=>({id:d.id, ...d.data()})); renderIfNeeds('bonusOffers'); });
@@ -1914,7 +1914,8 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
   let suggOrdersFirstLoad = true;
   DATA_ATTACHERS['suggestedOrders'] = ()=>{
     suggOrdersFirstLoad = true;
-    unsubs.push(db.collection('suggestedOrders').orderBy('createdAt','desc').limit(300).onSnapshot(snap=>{
+    const _soQ = isAdminLike() ? db.collection('suggestedOrders').orderBy('createdAt','desc').limit(300) : db.collection('suggestedOrders').where('repUsername','==',CURRENT_USER.username);
+    unsubs.push(_soQ.onSnapshot(snap=>{
       if(!suggOrdersFirstLoad){
         snap.docChanges().forEach(ch=>{
           const data = {id:ch.doc.id, ...ch.doc.data()};
@@ -1932,6 +1933,7 @@ lazyListen('users', ()=>db.collection('users'), snap=>{
         });
       }
       SUGGESTED_ORDERS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(!isAdminLike()) SUGGESTED_ORDERS.sort((x,y)=>((y.createdAt&&y.createdAt.toMillis?y.createdAt.toMillis():0)-(x.createdAt&&x.createdAt.toMillis?x.createdAt.toMillis():0)));
       suggOrdersFirstLoad = false;
       renderIfNeeds('suggestedOrders');
     }, err=>console.error('suggestedOrders listener', err)));
@@ -5066,10 +5068,10 @@ function viewPortalOrders(){
         <div><b>${escapeHTML(o.orderNo||'')}</b> · ${escapeHTML(c.name)}</div>
         <span style="background:${st[1]};color:${st[2]};padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;">${st[0]}</span>
       </div>
-      <div class="smallMuted" style="margin:3px 0;">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''} · ${portalFmtTs(o.createdAt||o.createdAtClient)} · ${o.itemsCount||(o.items||[]).length} صنف · <b>${fmtMoney(o.total||0)}</b></div>
+      <div class="smallMuted" style="margin:3px 0;">كود ${escapeHTML(c.code)}${c.city?' · '+escapeHTML(c.city):''} · ${portalFmtTs(o.createdAt||o.createdAtClient)} · ${Number(o.itemsCount)||(o.items||[]).length} صنف · <b>${fmtMoney(Number(o.total)||0)}</b></div>
       <details style="margin:6px 0;"><summary style="cursor:pointer;color:var(--teal-dark);font-weight:700;font-size:13px;">تفاصيل الأصناف</summary>
         <div class="tableWrap"><table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الصافي</th><th>بونص</th></tr></thead><tbody>
-        ${(o.items||[]).map(it=>`<tr><td style="white-space:normal;min-width:160px;">${escapeHTML(it.n)}<div class="smallMuted">${escapeHTML(it.c||'')}</div></td><td>${it.q}</td><td>${fmtMoney(it.p||0)}</td><td>${it.d?it.d+'%':'-'}</td><td>${fmtMoney((it.net||0)*(it.q||0))}</td><td>${it.b?'🎁 '+escapeHTML(it.b):'-'}</td></tr>`).join('')}
+        ${(o.items||[]).map(it=>`<tr><td style="white-space:normal;min-width:160px;">${escapeHTML(it.n)}<div class="smallMuted">${escapeHTML(it.c||'')}</div></td><td>${Number(it.q)||0}</td><td>${fmtMoney(Number(it.p)||0)}</td><td>${Number(it.d)?(Number(it.d)+'%'):'-'}</td><td>${fmtMoney((it.net||0)*(it.q||0))}</td><td>${it.b?'🎁 '+escapeHTML(it.b):'-'}</td></tr>`).join('')}
         </tbody></table></div>
         ${o.note?`<div class="smallMuted">📝 ${escapeHTML(o.note)}</div>`:''}
       </details>
@@ -10204,7 +10206,45 @@ function makeTableSortable(table){
    FOLLOWUP (متابعة العملاء) - شاشة التلي سيلز: تسجيل متابعة بسيطة (عميل + نتيجة)
    منفصلة تماماً عن زيارات المندوبين (مجموعة بيانات مختلفة ونتائج مختلفة)
    ========================================================================== */
-let followupState = {customer:null, resultId:null, rating:0};
+let followupState = {customer:null, resultId:null, rating:0, method:'', note:''};
+const FOLLOWUP_DAILY_TARGET = 30;      // هدف المتابعات اليومي لكل تلي سيلز
+const FOLLOWUP_STALE_DAYS = 14;        // العميل اللي مااتتابعش من أكتر من كده يظهر في "محتاجين متابعة"
+const FU_METHODS = {whatsapp:'💬 واتساب', call:'📞 اتصال'};
+function fuDaysAgoISO(n){ const d = new Date(); d.setDate(d.getDate()-n); return localISO(d); }
+function setFollowupMethod(m){ followupState.method = m; renderView(); }
+// الأزرار دي بتفتح الاتصال/الواتساب وتختار طريقة التواصل تلقائي
+function followupContactHTML(phone){
+  if(!phone) return `<div class="smallMuted" style="margin-top:6px;">⚠️ مفيش رقم هاتف للعميل ده</div>`;
+  const telClean = String(phone).replace(/[^\d+]/g,''), wa = toWhatsAppNumber(phone);
+  return `<div style="display:flex;gap:8px;margin-top:8px;">
+    <a href="tel:${telClean}" class="btn btn-primary btn-sm" style="flex:1;text-align:center;" onclick="followupState.method='call'">📞 اتصال</a>
+    <a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="flex:1;text-align:center;" onclick="followupState.method='whatsapp'">💬 واتساب</a></div>`;
+}
+function followupNeedList(){
+  const last = new Map();
+  FOLLOWUPS.forEach(f=>{ const c = f.customerCode; if(c && (f.date||'') > (last.get(c)||'')) last.set(c, f.date||''); });
+  const cut = fuDaysAgoISO(FOLLOWUP_STALE_DAYS);
+  return visibleCustomers().map(c=>({c, last:last.get(c.code)||''})).filter(x=>!x.last || x.last < cut)
+    .sort((a,b)=>(a.last||'').localeCompare(b.last||''));
+}
+function followupTargetCardHTML(){
+  const today = todayISO();
+  const n = FOLLOWUPS.filter(f=>f.telesalesUsername===CURRENT_USER.username && f.date===today).length;
+  const pct = Math.min(100, Math.round(n/FOLLOWUP_DAILY_TARGET*100));
+  const col = pct>=100 ? 'var(--teal)' : (pct>=50 ? '#D68910' : '#C0392B');
+  return `<div class="card"><div style="display:flex;justify-content:space-between;font-weight:800;margin-bottom:6px;"><span>🎯 هدف النهاردة</span><span>${n} / ${FOLLOWUP_DAILY_TARGET}</span></div>
+    <div style="height:10px;background:var(--gray-100,#eef2f2);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};"></div></div>
+    <div class="smallMuted" style="margin-top:6px;">${n>=FOLLOWUP_DAILY_TARGET?'🎉 حققت هدف اليوم':`فاضل ${FOLLOWUP_DAILY_TARGET-n} متابعة`}</div></div>`;
+}
+function followupNeedCardHTML(){
+  const list = followupNeedList();
+  if(!list.length) return '';
+  const rows = list.slice(0,15).map(x=>`<div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-200,#e2e8e8);cursor:pointer;" onclick="pickFollowupCustomer(${escapeHTML(JSON.stringify(x.c.code))})">
+      <div><div style="font-weight:700;">${escapeHTML(x.c.name)}</div><div class="smallMuted">كود ${escapeHTML(x.c.code)} · ${escapeHTML(x.c.city||'')}</div></div>
+      <span class="badge ${x.last?'badge-amber':'badge-red'}">${x.last?('آخر متابعة '+fmtDate(x.last)):'عمره ما اتتابع'}</span></div>`).join('');
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">📋 محتاجين متابعة (${list.length})</h2></div>
+    <div class="smallMuted" style="margin-bottom:4px;">عملاء مااتتابعوش من أكتر من ${FOLLOWUP_STALE_DAYS} يوم، الأقدم الأول. اضغط على العميل تبدأ.</div>${rows}</div>`;
+}
 
 function currentFollowupResults(){ return FOLLOWUP_RESULTS.slice().sort((a,b)=>(a.order||0)-(b.order||0)); }
 
@@ -10235,6 +10275,7 @@ function viewFollowup(){
       </div>
       <button class="btn btn-ghost btn-sm" onclick="clearFollowupCustomer()">تغيير ✕</button>
     </div>
+    ${followupContactHTML(followupState.customer.phone)}
     ${claimInfoHTML(followupState.customer.code)}
   ` : `
     <div style="display:flex;gap:6px;align-items:center;">
@@ -10253,11 +10294,13 @@ function viewFollowup(){
       <td>${fmtDate(f.date)}</td>
       <td>${escapeHTML(f.customerName||'')}</td>
       <td>${resultBadgeGeneric(f.resultName, FOLLOWUP_RESULTS)}</td>
+      <td>${FU_METHODS[f.method]||'-'}</td>
       <td>${starsHTML(f.rating)}</td>
-    </tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--gray-500);padding:20px;">لا توجد متابعات مسجلة بعد</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--gray-500);padding:20px;">لا توجد متابعات مسجلة بعد</td></tr>`;
 
   return `
     <div class="pageHead"><div><h2>متابعة العملاء</h2><div class="desc">${fmtDateArabic(todayISO())}</div></div></div>
+    ${followupTargetCardHTML()}
     <div class="card">
       <div class="field"><label>العميل</label>${custSection}</div>
       <div class="field"><label>نتيجة المتابعة</label>
@@ -10265,11 +10308,15 @@ function viewFollowup(){
           ${defs.length ? defs.map(d=>`<option value="${d.id}" ${curResultId===d.id?'selected':''}>${escapeHTML(d.name)}</option>`).join('') : '<option value="">لا توجد نتائج معرّفة بعد</option>'}
         </select>
       </div>
+      <div class="field"><label>طريقة التواصل</label>
+        <div style="display:flex;gap:8px;">${Object.keys(FU_METHODS).map(k=>`<button type="button" class="seg ${followupState.method===k?'on':''}" style="flex:1;" onclick="setFollowupMethod('${k}')">${FU_METHODS[k]}</button>`).join('')}</div></div>
+      <div class="field"><label>ملاحظة (اختياري)</label><textarea id="fFollowNote" rows="2" maxlength="300" placeholder="مثال: وعد بالطلب الأسبوع الجاي" oninput="followupState.note=this.value">${escapeHTML(followupState.note||'')}</textarea></div>
       <button class="btn btn-primary btn-block" onclick="saveFollowup()">💾 حفظ المتابعة</button>
     </div>
+    ${followupState.customer ? '' : followupNeedCardHTML()}
     <div class="card">
       <div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">آخر متابعاتي</h2></div>
-      <div class="tableWrap"><table><thead><tr><th>التاريخ</th><th>العميل</th><th>النتيجة</th><th>التقييم</th></tr></thead>
+      <div class="tableWrap"><table><thead><tr><th>التاريخ</th><th>العميل</th><th>النتيجة</th><th>التواصل</th><th>التقييم</th></tr></thead>
       <tbody>${recentRows}</tbody></table></div>
     </div>
   `;
@@ -10285,13 +10332,83 @@ function viewFollowupAdminAndReports(){
   const tabs = `
     <div class="tabsRow">
       <button class="tabBtn ${followupPageTab==='log'?'active':''}" onclick="followupPageTab='log'; renderView();">السجل التفصيلي</button>
+      <button class="tabBtn ${followupPageTab==='mgr'?'active':''}" onclick="followupPageTab='mgr'; renderView();">📑 تقارير المدير</button>
+      <button class="tabBtn ${followupPageTab==='perf'?'active':''}" onclick="followupPageTab='perf'; renderView();">📊 متابعة الأداء</button>
       <button class="tabBtn ${followupPageTab==='matrix'?'active':''}" onclick="followupPageTab='matrix'; renderView();">الملخص الشهري</button>
     </div>`;
   return `
     <div class="pageHead"><div><h2>متابعة العملاء</h2><div class="desc">سجل متابعات التلي سيلز وتحليل الأداء الشهري في مكان واحد</div></div></div>
     ${tabs}
-    ${followupPageTab==='matrix' ? viewFollowupMatrixReport() : viewFollowupAdminList()}
+    ${followupPageTab==='matrix' ? viewFollowupMatrixReport() : followupPageTab==='perf' ? viewFollowupPerf() : followupPageTab==='mgr' ? viewFollowupMgrReports() : viewFollowupAdminList()}
   `;
+}
+let fuMgrMonth = todayISO().slice(0,7);
+function viewFollowupMgrReports(){
+  const mo = fuMgrMonth, inMo = FOLLOWUPS.filter(f=>(f.date||'').startsWith(mo));
+  const users = telesalesOptionsList();
+  const results = [...new Set(FOLLOWUP_RESULTS.slice().sort((a,b)=>(a.order||0)-(b.order||0)).map(d=>d.name).concat(inMo.map(f=>f.resultName).filter(Boolean)))];
+  // 1) نتائج المتابعة لكل تلي سيلز
+  const resRows = users.map(u=>{
+    const mine = inMo.filter(f=>f.telesalesUsername===u.username);
+    const avg = mine.length ? (mine.reduce((a,f)=>a+(Number(f.rating)||0),0)/mine.length).toFixed(1) : '-';
+    return `<tr><td style="font-weight:700;">${escapeHTML(u.name)}</td><td style="text-align:center;font-weight:800;">${mine.length}</td>${results.map(r=>`<td style="text-align:center;">${mine.filter(f=>f.resultName===r).length||'·'}</td>`).join('')}<td style="text-align:center;">${avg}</td></tr>`;
+  }).join('');
+  // 2) تغطية المدن: عملاء اتتابعوا في الشهر / إجمالي
+  const byCity = new Map();
+  visibleCustomers().forEach(c=>{ const k=c.city||'-'; if(!byCity.has(k)) byCity.set(k,{n:0,done:new Set()}); byCity.get(k).n++; });
+  const custCity = new Map(visibleCustomers().map(c=>[c.code,c.city||'-']));
+  inMo.forEach(f=>{ const k = custCity.get(f.customerCode); if(k && byCity.has(k)) byCity.get(k).done.add(f.customerCode); });
+  const cityRows = [...byCity.entries()].map(([k,v])=>({k,n:v.n,d:v.done.size,p:v.n?Math.round(v.done.size/v.n*100):0})).sort((a,b)=>a.p-b.p).map(r=>`<tr><td style="font-weight:700;">${escapeHTML(r.k)}</td><td style="text-align:center;">${r.n}</td><td style="text-align:center;font-weight:800;">${r.d}</td><td style="text-align:center;">${r.n-r.d}</td><td style="min-width:110px;"><div style="height:8px;background:#eef2f2;border-radius:99px;overflow:hidden;"><div style="height:100%;width:${r.p}%;background:${r.p>=70?'var(--teal)':r.p>=40?'#D68910':'#C0392B'};"></div></div><div class="smallMuted" style="text-align:center;">${r.p}%</div></td></tr>`).join('');
+  // 3) اتجاه آخر 14 يوم
+  const days = Array.from({length:14},(_,i)=>fuDaysAgoISO(13-i));
+  const dayCnt = days.map(d=>FOLLOWUPS.filter(f=>f.date===d).length), mx = Math.max(...dayCnt,1);
+  const trend = days.map((d,i)=>`<tr><td style="white-space:nowrap;">${fmtDate(d)}</td><td style="text-align:center;font-weight:800;">${dayCnt[i]}</td><td style="width:60%;"><div style="height:8px;background:#eef2f2;border-radius:99px;overflow:hidden;"><div style="height:100%;width:${Math.round(dayCnt[i]/mx*100)}%;background:var(--teal);"></div></div></td></tr>`).join('');
+  // 4) عملاء مهمَلين: من غير متابعة من أكتر من 30 يوم
+  const last = new Map(); FOLLOWUPS.forEach(f=>{ if(f.customerCode && (f.date||'')>(last.get(f.customerCode)||'')) last.set(f.customerCode,f.date||''); });
+  const cut30 = fuDaysAgoISO(30);
+  const neglected = visibleCustomers().map(c=>({c,l:last.get(c.code)||''})).filter(x=>!x.l||x.l<cut30).sort((a,b)=>a.l.localeCompare(b.l));
+  const negRows = neglected.slice(0,40).map(x=>`<tr><td>${escapeHTML(x.c.code)}</td><td>${escapeHTML(x.c.name)}</td><td>${escapeHTML(x.c.city||'')}</td><td>${x.l?fmtDate(x.l):'<span class="badge badge-red">عمره ما اتتابع</span>'}</td></tr>`).join('');
+  // 5) ملخص سريع
+  const wa = inMo.filter(f=>f.method==='whatsapp').length, cl = inMo.filter(f=>f.method==='call').length, noM = inMo.length-wa-cl;
+  const alerts = inMo.filter(f=>{ const d=FOLLOWUP_RESULTS.find(x=>x.name===f.resultName); return d&&d.alert===true; }).length;
+  const uniq = new Set(inMo.map(f=>f.customerCode)).size;
+  const kp = (ic,l,v)=>`<div class="kpi2"><div class="kic" style="background:var(--teal-light);color:var(--teal-dark);">${ic}</div><div class="kbody"><div class="klbl">${l}</div><div class="kval" style="font-size:17px;">${v}</div></div></div>`;
+  return `<div class="card"><div class="pageHead" style="margin-bottom:8px;"><h2 style="font-size:15px;">📑 تقارير مدير التلي سيلز</h2>
+      <input type="month" value="${mo}" onchange="fuMgrMonth=this.value||fuMgrMonth;renderView();"></div>
+    <div class="kpis" style="margin-bottom:0;">${kp('📞','إجمالي المتابعات',inMo.length)}${kp('👥','عملاء مختلفين',uniq)}${kp('💬','واتساب',wa)}${kp('📱','اتصال',cl)}${kp('🚨','نتائج تنبيه',alerts)}${noM?kp('❔','من غير طريقة تواصل (قديمة)',noM):''}</div></div>
+    <div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">النتائج لكل تلي سيلز</h2></div>
+      <div class="tableWrap"><table><thead><tr><th>التلي سيلز</th><th>الإجمالي</th>${results.map(r=>`<th style="text-align:center;">${escapeHTML(r)}</th>`).join('')}<th>متوسط التقييم</th></tr></thead><tbody>${resRows||'<tr><td colspan="9" style="text-align:center;padding:16px;">مفيش بيانات</td></tr>'}</tbody></table></div></div>
+    <div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">تغطية المدن (عملاء اتتابعوا في الشهر)</h2></div>
+      <div class="tableWrap"><table><thead><tr><th>المدينة</th><th>العملاء</th><th>اتتابعوا</th><th>لسه</th><th>التغطية</th></tr></thead><tbody>${cityRows}</tbody></table></div></div>
+    <div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">اتجاه آخر 14 يوم (كل التلي سيلز)</h2></div>
+      <div class="tableWrap"><table><tbody>${trend}</tbody></table></div></div>
+    <div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:14px;">🚫 عملاء مهمَلين (بدون متابعة +30 يوم): ${neglected.length}</h2></div>
+      <div class="tableWrap"><table><thead><tr><th>الكود</th><th>العميل</th><th>المدينة</th><th>آخر متابعة</th></tr></thead><tbody>${negRows||'<tr><td colspan="4" style="text-align:center;padding:16px;">كل العملاء اتتابعوا 👏</td></tr>'}</tbody></table></div>
+      ${neglected.length>40?`<div class="smallMuted" style="text-align:center;margin-top:6px;">أول 40 بس من ${neglected.length}</div>`:''}</div>`;
+}
+function viewFollowupPerf(){
+  const today = todayISO(), yest = fuDaysAgoISO(1), w = fuDaysAgoISO(6), mo = today.slice(0,7);
+  const users = telesalesOptionsList();
+  const rows = users.map(u=>{
+    const mine = FOLLOWUPS.filter(f=>f.telesalesUsername===u.username);
+    const cnt = fn=>mine.filter(fn).length;
+    const t = cnt(f=>f.date===today), y = cnt(f=>f.date===yest), wk = cnt(f=>(f.date||'')>=w), m = cnt(f=>(f.date||'').startsWith(mo));
+    const wa = cnt(f=>(f.date||'').startsWith(mo) && f.method==='whatsapp'), cl = cnt(f=>(f.date||'').startsWith(mo) && f.method==='call');
+    const last = mine.reduce((a,f)=>(f.date||'')>a?(f.date||''):a, '');
+    const pct = Math.round(t/FOLLOWUP_DAILY_TARGET*100);
+    const bad = t < FOLLOWUP_DAILY_TARGET/2;
+    return {u,t,y,wk,m,wa,cl,last,pct,bad};
+  }).sort((a,b)=>a.t-b.t);
+  const body = rows.map(r=>`<tr>
+    <td style="font-weight:700;">${escapeHTML(r.u.name)}</td>
+    <td style="text-align:center;font-weight:800;color:${r.bad?'#C0392B':'var(--teal-dark)'};">${r.t}<div class="smallMuted">${r.pct}%</div></td>
+    <td style="text-align:center;">${r.y}</td><td style="text-align:center;">${r.wk}</td><td style="text-align:center;font-weight:800;">${r.m}</td>
+    <td style="text-align:center;">💬 ${r.wa} · 📞 ${r.cl}</td>
+    <td style="text-align:center;">${r.last?fmtDate(r.last):'-'}</td></tr>`).join('') || `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-500);">مفيش تلي سيلز</td></tr>`;
+  const stale = followupNeedList().length;
+  return `<div class="card"><div class="pageHead" style="margin-bottom:6px;"><h2 style="font-size:15px;">📊 متابعة أداء التلي سيلز</h2></div>
+    <div class="smallMuted" style="margin-bottom:8px;">الهدف اليومي ${FOLLOWUP_DAILY_TARGET} متابعة. الأحمر = أقل من نص الهدف النهاردة. عملاء مااتتابعوش من ${FOLLOWUP_STALE_DAYS} يوم: <b>${stale}</b></div>
+    <div class="tableWrap"><table><thead><tr><th>التلي سيلز</th><th>النهاردة</th><th>امبارح</th><th>آخر 7 أيام</th><th>الشهر</th><th>واتساب / اتصال (الشهر)</th><th>آخر نشاط</th></tr></thead><tbody>${body}</tbody></table></div></div>`;
 }
 function followupAdminFilteredList(){
   let list = FOLLOWUPS.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -10313,12 +10430,13 @@ function followupAdminTableHTML(list){
       <td>${escapeHTML(f.telesalesName||f.telesalesUsername||'')}</td>
       <td>${escapeHTML(f.customerName||'')} <span class="smallMuted">#${escapeHTML(f.customerCode||'')}</span></td>
       <td>${escapeHTML(f.city||'')}</td>
-      <td>${resultBadgeGeneric(f.resultName, FOLLOWUP_RESULTS)}</td>
+      <td>${resultBadgeGeneric(f.resultName, FOLLOWUP_RESULTS)}${f.note?`<div class="smallMuted" style="white-space:normal;">📝 ${escapeHTML(f.note)}</div>`:''}</td>
+      <td>${FU_METHODS[f.method]||'-'}</td>
       <td>${starsHTML(f.rating)}</td>
       <td>${canManage ? `<button class="btn btn-ghost btn-sm" onclick="openEditFollowupModal('${f.id}')">✎</button><button class="btn btn-ghost btn-sm" onclick="deleteFollowup('${f.id}')">🗑</button>` : ''}</td>
-    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:24px;">لا توجد متابعات مطابقة</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--gray-500);padding:24px;">لا توجد متابعات مطابقة</td></tr>`;
   return `<table><thead><tr>
-        <th>التاريخ</th><th>التلي سيلز</th><th>العميل</th><th>المدينة</th><th>النتيجة</th><th>التقييم</th><th></th>
+        <th>التاريخ</th><th>التلي سيلز</th><th>العميل</th><th>المدينة</th><th>النتيجة</th><th>التواصل</th><th>التقييم</th><th></th>
       </tr></thead><tbody>${rows}</tbody></table>
       ${list.length>300?`<div class="smallMuted" style="text-align:center;margin-top:8px;">تم عرض أول 300 نتيجة</div>`:''}`;
 }
@@ -10479,6 +10597,7 @@ function clearFollowupCustomer(){
 async function saveFollowup(){
   if(!followupState.customer){ toast('برجاء اختيار العميل أولاً','warn'); return; }
   if(!followupState.resultId){ toast('برجاء اختيار نتيجة المتابعة','warn'); return; }
+  if(!FU_METHODS[followupState.method]){ toast('اختار طريقة التواصل: واتساب أو اتصال','warn'); return; }
   const resultDef = FOLLOWUP_RESULTS.find(d=>d.id===followupState.resultId);
   const payload = {
     customerCode: followupState.customer.code,
@@ -10488,6 +10607,8 @@ async function saveFollowup(){
     rating: followupState.rating,
     telesalesUsername: CURRENT_USER.username,
     telesalesName: CURRENT_USER.name || CURRENT_USER.username,
+    method: followupState.method,
+    note: String(followupState.note||'').trim().slice(0,300),
     date: todayISO(),
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -10495,7 +10616,7 @@ async function saveFollowup(){
     const p = db.collection('followups').add(payload);
     trackWrite(p);
     toast(navigator.onLine ? 'تم حفظ المتابعة بنجاح ✔' : 'تم الحفظ محلياً 📡 - سيتم الرفع عند توفر الاتصال', navigator.onLine?'ok':'warn');
-    followupState = {customer:null, resultId:null, rating:0};
+    followupState = {customer:null, resultId:null, rating:0, method:'', note:''};
     p.catch(e=>{ console.error(e); toast('فشل رفع المتابعة نهائياً - راجع الأدمن','err'); });
   }catch(e){
     console.error(e);
@@ -11428,7 +11549,7 @@ function drawSalesAnalyticsCharts(){
 </html>
 
 <!-- ============================================================
-REC_RULES (v3.20): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
+REC_RULES (v3.23): الصق القواعد دي في Firebase Console > Firestore Database > Rules ثم Publish
 (نفس النص موجود في ملف firestore.rules المرفق)
 
 rules_version = '2';
@@ -11436,6 +11557,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===== تعريفات الأدوار =====
+    function pad2(n) { return (n < 10 ? '0' : '') + string(n); }
+    function isoDate(t) { return string(t.year()) + '-' + pad2(t.month()) + '-' + pad2(t.day()); }
+
     function isSignedIn() { return request.auth != null; }
     function profileDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
     // موظف = مستخدم عنده مستند في users وحسابه مش موقوف (حسابات العملاء مالهاش مستند هناك)
@@ -11516,13 +11640,21 @@ service cloud.firestore {
             && request.resource.data.createdAt == request.time
             && request.resource.data.date is string
             && request.resource.data.date.matches('^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+            // (1) id ثابت = مندوب_تاريخ_كود: التكرار بيتحوّل لـ update والـ update ممنوع للمندوب
+            && (id == request.resource.data.repId + '_' + request.resource.data.date + '_' + request.resource.data.customerCode
+                || request.resource.data.customerCode.matches('.*/.*') || request.resource.data.repId.matches('.*/.*'))
+            // (2) التاريخ لازم يكون قريب من وقت السيرفر: من 7 أيام فاتت لحد بكرة (7 أيام عشان الزيارات اللي بتتسجل أوفلاين وتترفع بعدين)
+            && request.resource.data.date >= isoDate(request.time - duration.value(7, 'd'))
+            && request.resource.data.date <= isoDate(request.time + duration.value(1, 'd'))
             && (!('rating' in request.resource.data) || (request.resource.data.rating is number && request.resource.data.rating >= 0 && request.resource.data.rating <= 10)));
       allow update, delete: if isAdmin();
     }
 
     // ===== خطة الزيارات =====
     match /plannedVisits/{id} {
-      allow read: if isStaff();
+      // المندوب يقرا خطته هو بس (الاستعلام لازم يحتوي where repId == ...)
+      allow read: if isAdminOrManager() || myRole() == 'telesales'
+        || (isRep() && resource.data.get('repId', '') == myRepId());
       allow create: if isAdminOrManager()
         || (isRep() && request.resource.data.repId == myRepId());
       allow update: if isAdmin();
@@ -11555,7 +11687,8 @@ service cloud.firestore {
 
     // ===== الطلبيات المقترحة من المناديب =====
     match /suggestedOrders/{id} {
-      allow read: if isStaff();
+      // المندوب يقرا طلبياته هو بس (الاستعلام لازم يحتوي where repUsername == ...)
+      allow read: if isAdminOrManager() || (isStaff() && resource.data.get('repUsername', '') == myUsername());
       allow create: if isStaff() && request.resource.data.repUsername == myUsername();
       allow update, delete: if isAdminOrManager();
     }
@@ -11601,7 +11734,11 @@ service cloud.firestore {
         && request.resource.data.username == myUsername()
         && id == request.resource.data.date + '_' + myUsername();
     }
-    match /agreements/{id}         { allow read: if sameCity(); allow write: if isAdminOrManager(); }
+    match /agreements/{id} {
+      allow read: if sameCity();
+      allow create, update: if isAdminOrManager();
+      allow delete: if isAdmin();   // الحذف للأدمن بس (زي الواجهة)
+    }
     match /customerSales/{id}      { allow read: if sameCity(); allow write: if isAdmin(); }
     match /citySales/{id}          { allow read: if sameCity(); allow write: if isAdmin(); }
     // تحليلات المبيعات: للإدارة فقط
@@ -11648,13 +11785,23 @@ service cloud.firestore {
       allow create: if isCustomer()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.acctKey == myKey()
+        && request.resource.data.keys().hasOnly(['uid','acctKey','orderNo','status','items','itemsCount','total','note','createdAt','createdAtClient'])
+        && request.resource.data.keys().hasAll(['uid','acctKey','orderNo','status','items','total','createdAt'])
         && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.orderNo is string && request.resource.data.orderNo.size() <= 20
+        && request.resource.data.total is number && request.resource.data.total >= 0 && request.resource.data.total < 1000000000
+        && (!('itemsCount' in request.resource.data) || (request.resource.data.itemsCount is int && request.resource.data.itemsCount <= 300))
+        && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 500))
         && request.resource.data.items is list
         && request.resource.data.items.size() > 0
         && request.resource.data.items.size() <= 300
         && get(/databases/$(database)/documents/portalAccounts/$(myKey())).data.active == true;
       allow read: if isStaff() || (isCustomer() && resource.data.uid == request.auth.uid);
-      allow update: if isStaff();
+      // الموظف يغيّر الحالة بس (مينفعش يعدّل الأصناف أو الإجمالي)
+      allow update: if isStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy'])
+        && request.resource.data.status in ['new','progress','done','cancelled'];
       allow delete: if isAdminOrManager();
     }
 

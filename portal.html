@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="طلبيات APC">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' https://visits-system-306d3.firebaseapp.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <link rel="manifest" href="portal.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -70,6 +71,7 @@ input,textarea{font-family:inherit;font-size:16px;}
 .bn{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;}
 .bt{font-size:11.5px;padding:2px 8px;border-radius:99px;background:#FBEEDB;color:#8a5a06;font-weight:700;}
 .bt.ok{background:var(--amber);color:#fff;}
+.nudge{width:100%;margin-top:2px;font-size:12px;font-weight:700;color:#8a5a06;background:#FFF6E5;border:1px dashed #F2D49B;border-radius:8px;padding:4px 8px;}
 .q{display:flex;align-items:center;gap:4px;flex:none;}
 .q button{width:34px;height:34px;border-radius:10px;border:none;background:var(--teal-l);color:var(--teal-d);font-size:20px;font-weight:800;line-height:1;}
 .q button.add{background:var(--teal);color:#fff;}
@@ -100,6 +102,10 @@ textarea{width:100%;border:1.5px solid var(--g2);border-radius:12px;padding:10px
 .oc td{padding:4px 2px;border-top:1px dashed var(--g2);vertical-align:top;} .oc td:last-child{text-align:left;white-space:nowrap;font-weight:700;}
 .warn{margin:8px 10px;background:#FFF6E5;border:1px solid #F2D49B;color:#7a5200;border-radius:12px;padding:10px 12px;font-size:12.5px;display:flex;gap:8px;align-items:center;justify-content:space-between;}
 .warn button{background:var(--amber);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-weight:800;font-size:12.5px;flex:none;}
+#instBanner{position:fixed;right:10px;left:10px;top:calc(10px + env(safe-area-inset-top,0px));z-index:98;background:#fff;border:1.5px solid var(--teal);border-radius:16px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;align-items:center;gap:10px;max-width:520px;margin:0 auto;}
+#instBanner .t{flex:1;min-width:0;font-weight:800;font-size:13.5px;line-height:1.5;} #instBanner .t span{display:block;font-weight:600;font-size:12px;color:var(--g5);}
+#instBanner .go{background:var(--teal);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-weight:800;flex:none;}
+#instBanner .x{background:none;border:none;font-size:18px;color:var(--g5);padding:6px;flex:none;}
 #toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:12px;z-index:99;font-size:13px;max-width:90%;text-align:center;}
 .spin{width:28px;height:28px;border:3px solid var(--g2);border-top-color:var(--teal);border-radius:50%;animation:sp 1s linear infinite;margin:40px auto;} @keyframes sp{to{transform:rotate(360deg)}}
 </style>
@@ -145,6 +151,7 @@ textarea{width:100%;border:1.5px solid var(--g2);border-radius:12px;padding:10px
 </div>
 
 <button id="cartBar" class="hidden" onclick="openCart()"><span>🛒 <span id="cbN">0</span> صنف</span><span class="tot" id="cbT"></span><span class="go">مراجعة وإرسال</span></button>
+<div id="instBanner" class="hidden"><div class="t">📲 ثبّت تطبيق طلبيات الشركة<span>افتحه من الشاشة الرئيسية بسرعة زي أي تطبيق</span></div><button class="go" onclick="installApp();hideInstBanner(false)">تثبيت</button><button class="x" onclick="hideInstBanner(true)" aria-label="إغلاق">✕</button></div>
 <div id="toast" class="hidden"></div>
 <div id="ovRoot"></div>
 
@@ -261,6 +268,7 @@ async function enterApp(){
   $('list').innerHTML = '<div class="spin"></div>';
   try{ await loadCatalog(); }catch(e){ console.error(e); $('list').innerHTML = '<div class="empty">⚠️ تعذّر تحميل الأصناف. اتأكد من الإنترنت وحدّث الصفحة.</div>'; return; }
   restoreCart(); buildChips(); applyFilter(); updateBar();
+  if(!ME.pwChanged) openPw(true);   // أول دخول: لازم يغيّر كلمة المرور الافتراضية
 }
 async function loadCatalog(){
   const CK = 'apcCatalog';
@@ -307,10 +315,23 @@ function renderList(){
   const slice = MATCH.slice(0, shown);
   $('list').innerHTML = slice.map(rowHTML).join('') + (MATCH.length>shown ? `<button class="more" onclick="shown+=${PAGE};renderList()">عرض المزيد (${MATCH.length-shown})</button>` : '');
 }
+// تنبيه "قربت على الشريحة": لو ناقص 30% أو أقل من الشريحة اللي بعد الكمية الحالية
+const NUDGE_PCT = 0.30;
+function nudgeFor(x, q){
+  if(!(q>0)) return null;
+  const t = x.b.find(tr=>tr[0]>q);
+  if(!t) return null;
+  const miss = t[0]-q;
+  return (miss/t[0] <= NUDGE_PCT) ? {miss, t} : null;
+}
+function nudgeHTML(x, q){
+  const n = nudgeFor(x,q); if(!n) return '';
+  return `<div class="nudge">🎁 قربت على الشريحة! زوّد ${n.miss} بس وخد ${n.t[0]}+${n.t[1]} واستفيد من البونص</div>`;
+}
 function bonusChips(x, q){
   if(!x.b.length) return '';
   let best = -1; x.b.forEach((t,ix)=>{ if(q>=t[0]) best = ix; });
-  return `<div class="bn">${x.b.map((t,ix)=>`<span class="bt ${ix===best?'ok':''}">🎁 ${t[0]}+${t[1]}</span>`).join('')}</div>`;
+  return `<div class="bn">${x.b.map((t,ix)=>`<span class="bt ${ix===best?'ok':''}">🎁 ${t[0]}+${t[1]}</span>`).join('')}${nudgeHTML(x,q)}</div>`;
 }
 function qtyHTML(x, q){
   return q>0
@@ -360,7 +381,7 @@ function renderCart(){
   const rows = [...CART.entries()].map(([i,q])=>{
     const x = ITEMS[i], bt = bonusFor(x,q);
     return `<div class="cl2"><div class="main"><div class="nm">${esc(x.n)}</div>
-      <div class="sub"><span>${money(x.net)} × ${q} = <b>${money(x.net*q)}</b></span>${bt?`<span class="bt ok">🎁 عرض ${bt[0]}+${bt[1]}</span>`:''}</div></div>
+      <div class="sub"><span>${money(x.net)} × ${q} = <b>${money(x.net*q)}</b></span>${bt?`<span class="bt ok">🎁 عرض ${bt[0]}+${bt[1]}</span>`:''}</div>${bt?`<div class="sub" style="color:var(--teal-d);font-weight:800;">📦 هتستلم ${q+bt[1]} وحدة (${q} + ${bt[1]} بونص)</div>`:''}${nudgeHTML(x,q)}</div>
       <div class="q"><button onclick="chg(${i},-1)">−</button><input type="number" inputmode="numeric" value="${q}" onchange="setQ(${i},this.value)" onfocus="this.select()"><button onclick="chg(${i},1)">+</button></div></div>`;
   }).join('');
   $('cartBody').innerHTML = rows + `<textarea id="note" rows="2" placeholder="ملاحظات على الطلبية (اختياري)">${esc(window._note||'')}</textarea>`;
@@ -426,11 +447,12 @@ function repeatOrder(ix){
 }
 
 /* ===== كلمة المرور ===== */
-function openPw(){
-  showSheet(`<div class="sheet"><div class="sh"><h3>🔑 تغيير كلمة المرور</h3><button class="ib" onclick="closeSheet()">✕</button></div>
+function openPw(force){
+  const html = `<div class="sheet"><div class="sh"><h3>🔑 ${force===true?'اختار كلمة مرور جديدة (مطلوب)':'تغيير كلمة المرور'}</h3>${force===true?'':'<button class="ib" onclick="closeSheet()">✕</button>'}</div>
     <div class="sb"><div class="fld"><label>كلمة المرور الجديدة (4 حروف/أرقام على الأقل)</label><input id="np1" type="password" autocomplete="new-password"></div>
     <div class="fld"><label>تأكيد كلمة المرور</label><input id="np2" type="password" autocomplete="new-password"></div><div class="msg" id="npMsg"></div></div>
-    <div class="sf"><button class="btn" id="npBtn" onclick="savePw()">حفظ</button></div></div>`);
+    <div class="sf"><button class="btn" id="npBtn" onclick="savePw()">حفظ</button></div></div>`;
+  if(force===true) $('ovRoot').innerHTML = `<div class="ov">${html}</div>`; else showSheet(html);
 }
 async function savePw(){
   const a=$('np1').value, b=$('np2').value, m=$('npMsg');
@@ -470,6 +492,19 @@ async function installApp(){
       <div class="sf"><button class="btn" onclick="closeSheet()">تمام</button></div></div>`);
   }else{ toast('للتثبيت: من قائمة المتصفح ⋮ اختار «تثبيت التطبيق»'); }
 }
+function hideInstBanner(remember){
+  $('instBanner').classList.add('hidden');
+  if(remember){ try{ localStorage.setItem('apcInstDismiss', String(Date.now())); }catch(_){} }
+}
+// أول ما العميل يفتح البوابة: عرض "تثبيت التطبيق" (لو لسه مش متثبّت)، ولو قفله مبيظهرش تاني لمدة يومين
+function showInstBanner(){
+  if(IS_STANDALONE || !(_inst || IS_IOS)) return;
+  try{ const d = Number(localStorage.getItem('apcInstDismiss')||0); if(d && Date.now()-d < 2*24*3600*1000) return; }catch(_){}
+  $('instBanner').classList.remove('hidden');
+}
+window.addEventListener('beforeinstallprompt',()=>setTimeout(showInstBanner,800));
+window.addEventListener('appinstalled',()=>hideInstBanner(false));
+if(IS_IOS) setTimeout(showInstBanner,1200);
 refreshInstall();
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
 </script>
